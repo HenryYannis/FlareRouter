@@ -3,7 +3,7 @@
 [English](README.en.md) | 中文
 
 部署在单个 Cloudflare Worker 上的个人 AI 网关：同时提供 OpenAI 兼容接口和 Anthropic Messages 接口，把多家服务商收拢到一个地址、一把密钥，失败自动切换到下一家。
-面向一个人自用：没有用户体系、计费和配额，零构建，管理页是一个 HTML 文件。
+面向一个人自用：没有用户体系、计费和配额，零构建，管理页拆成 HTML/CSS/JS 后由入口注入成单页打进 Worker。
 
 - 管理服务商：名称、ID、协议类型（OpenAI 兼容 / Anthropic）、Base URL、API Key（页面只显示脱敏预览）、模型列表（可从服务商 `/models` 拉取勾选）、启用、顺序、超时
 - 统一接口：`/v1/chat/completions`（含流式 SSE 原样透传）、`/v1/embeddings`、`/v1/models`
@@ -13,7 +13,7 @@
 - 容灾切换：失败（网络错误、超时、任何非 2xx）就按容灾链换下一个；流式请求只在上游开始返回之前切换；请求头 `x-gateway-fallback: off` 可单次关闭
 - 调用密钥：`Authorization: Bearer` 或 `x-api-key` 鉴权，可在管理页生成多个、吊销、删除；D1 只存 SHA-256 哈希
 - 调用日志：存 D1，`ctx.waitUntil` 异步写；管理页可按状态/容灾/服务商/密钥/模型/错误关键词筛选，可清空；失败的每次尝试都记录上游原始报错
-- 管理页：同一个 Worker 的 `/admin`，管理员密码登录，中文界面、日间/夜间模式
+- 管理页：同一个 Worker 的 `/admin`，管理员密码登录，中文界面；日夜模式默认跟随系统（与 FlarePanel 一致），可手动切换，含星空与玻璃风格
 
 错误信息一律原文返回、原文显示，不做隐藏。
 
@@ -28,7 +28,7 @@ src/
   keys.js        调用密钥（D1）
   logs.js        调用日志（D1）
   admin.js       管理接口与登录会话
-  admin.html     管理页（单文件，打包进 Worker）
+  admin/         管理页前端（index.html + style.css + app.js，入口注入后打包进 Worker）
   util.js
 migrations/0001_init.sql   D1 表结构
 migrations/0002_protocols.sql   日志加「入口协议 / 上游协议」两列

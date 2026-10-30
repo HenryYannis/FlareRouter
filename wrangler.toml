@@ -10,10 +10,10 @@ workers_dev = true
 #   { pattern = "ai.example.com", custom_domain = true }
 # ]
 
-# 管理页 HTML 作为文本模块打包进 Worker
+# 管理页 HTML/CSS/前端 JS 作为文本模块打包进 Worker（勿把全局 **/*.js 标成 Text）
 [[rules]]
 type = "Text"
-globs = ["**/*.html"]
+globs = ["**/*.html", "**/*.css", "**/admin/app.js"]
 fallthrough = false
 
 # 每天 UTC 19:00（北京时间 03:00）按「日志保留天数」清理旧日志

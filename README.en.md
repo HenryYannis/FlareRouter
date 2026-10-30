@@ -3,7 +3,7 @@
 English | [中文](README.md)
 
 A personal AI gateway on a single Cloudflare Worker. It serves both an OpenAI-compatible API and the Anthropic Messages API, puts all your providers behind one URL and one key, and fails over to the next provider when one fails.
-Built for one person: no user accounts, billing or quotas, no build step, and the admin page is a single HTML file (Chinese UI, light/dark mode).
+Built for one person: no user accounts, billing or quotas, no build step. The admin UI is HTML/CSS/JS injected into one page and bundled into the Worker (Chinese UI; day/night theme follows the system like FlarePanel).
 
 ## Features
 
@@ -15,7 +15,7 @@ Built for one person: no user accounts, billing or quotas, no build step, and th
 - **Failover**: network error, timeout or any non-2xx moves to the next entry; streams switch only before the first byte; `x-gateway-fallback: off` disables it per request
 - **Gateway keys**: `Authorization: Bearer` or `x-api-key`; create, revoke and delete in the admin page; D1 stores only SHA-256 hashes
 - **Logs**: in D1, written with `ctx.waitUntil`; filter by status, failover, provider, key, model or error text; every failed attempt keeps the upstream's raw error
-- **Admin page**: `/admin` on the same Worker, password sign-in
+- **Admin page**: `/admin` on the same Worker, password sign-in; sources live in `src/admin/` (`index.html`, `style.css`, `app.js`)
 
 ## Deploy (local Wrangler)
 
