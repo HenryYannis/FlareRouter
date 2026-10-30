@@ -105,25 +105,27 @@ Providers, the failover chain and these settings are stored in KV and edited in 
 ### OpenAI-compatible API
 
 ```bash
+export GATEWAY_KEY=sk-gw-...   # a gateway key created in the admin page
+
 # List models
 curl https://ai.example.com/v1/models \
-  -H "Authorization: Bearer sk-gw-your-key"
+  -H "Authorization: Bearer $GATEWAY_KEY"
 
 # Non-streaming
 curl https://ai.example.com/v1/chat/completions \
-  -H "Authorization: Bearer sk-gw-your-key" \
+  -H "Authorization: Bearer $GATEWAY_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"openrouter/google/gemini-2.5-pro","messages":[{"role":"user","content":"Hello"}]}'
 
 # Streaming
 curl -N https://ai.example.com/v1/chat/completions \
-  -H "Authorization: Bearer sk-gw-your-key" \
+  -H "Authorization: Bearer $GATEWAY_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"auto","stream":true,"messages":[{"role":"user","content":"Write a line of poetry"}]}'
 
 # No failover for this request (a failure returns the upstream's raw error)
 curl https://ai.example.com/v1/chat/completions \
-  -H "Authorization: Bearer sk-gw-your-key" \
+  -H "Authorization: Bearer $GATEWAY_KEY" \
   -H "x-gateway-fallback: off" \
   -H "Content-Type: application/json" \
   -d '{"model":"gemini/gemini-2.5-flash","messages":[{"role":"user","content":"hi"}]}'
@@ -165,7 +167,7 @@ Errors use the entry point's format (`/v1/messages` returns `{"type":"error","er
 
 ```bash
 curl https://ai.example.com/v1/messages \
-  -H "x-api-key: sk-gw-your-key" \
+  -H "x-api-key: $GATEWAY_KEY" \
   -H "anthropic-version: 2023-06-01" \
   -H "Content-Type: application/json" \
   -d '{"model":"auto","max_tokens":256,"messages":[{"role":"user","content":"Hello"}]}'
