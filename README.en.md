@@ -102,6 +102,10 @@ npm run check           # wrangler deploy --dry-run
 
 See the Chinese README for the full notes.
 
+## Related
+
+- [FlarePanel](https://github.com/HenryYannis/FlarePanel): one dashboard for all your Cloudflare Pages sites (comments, page views, user accounts, R2 files), also build-free and Cloudflare-only.
+
 ## License
 
-[MIT](LICENSE) © 2026 程小宝 (Cheng Xiaobao)
+[MIT](LICENSE) © 2026 Cheng Xiaobao

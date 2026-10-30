@@ -208,6 +208,10 @@ npm run check                            # wrangler deploy --dry-run
   - 工具的 JSON Schema 原样转发；个别 OpenAI 兼容服务商对 Schema 较挑剔（如不认 `$schema`、`format`），用 Claude Code 调这类上游时可能报 400，报错原文会直接显示。
 - `/v1/messages/count_tokens` 不写调用日志；OpenAI 上游时是粗略估算。
 
-## 许可
+## 相关项目
 
-[MIT](LICENSE) © 2026 程小宝 (Cheng Xiaobao)
+- [FlarePanel](https://github.com/HenryYannis/FlarePanel)：Cloudflare Pages 多站点管理后台，管理评论、浏览量、会员账号和 R2 文件，同样零构建、纯 Cloudflare 部署。
+
+## 许可证
+
+[MIT](LICENSE) © 2026 程小宝
