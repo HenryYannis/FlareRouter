@@ -1,4 +1,4 @@
-# 每次开 PR、每次推送到 main 时运行：本地自测（Miniflare + 假上游）、打包检查、密钥扫描
+# 每次开 PR、每次推送到 main 时运行：语法检查、本地自测（Miniflare + 假上游）、打包检查、密钥扫描
 name: CI
 
 on:
@@ -18,15 +18,18 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
 
       - name: 安装依赖
         run: npm ci --no-audit --no-fund
+
+      - name: 语法检查（node --check）
+        run: for f in src/*.js test/*.mjs; do node --check "$f"; done
 
       - name: 自测（鉴权、转发、协议互转、流式、容灾、日志）
         run: npm test
