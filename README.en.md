@@ -45,7 +45,7 @@ npx wrangler deploy
 
 It deploys to `https://flarerouter.<your-subdomain>.workers.dev`. To use your own domain, set `workers_dev = false` in `wrangler.toml` and uncomment `routes` with your hostname (the zone must be in the same Cloudflare account); `wrangler deploy` creates the DNS record and certificate.
 
-Then open `https://your-host/admin`, sign in, add providers, arrange the failover chain, create a gateway key, and send a test message.
+Then open `https://your-host/admin`, sign in, add providers (leave the model list empty and saving pulls every model from the provider), arrange the failover chain, create a gateway key, and send a test message.
 
 To update, pull and run `npx wrangler deploy`; run `npm run db:migrate` again when a new migration ships.
 

@@ -287,7 +287,7 @@
       <input type="password" id="p-key" placeholder="留空则不修改" spellcheck="false" autocomplete="new-password">
       <label class="row small" id="p-clear-wrap"><input type="checkbox" id="p-clear"> 清除已保存的 Key</label>
       <div class="row" style="margin-top:10px">
-        <label class="f grow" for="p-models" style="margin:0">模型列表（逗号或换行分隔，第一个为默认）</label>
+        <label class="f grow" for="p-models" style="margin:0">模型列表（逗号或换行分隔，第一个为默认；留空保存会自动拉取全部）</label>
         <button class="btn sm" type="button" id="p-fetch">从服务商拉取</button>
       </div>
       <textarea id="p-models" spellcheck="false" style="margin-top:4px"></textarea>
@@ -295,7 +295,7 @@
         <div class="row" style="margin-top:6px">
           <input type="text" id="p-fetch-q" placeholder="搜索…" class="grow">
           <button class="btn sm" type="button" id="p-fetch-all">全选可见</button>
-          <button class="btn sm" type="button" id="p-fetch-apply">写入列表</button>
+          <button class="btn sm" type="button" id="p-fetch-none">取消可见</button>
         </div>
         <div class="models-box" id="p-fetch-list"></div>
       </div>
@@ -488,7 +488,11 @@
         note: $('#p-note').value.trim(), streamUsage: $('#p-usage').checked, enabled: $('#p-enabled').checked
       }
     };
-    try { setCfg(await api('/admin/api/providers', { body: body })); $('#dlg-prov').close(); toast('已保存'); }
+    try {
+      var res = await api('/admin/api/providers', { body: body });
+      setCfg(res); $('#dlg-prov').close();
+      toast(res.modelsNotice ? '已保存，' + res.modelsNotice : '已保存');
+    }
     catch (err) { $('#prov-err').textContent = err.message; }
   });
   $('#p-fetch').addEventListener('click', async function () {
@@ -496,6 +500,8 @@
     try {
       var r = await api('/admin/api/providers/fetch-models', { body: { id: state.editing, protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(), apiKey: $('#p-key').value.trim() } });
       state.fetched = r.models; $('#p-fetch-err').textContent = '';
+      // 列表还是空的：直接全选写入；已有列表则保持原样，勾选随点随写
+      if (!currentModels().length && r.models.length) { $('#p-models').value = r.models.join('\n'); toast('已写入全部 ' + r.models.length + ' 个模型'); }
       $('#p-fetch-box').classList.remove('hidden'); renderFetched();
     } catch (err) { $('#p-fetch-err').textContent = err.message; }
   });
@@ -508,16 +514,19 @@
     }).join('') : '<span class="muted small">没有匹配的模型（共 ' + state.fetched.length + ' 个）</span>';
   }
   $('#p-fetch-q').addEventListener('input', renderFetched);
-  $('#p-fetch-all').addEventListener('click', function () { $$('#p-fetch-list input').forEach(function (c) { c.checked = true; }); });
-  $('#p-fetch-apply').addEventListener('click', function () {
-    var cur = currentModels(), visible = $$('#p-fetch-list input');
-    visible.forEach(function (c) {
+  function syncFetched() {
+    var cur = currentModels();
+    $$('#p-fetch-list input').forEach(function (c) {
       var i = cur.indexOf(c.value);
       if (c.checked && i < 0) cur.push(c.value);
       if (!c.checked && i >= 0) cur.splice(i, 1);
     });
-    $('#p-models').value = cur.join('\n'); toast('已写入 ' + cur.length + ' 个模型');
-  });
+    $('#p-models').value = cur.join('\n');
+  }
+  $('#p-fetch-list').addEventListener('change', syncFetched);
+  $('#p-fetch-all').addEventListener('click', function () { $$('#p-fetch-list input').forEach(function (c) { c.checked = true; }); syncFetched(); });
+  $('#p-fetch-none').addEventListener('click', function () { $$('#p-fetch-list input').forEach(function (c) { c.checked = false; }); syncFetched(); });
+  $('#p-models').addEventListener('input', function () { if (!$('#p-fetch-box').classList.contains('hidden')) renderFetched(); });
 
   // ---- 容灾链 ----
   var chainDraft = [];

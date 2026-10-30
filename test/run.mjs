@@ -194,6 +194,15 @@ try {
   r = await admin('/admin/api/providers/fetch-models', { id: 'good' });
   let d = await j(r);
   ok(r.status === 200 && d.models.includes('vendor/m3') && seen.at(-1).auth === 'Bearer sk-good-secret-1234567890', '拉取模型用已保存 Key（编辑留空未清掉 Key）', JSON.stringify(d));
+  // 模型列表留空保存 -> 自动拉取全部写入；拉取失败照常保存并返回原因
+  r = await admin('/admin/api/providers', { provider: { id: 'autom', baseUrl: `${UP}/good/v1`, apiKey: 'sk-auto' } });
+  d = await j(r);
+  { const ap = d.providers.find((x) => x.id === 'autom'); ok(r.status === 200 && ap && ap.models.includes('vendor/m3') && /自动拉取并写入/.test(d.modelsNotice), '模型留空保存时自动拉取全部', JSON.stringify(d).slice(0, 300)); }
+  r = await admin('/admin/api/providers', { provider: { id: 'autobad', baseUrl: `${UP}/bad/v1`, apiKey: 'sk-x' } });
+  d = await j(r);
+  { const ap = d.providers.find((x) => x.id === 'autobad'); ok(r.status === 200 && ap && ap.models.length === 0 && /自动拉取失败/.test(d.modelsNotice), '自动拉取失败仍保存并说明原因', JSON.stringify(d).slice(0, 300)); }
+  await admin('/admin/api/providers/delete', { id: 'autom' });
+  await admin('/admin/api/providers/delete', { id: 'autobad' });
   r = await admin('/admin/api/providers/fetch-models', { id: 'bad' });
   d = await j(r);
   ok(r.status === 502 && d.error.includes('upstream exploded'), '拉取模型失败时返回上游原文', JSON.stringify(d));

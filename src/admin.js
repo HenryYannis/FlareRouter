@@ -139,13 +139,24 @@ export async function handleAdminApi(request, env, ctx, path) {
     const p = normalizeProvider({ ...(old || {}), ...input, id, apiKey });
     if (!p.baseUrl) return err('Base URL 不能为空');
     if (!/^https?:\/\//i.test(p.baseUrl)) return err('Base URL 需以 http:// 或 https:// 开头');
+    // 模型列表留空：保存时自动从服务商拉取并全部写入；拉取失败照常保存，把原因带回去
+    let modelsNotice = '';
+    if (!p.models.length) {
+      const r = await fetchUpstreamModels(p.baseUrl, p.apiKey, p.protocol);
+      if (r.models && r.models.length) {
+        p.models = r.models;
+        modelsNotice = `已自动拉取并写入 ${r.models.length} 个模型`;
+      } else {
+        modelsNotice = `模型列表为空，自动拉取失败：${r.error || '服务商没有返回模型'}`;
+      }
+    }
     if (idx >= 0) cfg.providers[idx] = p;
     else cfg.providers.push(p);
     if (old && old.id !== id) {
       cfg.settings.fallbackChain = cfg.settings.fallbackChain.map((s) => (s.startsWith(`${old.id}/`) ? `${id}/${s.slice(old.id.length + 1)}` : s));
     }
     const saved = await saveConfig(env, cfg);
-    return json(publicConfig(saved));
+    return json({ ...publicConfig(saved), modelsNotice });
   }
 
   if (path === '/admin/api/providers/delete' && method === 'POST') {
