@@ -73,6 +73,8 @@ npx wrangler deploy
 
 以后更新代码只需要 `npx wrangler deploy`；有新的数据库迁移时再跑一次 `npm run db:migrate`（已执行过的迁移会自动跳过）。
 
+想推送即部署：Cloudflare 面板 → Workers & Pages → 你的 Worker → 设置 → 构建，连接 GitHub 仓库的 `main`，部署命令填 `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`。
+
 「设置 → 备份」可以导出/导入配置（导出文件含上游 Key 明文，注意保管）。
 
 ### 保留个人配置并跟随上游更新（可选）
