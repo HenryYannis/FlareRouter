@@ -1,0 +1,39 @@
+# FlareRouter：单个 Cloudflare Worker 的个人 AI 网关
+# 部署前把下面两个 REPLACE_WITH_... 换成你自己创建的 KV / D1 ID（见 README「部署」）
+name = "flarerouter"
+main = "src/index.js"
+compatibility_date = "2026-03-15"
+
+# 用自己的域名时：关掉 workers.dev，并取消下面 routes 的注释（域名需在同一个 Cloudflare 账号下）
+workers_dev = true
+# routes = [
+#   { pattern = "ai.example.com", custom_domain = true }
+# ]
+
+# 管理页 HTML 作为文本模块打包进 Worker
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = false
+
+# 每天 UTC 19:00（北京时间 03:00）按「日志保留天数」清理旧日志
+[triggers]
+crons = ["0 19 * * *"]
+
+[observability]
+enabled = true
+
+# 服务商配置、登录失败计数
+[[kv_namespaces]]
+binding = "CONFIG"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# 调用密钥、调用日志
+[[d1_databases]]
+binding = "DB"
+database_name = "flarerouter"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# 机密（用 wrangler secret put 设置，不要写在这里）：
+#   ADMIN_PASSWORD  管理页登录密码

@@ -1,0 +1,2 @@
+# 本地 wrangler dev 用：复制为 .dev.vars 并改成自己的密码（.dev.vars 已在 .gitignore）
+ADMIN_PASSWORD=change-me

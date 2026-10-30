@@ -1,0 +1,6 @@
+# gitleaks 配置：沿用官方默认规则。本项目没有需要公开的密钥，所以不设放行项。
+# 真正的密钥用 wrangler secret put 或 .dev.vars（已 gitignore），不进仓库。
+title = "FlareRouter gitleaks 配置"
+
+[extend]
+useDefault = true

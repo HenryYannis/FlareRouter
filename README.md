@@ -1,0 +1,211 @@
+# FlareRouter
+
+[English](README.en.md) | 中文
+
+部署在单个 Cloudflare Worker 上的个人 AI 网关：同时提供 OpenAI 兼容接口和 Anthropic Messages 接口，把多家服务商收拢到一个地址、一把密钥，失败自动切换到下一家。
+面向一个人自用：没有用户体系、计费和配额，零构建，管理页是一个 HTML 文件。
+
+- 管理服务商：名称、ID、协议类型（OpenAI 兼容 / Anthropic）、Base URL、API Key（页面只显示脱敏预览）、模型列表（可从服务商 `/models` 拉取勾选）、启用、顺序、超时
+- 统一接口：`/v1/chat/completions`（含流式 SSE 原样透传）、`/v1/embeddings`、`/v1/models`
+- Anthropic 接口：`/v1/messages`（含流式）、`/v1/messages/count_tokens`，Claude Code 可直接接入
+- 协议互转：两种入口都能调两种协议的服务商，请求、响应、流式事件、工具调用自动转换
+- 模型寻址：`服务商ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只写模型名（在已启用服务商的模型列表里找）；写 `auto` 按容灾链从头尝试
+- 容灾切换：失败（网络错误、超时、任何非 2xx）就按容灾链换下一个；流式请求只在上游开始返回之前切换；请求头 `x-gateway-fallback: off` 可单次关闭
+- 调用密钥：`Authorization: Bearer` 或 `x-api-key` 鉴权，可在管理页生成多个、吊销、删除；D1 只存 SHA-256 哈希
+- 调用日志：存 D1，`ctx.waitUntil` 异步写；管理页可按状态/容灾/服务商/密钥/模型/错误关键词筛选，可清空；失败的每次尝试都记录上游原始报错
+- 管理页：同一个 Worker 的 `/admin`，管理员密码登录，中文界面、日间/夜间模式
+
+错误信息一律原文返回、原文显示，不做隐藏。
+
+## 目录
+
+```
+src/
+  index.js       入口：路由、Cron 清理旧日志
+  gateway.js     转发、容灾、流式透传、写日志
+  anthropic.js   Anthropic ⇄ OpenAI 协议互转（请求、响应、SSE 流、错误格式）
+  config.js      KV 里的服务商配置（读/写/缓存）
+  keys.js        调用密钥（D1）
+  logs.js        调用日志（D1）
+  admin.js       管理接口与登录会话
+  admin.html     管理页（单文件，打包进 Worker）
+  util.js
+migrations/0001_init.sql   D1 表结构
+migrations/0002_protocols.sql   日志加「入口协议 / 上游协议」两列
+test/run.mjs               本地自测（Miniflare + 假上游）
+wrangler.toml
+```
+
+## 部署（本地 wrangler）
+
+需要 Node.js 18+ 和一个 Cloudflare 账号（免费版即可）。
+
+```bash
+git clone https://github.com/HenryYannis/FlareRouter.git
+cd FlareRouter
+npm install
+npx wrangler login
+
+# 1. 创建 KV（服务商配置）——把输出的 id 填进 wrangler.toml 的 [[kv_namespaces]] id
+npx wrangler kv namespace create flarerouter-config
+
+# 2. 创建 D1（调用密钥 + 日志）——把输出的 database_id 填进 wrangler.toml 的 [[d1_databases]]
+npx wrangler d1 create flarerouter
+
+# 3. 建表
+npm run db:migrate
+
+# 4. 设置管理员密码（交互输入，不会写进文件）
+npx wrangler secret put ADMIN_PASSWORD
+
+# 5. 部署
+npx wrangler deploy
+```
+
+默认部署到 `https://flarerouter.<你的子域>.workers.dev`。想用自己的域名：在 `wrangler.toml` 里把 `workers_dev` 改成 `false`，取消 `routes` 的注释并填上域名（域名要在同一个 Cloudflare 账号下），`wrangler deploy` 会自动创建 DNS 记录和证书；该子域名已有 DNS 记录的话先删掉。
+
+部署后打开 `https://你的地址/admin`，用管理员密码登录：
+
+1. 「服务商」里添加服务商（Base URL 一般以 `/v1` 结尾），可点「从服务商拉取」勾选模型
+2. 「容灾」里按顺序排好容灾链（留空则按服务商顺序取每家第一个模型）
+3. 「调用密钥」里生成密钥，明文只显示一次
+4. 「测试」里发一条试试，「日志」里看结果
+
+以后更新代码只需要 `npx wrangler deploy`；有新的数据库迁移时再跑一次 `npm run db:migrate`（已执行过的迁移会自动跳过）。
+
+「设置 → 备份」可以导出/导入配置（导出文件含上游 Key 明文，注意保管）。
+
+### 保留个人配置并跟随上游更新（可选）
+
+想把自己的 KV/D1 ID、域名提交到 Git 又不想公开时，可以建一个私有仓库作为下游：
+
+1. 私有仓库里只改 `wrangler.toml` 等个人配置，其余文件不动，用 `git merge` 合并本仓库的 `main`（不要 squash）
+2. 在私有仓库加一个定时工作流：`git fetch` 本仓库 → `git merge upstream/main` → 无冲突就推送，有冲突就开 issue
+3. 想上游一更新就立即同步：在你的 fork 设置 Secrets `DOWNSTREAM_REPO`（如 `you/flarerouter-private`）和 `DOWNSTREAM_TOKEN`（对下游有 Contents 读写权限的细粒度 PAT），`.github/workflows/notify-downstream.yml` 会发 `repository_dispatch`（类型 `flarerouter-updated`）；没配这两个 Secrets 时自动跳过
+
+## 调用示例
+
+```bash
+# 列出模型
+curl https://ai.example.com/v1/models \
+  -H "Authorization: Bearer sk-gw-你的密钥"
+
+# 非流式
+curl https://ai.example.com/v1/chat/completions \
+  -H "Authorization: Bearer sk-gw-你的密钥" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"openrouter/google/gemini-2.5-pro","messages":[{"role":"user","content":"你好"}]}'
+
+# 流式
+curl -N https://ai.example.com/v1/chat/completions \
+  -H "Authorization: Bearer sk-gw-你的密钥" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"auto","stream":true,"messages":[{"role":"user","content":"写一句诗"}]}'
+
+# 本次不容灾（失败直接返回上游原始错误）
+curl https://ai.example.com/v1/chat/completions \
+  -H "Authorization: Bearer sk-gw-你的密钥" \
+  -H "x-gateway-fallback: off" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gemini/gemini-2.5-flash","messages":[{"role":"user","content":"hi"}]}'
+```
+
+在 Cherry Studio、Chatbox、Cursor 等客户端里：API 地址填 `https://ai.example.com/v1`，密钥填 `sk-gw-...`，模型填 `服务商ID/模型` 或 `auto`。
+
+响应头会带上 `x-gateway-provider`、`x-gateway-model`、`x-gateway-attempts`、`x-gateway-fallback`，方便看这次实际走了哪家。
+全部候选都失败时返回 HTTP 状态取最后一次上游的状态码（没有则 502），`error.message` 和 `error.attempts` 里有每一次尝试的原始报错。
+
+## Anthropic 协议与 Claude Code
+
+### 添加 Anthropic 服务商
+
+管理页「服务商 → 添加」，协议类型选「Anthropic Messages」：
+
+- Base URL：`https://api.anthropic.com`（带不带 `/v1` 都行）
+- API Key：`sk-ant-...`（网关用 `x-api-key` + `anthropic-version: 2023-06-01` 发给上游）
+- 「从服务商拉取」会请求上游 `/v1/models`
+
+其它提供 Anthropic 兼容接口的服务商也可以按这个类型添加。
+
+### 两种入口 × 两种上游
+
+| 入口 | 上游是 Anthropic | 上游是 OpenAI 兼容 |
+| --- | --- | --- |
+| `POST /v1/messages` | 原样透传（只换 model，`anthropic-version`、`anthropic-beta` 沿用调用方的） | 转成 chat/completions，响应和流式转回 Anthropic 事件 |
+| `POST /v1/chat/completions` | 转成 Messages，响应和流式转回 OpenAI chunk | 原样透传 |
+
+转换覆盖：system、多轮、图片（base64 / URL）、tools / tool_use / tool_result、tool_choice、stop_reason ⇄ finish_reason、usage（含缓存命中）。
+容灾链对两种入口都生效，可以跨协议切换（例如 Claude 官方 529 过载 → 换到 OpenRouter 上的模型），流式开始返回后不再切换。
+响应头 `x-gateway-protocol` 显示这次是 `入口->上游`，例如 `anthropic->openai`；日志里也记录入口协议和上游协议。
+
+`/v1/messages/count_tokens`：上游是 Anthropic 时直接转发；上游是 OpenAI 兼容时返回本地估算（响应头 `x-gateway-estimated: 1`）。
+
+错误按入口协议的格式返回（`/v1/messages` 返回 `{"type":"error","error":{...}}`），`message` 里保留上游原始报错。
+
+### Claude Code 接入
+
+```bash
+export ANTHROPIC_BASE_URL=https://ai.example.com
+export ANTHROPIC_AUTH_TOKEN=sk-gw-你的调用密钥
+# 指定模型（Claude Code 默认会发 claude-sonnet-… 这类官方名，网关里找不到就会 404）
+export ANTHROPIC_MODEL=anthropic/claude-sonnet-4-5          # 服务商ID/模型，或 auto
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=anthropic/claude-haiku-4-5   # 后台小任务用的快速模型
+claude
+```
+
+也可以写进 `~/.claude/settings.json`：
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://ai.example.com",
+    "ANTHROPIC_AUTH_TOKEN": "sk-gw-你的调用密钥",
+    "ANTHROPIC_MODEL": "anthropic/claude-sonnet-4-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "anthropic/claude-haiku-4-5"
+  }
+}
+```
+
+- 上面的 `anthropic` 是你在管理页给服务商起的 ID，换成自己的；模型也可以指向 OpenAI 兼容的服务商（如 `openrouter/google/gemini-2.5-pro`），网关会自动转协议。
+- 用 `ANTHROPIC_API_KEY` 代替 `ANTHROPIC_AUTH_TOKEN` 也行（发的是 `x-api-key` 头），网关两种都认。
+- 也可以不设 `ANTHROPIC_MODEL`，而是把 Claude Code 发出的官方模型名（如 `claude-sonnet-4-5`）直接写进某个服务商的模型列表，网关按模型名匹配。
+
+```bash
+# 用 curl 试 /v1/messages
+curl https://ai.example.com/v1/messages \
+  -H "x-api-key: sk-gw-你的密钥" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"auto","max_tokens":256,"messages":[{"role":"user","content":"你好"}]}'
+```
+
+## 本地开发与自测
+
+```bash
+cp .dev.vars.example .dev.vars          # 改成本地用的管理员密码
+npm run db:migrate:local
+npx wrangler dev                         # http://localhost:8787/admin
+
+npm test                                 # Miniflare 自测（假 OpenAI + 假 Anthropic 上游）：鉴权、转发、协议互转、流式、容灾、日志、Cron 清理等
+npm run check                            # wrangler deploy --dry-run
+```
+
+## 说明与限制
+
+- 请求体除了 `model` 换成上游真实模型名，其余字段原样转发；流式请求默认补 `stream_options.include_usage`（某个服务商不认可在编辑里关掉）。
+- 上游没返回 usage 时，token 数按字数粗略估算。
+- 超时只计到上游返回响应头为止，之后的流式输出不限时长。
+- 服务商配置在每个 Worker 实例里缓存 30 秒；调用密钥鉴权缓存 30 秒（吊销在别的实例最多 30 秒后生效）。
+- 管理员登录：连续 10 次密码错误按 IP 锁定 15 分钟；会话 7 天，Cookie 为 HttpOnly + Secure + SameSite=Strict。改 `ADMIN_PASSWORD` 会让所有旧会话失效。
+- 日志默认保留 30 天（设置里可改，0 为永久），每天北京时间 03:00 由 Cron 清理；默认不记录消息原文，可在设置里打开。
+- 目前只转发 chat/completions、embeddings、messages，不含图片生成、语音识别等媒体接口，也不支持 Cloudflare Workers AI 绑定。Anthropic 协议的服务商不接 embeddings（容灾时自动跳过）。
+- 协议互转的限制：
+  - Anthropic → OpenAI：`thinking`（扩展思考）、`cache_control`、`top_k`、服务端工具（web_search 等）、引用（citations）会被丢弃；OpenAI 上游返回的 `reasoning_content` 不转成 thinking 块（避免下一轮带着无签名的 thinking 发回 Anthropic 报错）；PDF 文档转成 OpenAI `file` 片段，上游不支持时会报错。
+  - OpenAI → Anthropic：没传 `max_tokens` 时默认 8192；`temperature` 截到 0–1；`n`、`logprobs`、`response_format`、`seed` 等 Anthropic 没有的参数不转发；thinking 块转成 `reasoning_content`。
+  - 跨协议时 `stop_sequence` 命中会报成普通结束（OpenAI 不区分）。
+  - 工具的 JSON Schema 原样转发；个别 OpenAI 兼容服务商对 Schema 较挑剔（如不认 `$schema`、`format`），用 Claude Code 调这类上游时可能报 400，报错原文会直接显示。
+- `/v1/messages/count_tokens` 不写调用日志；OpenAI 上游时是粗略估算。
+
+## 许可
+
+[MIT](LICENSE) © 2026 程小宝 (Cheng Xiaobao)

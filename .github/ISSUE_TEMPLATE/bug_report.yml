@@ -1,0 +1,47 @@
+name: 问题反馈 / Bug report
+description: 报告一个 Bug / Report a bug
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么 / What happened
+      description: 看到了什么，期望是什么 / What you saw and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 栏目 / Area
+      options:
+        - OpenAI 接口 / OpenAI API (chat, embeddings, models)
+        - Anthropic 接口 / Anthropic Messages API
+        - 协议互转 / Protocol conversion
+        - 容灾切换 / Failover
+        - 调用日志 / Logs
+        - 管理页 / Admin page
+        - 部署 / Deployment
+        - 其他 / Other
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: 客户端与上游 / Client and upstream
+      placeholder: Claude Code 2.x → OpenRouter / curl → Anthropic
+  - type: textarea
+    id: logs
+    attributes:
+      label: 报错信息 / Error messages
+      description: 接口返回或管理页日志里的报错，请删掉密钥等敏感信息 / API or admin-log errors. Remove keys and other secrets.
+      render: text
