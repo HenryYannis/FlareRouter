@@ -49,6 +49,8 @@ Then open `https://your-host/admin`, sign in, add providers (leave the model lis
 
 To update, pull and run `npx wrangler deploy`; run `npm run db:migrate` again when a new migration ships.
 
+To deploy on every push, connect the repo's `main` branch under your Worker → Settings → Build in the Cloudflare dashboard, with the deploy command `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`.
+
 ### Keep a private config and follow upstream (optional)
 
 Keep a private repo that changes only `wrangler.toml` (your KV/D1 IDs and domain) and merges this repo's `main` on a schedule. For instant sync, set the secrets `DOWNSTREAM_REPO` and `DOWNSTREAM_TOKEN` on your fork; `.github/workflows/notify-downstream.yml` then sends a `repository_dispatch` of type `flarerouter-updated`. Without those secrets the step is skipped.
