@@ -4,7 +4,7 @@
 
 部署在單一 Cloudflare Worker 上的個人 AI 閘道：同時提供 OpenAI 相容介面和 Anthropic Messages 介面，把多家服務商集中到一個網址、一把密鑰，失敗時自動切換到下一家。
 
-[![CI](https://github.com/HenryYannis/flarerouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/flarerouter/actions/workflows/check.yml)
+[![CI](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 為個人自用設計：沒有使用者系統、計費和配額，不需建置，管理頁是一個 HTML 檔案。錯誤訊息一律原文回傳、原文顯示，不做隱藏。
@@ -26,8 +26,8 @@
 需要 Node.js 22+ 和一個 Cloudflare 帳號（免費方案即可）。
 
 ```bash
-git clone https://github.com/HenryYannis/flarerouter.git
-cd flarerouter
+git clone https://github.com/HenryYannis/FlareRouter.git
+cd FlareRouter
 npm install
 npx wrangler login
 
@@ -232,7 +232,7 @@ GitHub Actions（`.github/workflows/check.yml`）會在每次 PR 和推送到 `m
 
 ## 相關專案
 
-- [FlarePanel](https://github.com/HenryYannis/flarepanel)：Cloudflare Pages 多站點管理後台，管理留言、瀏覽量、會員帳號和 R2 檔案，同樣不需建置、純 Cloudflare 部署。
+- [FlarePanel](https://github.com/HenryYannis/FlarePanel)：Cloudflare Pages 多站點管理後台，管理留言、瀏覽量、會員帳號和 R2 檔案，同樣不需建置、純 Cloudflare 部署。
 
 ## 授權條款
 

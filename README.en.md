@@ -4,7 +4,7 @@
 
 A personal AI gateway on a single Cloudflare Worker: it serves both an OpenAI-compatible API and the Anthropic Messages API, puts all your providers behind one URL and one key, and fails over to the next provider when one fails.
 
-[![CI](https://github.com/HenryYannis/flarerouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/flarerouter/actions/workflows/check.yml)
+[![CI](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Built for one person: no user accounts, billing or quotas, no build step, and the admin page is a single HTML file. Errors are always returned and shown verbatim, never hidden.
@@ -26,8 +26,8 @@ Built for one person: no user accounts, billing or quotas, no build step, and th
 Needs Node.js 22+ and a Cloudflare account (the free plan works).
 
 ```bash
-git clone https://github.com/HenryYannis/flarerouter.git
-cd flarerouter
+git clone https://github.com/HenryYannis/FlareRouter.git
+cd FlareRouter
 npm install
 npx wrangler login
 
@@ -232,8 +232,8 @@ GitHub Actions (`.github/workflows/check.yml`) runs on every pull request and ev
 
 ## Related
 
-- [FlarePanel](https://github.com/HenryYannis/flarepanel): one admin dashboard for several Cloudflare Pages sites (comments, page views, member accounts, R2 files), also build-free and Cloudflare-only.
+- [FlarePanel](https://github.com/HenryYannis/FlarePanel): one admin dashboard for several Cloudflare Pages sites (comments, page views, member accounts, R2 files), also build-free and Cloudflare-only.
 
 ## License
 
-[MIT](LICENSE) © Henry Yannis
+[MIT](LICENSE) © 2026 Henry Yannis
