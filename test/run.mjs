@@ -127,8 +127,8 @@ const mf = new Miniflare({
   modules: true,
   scriptPath: 'src/index.js',
   modulesRules: [
+    { type: 'Text', include: ['**/*.html', '**/*.css', '**/admin/app.js'] },
     { type: 'ESModule', include: ['**/*.js'] },
-    { type: 'Text', include: ['**/*.html'] },
   ],
   compatibilityDate: '2026-03-15',
   kvNamespaces: ['CONFIG'],
@@ -149,7 +149,15 @@ try {
   // ---- 管理页与登录 ----
   let r = await req('/admin');
   let t = await r.text();
-  ok(r.status === 200 && t.includes('FlareRouter') && !/gradient/i.test(t), 'GET /admin 返回管理页（无渐变）');
+  ok(
+    r.status === 200 &&
+      t.includes('FlareRouter') &&
+      t.includes('night-theme') &&
+      t.includes('stars-container') &&
+      t.includes('data-theme-toggle') &&
+      !/gradient/i.test(t),
+    'GET /admin 返回管理页（主题/星空、无渐变）',
+  );
   r = await req('/admin/api/config');
   ok(r.status === 401, '未登录访问管理接口 -> 401');
   r = await req('/admin/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'wrong' }) });

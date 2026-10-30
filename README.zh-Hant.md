@@ -7,7 +7,7 @@
 [![CI](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-為個人自用設計：沒有使用者系統、計費和配額，不需建置，管理頁是一個 HTML 檔案。錯誤訊息一律原文回傳、原文顯示，不做隱藏。
+為個人自用設計：沒有使用者系統、計費和配額，不需建置，管理頁拆成 HTML/CSS/JS 後由入口注入成單頁打進 Worker。錯誤訊息一律原文回傳、原文顯示，不做隱藏。
 
 ## 功能
 
@@ -19,7 +19,7 @@
 - **容災切換**：失敗（網路錯誤、逾時、任何非 2xx）就依容災鏈換下一個；串流請求只在上游開始回傳之前切換；請求標頭 `x-gateway-fallback: off` 可單次關閉，設定中也可整體關閉
 - **呼叫密鑰**：以 `Authorization: Bearer`、`x-api-key` 或 `api-key` 驗證；管理頁可產生多把、撤銷、刪除；D1 只儲存 SHA-256 雜湊
 - **呼叫日誌**：存在 D1，以 `ctx.waitUntil` 非同步寫入；可依狀態、容災、協定、服務商、密鑰、模型、錯誤關鍵字篩選，可清空；失敗的每次嘗試都記錄上游原始錯誤
-- **管理頁**：同一個 Worker 的 `/admin`，以管理員密碼登入；概覽、服務商、容災、呼叫密鑰、日誌、測試、設定；介面為簡體中文，支援淺色／深色模式
+- **管理頁**：同一個 Worker 的 `/admin`，以管理員密碼登入；概覽、服務商、容災、呼叫密鑰、日誌、測試、設定；原始碼在 `src/admin/`（`index.html`、`style.css`、`app.js`）；介面為簡體中文；日夜模式預設跟隨系統（與 FlarePanel 一致），可手動切換，含星空與玻璃風格
 
 ## 部署
 

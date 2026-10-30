@@ -6,8 +6,16 @@ import { handleAdminApi } from './admin.js';
 import { handleCountTokens, handleProxy, listModels, protocolError } from './gateway.js';
 import { verifyApiKey } from './keys.js';
 import { clearLogs } from './logs.js';
-import ADMIN_HTML from './admin.html';
+import ADMIN_HTML from './admin/index.html';
+import ADMIN_CSS from './admin/style.css';
+import ADMIN_APP from './admin/app.js';
 import { CORS_HEADERS, apiError, errText, extractBearer, json } from './util.js';
+
+function adminPage() {
+  return ADMIN_HTML
+    .replace('<!--INJECT_CSS-->', `<style>\n${ADMIN_CSS}\n</style>`)
+    .replace('<!--INJECT_JS-->', `<script>\n${ADMIN_APP}\n</script>`);
+}
 
 async function route(request, env, ctx) {
   const url = new URL(request.url);
@@ -17,7 +25,7 @@ async function route(request, env, ctx) {
   if (path === '/admin' || path === '/') {
     if (request.method !== 'GET') return apiError('Method Not Allowed', 405);
     if (path === '/') return Response.redirect(new URL('/admin', url).toString(), 302);
-    return new Response(ADMIN_HTML, {
+    return new Response(adminPage(), {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',

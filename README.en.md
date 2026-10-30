@@ -7,7 +7,7 @@ A personal AI gateway on a single Cloudflare Worker: it serves both an OpenAI-co
 [![CI](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Built for one person: no user accounts, billing or quotas, no build step, and the admin page is a single HTML file. Errors are always returned and shown verbatim, never hidden.
+Built for one person: no user accounts, billing or quotas, no build step. The admin UI is HTML/CSS/JS injected into one page and bundled into the Worker. Errors are always returned and shown verbatim, never hidden.
 
 ## Features
 
@@ -19,7 +19,7 @@ Built for one person: no user accounts, billing or quotas, no build step, and th
 - **Failover**: a network error, timeout or any non-2xx moves to the next entry in the chain; streams switch only before the upstream starts responding; the header `x-gateway-fallback: off` disables it for one request, and a setting disables it globally
 - **Gateway keys**: authenticate with `Authorization: Bearer`, `x-api-key` or `api-key`; create several, revoke and delete them in the admin page; D1 stores only SHA-256 hashes
 - **Logs**: stored in D1, written asynchronously with `ctx.waitUntil`; filter by status, failover, protocol, provider, key, model or error text, and clear them; every failed attempt keeps the upstream's raw error
-- **Admin page**: `/admin` on the same Worker, admin-password sign-in; tabs for overview, providers, failover, gateway keys, logs, test and settings; Chinese UI, light/dark mode
+- **Admin page**: `/admin` on the same Worker, admin-password sign-in; tabs for overview, providers, failover, gateway keys, logs, test and settings; sources in `src/admin/` (`index.html`, `style.css`, `app.js`); Chinese UI; day/night theme follows the system like FlarePanel
 
 ## Deploy
 

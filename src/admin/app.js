@@ -1,328 +1,3 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<title>FlareRouter · 管理</title>
-<script>
-  (function () {
-    var t = localStorage.getItem('gw-theme');
-    if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    document.documentElement.dataset.theme = t;
-  })();
-</script>
-<style>
-  :root {
-    --bg: #f5f6f8; --card: #ffffff; --text: #1f2328; --muted: #656d76; --border: #d9dee4;
-    --primary: #0a7ea4; --primary-text: #ffffff; --danger: #cf222e; --ok: #1a7f37; --warn: #9a6700;
-    --soft: #eef1f4; --code: #f2f4f6; --focus: rgba(10,126,164,.25);
-  }
-  [data-theme="dark"] {
-    --bg: #0f1114; --card: #171a1f; --text: #e6e8eb; --muted: #9aa3ad; --border: #2b3038;
-    --primary: #3aa8d0; --primary-text: #0f1114; --danger: #f2545b; --ok: #3fb950; --warn: #d29922;
-    --soft: #1e2228; --code: #1b1f25; --focus: rgba(58,168,208,.3);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); }
-  body { font: 14px/1.55 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; }
-  a { color: var(--primary); }
-  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
-  pre { background: var(--code); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 8px 0; }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px 48px; }
-  header { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
-  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
-  header .endpoint { color: var(--muted); font-size: 12.5px; }
-  header .sp { flex: 1; }
-  nav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
-  nav button { border: 1px solid transparent; background: none; color: var(--muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; }
-  nav button:hover { color: var(--text); background: var(--soft); }
-  nav button.on { color: var(--text); background: var(--card); border-color: var(--border); font-weight: 600; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-  .card h2 { font-size: 15px; margin: 0 0 12px; font-weight: 600; }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .grow { flex: 1; }
-  .muted { color: var(--muted); }
-  .small { font-size: 12.5px; }
-  .btn { border: 1px solid var(--border); background: var(--card); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13.5px; white-space: nowrap; }
-  .btn:hover { background: var(--soft); }
-  .btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
-  .btn.primary:hover { filter: brightness(1.08); }
-  .btn.danger { color: var(--danger); }
-  .btn.sm { padding: 3px 8px; font-size: 12.5px; }
-  .btn:disabled { opacity: .5; cursor: default; }
-  input[type=text], input[type=password], input[type=number], select, textarea {
-    background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; font-size: 13.5px; font-family: inherit;
-  }
-  textarea { width: 100%; resize: vertical; min-height: 70px; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus); }
-  label.f { display: block; margin: 10px 0 4px; font-size: 13px; color: var(--muted); }
-  label.f + input, label.f + textarea, label.f + select { width: 100%; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  th { font-size: 12.5px; color: var(--muted); font-weight: 600; }
-  tr.click { cursor: pointer; }
-  tr.click:hover td { background: var(--soft); }
-  .tag { display: inline-block; padding: 0 7px; border-radius: 10px; font-size: 12px; border: 1px solid var(--border); color: var(--muted); }
-  .tag.ok { color: var(--ok); border-color: var(--ok); }
-  .tag.bad { color: var(--danger); border-color: var(--danger); }
-  .tag.warn { color: var(--warn); border-color: var(--warn); }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-  .stat { border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: var(--card); }
-  .stat b { display: block; font-size: 20px; font-weight: 600; margin-top: 2px; }
-  .switch { position: relative; display: inline-block; width: 34px; height: 20px; vertical-align: middle; }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .switch span { position: absolute; inset: 0; background: var(--border); border-radius: 20px; cursor: pointer; transition: background .15s; }
-  .switch span::before { content: ""; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .15s; }
-  .switch input:checked + span { background: var(--primary); }
-  .switch input:checked + span::before { transform: translateX(14px); }
-  .err { color: var(--danger); white-space: pre-wrap; word-break: break-all; }
-  .hidden { display: none !important; }
-  dialog { border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); padding: 0; width: min(640px, 94vw); }
-  dialog::backdrop { background: rgba(0,0,0,.45); }
-  dialog .dh { padding: 14px 16px; border-bottom: 1px solid var(--border); font-weight: 600; }
-  dialog .db { padding: 6px 16px 14px; max-height: 70vh; overflow: auto; }
-  dialog .df { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
-  .models-box { border: 1px solid var(--border); border-radius: 6px; max-height: 220px; overflow: auto; padding: 6px 8px; margin-top: 6px; }
-  .models-box label { display: block; font-size: 13px; padding: 2px 0; }
-  .chain li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
-  .chain { list-style: none; padding: 0; margin: 0 0 10px; }
-  .login { max-width: 360px; margin: 14vh auto 0; }
-  .toast { position: fixed; right: 16px; bottom: 16px; background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 13px; z-index: 99; max-width: 80vw; white-space: pre-wrap; }
-  .scroll-x { overflow-x: auto; }
-  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 24px; }
-  @media (max-width: 720px) { .hide-sm { display: none; } }
-</style>
-</head>
-<body>
-<div class="wrap">
-
-  <!-- 登录 -->
-  <div id="v-login" class="login hidden">
-    <div class="card">
-      <h2>FlareRouter · 管理登录</h2>
-      <form id="login-form">
-        <label class="f" for="pw">管理员密码</label>
-        <input type="password" id="pw" autocomplete="current-password" autofocus>
-        <div class="row" style="margin-top:12px">
-          <button class="btn primary" type="submit">登录</button>
-          <span class="grow"></span>
-          <button class="btn" type="button" data-theme-toggle>切换日夜</button>
-        </div>
-        <div id="login-err" class="err small" style="margin-top:10px"></div>
-      </form>
-    </div>
-  </div>
-
-  <!-- 主界面 -->
-  <div id="v-main" class="hidden">
-    <header>
-      <h1>FlareRouter</h1>
-      <span class="endpoint mono" id="ep"></span>
-      <button class="btn sm" id="copy-ep">复制地址</button>
-      <span class="sp"></span>
-      <button class="btn sm" data-theme-toggle>切换日夜</button>
-      <button class="btn sm" id="logout">退出</button>
-    </header>
-    <nav id="tabs">
-      <button data-tab="overview" class="on">概览</button>
-      <button data-tab="providers">服务商</button>
-      <button data-tab="fallback">容灾</button>
-      <button data-tab="keys">调用密钥</button>
-      <button data-tab="logs">日志</button>
-      <button data-tab="test">测试</button>
-      <button data-tab="settings">设置</button>
-    </nav>
-
-    <!-- 概览 -->
-    <section data-pane="overview">
-      <div class="card">
-        <div class="row" style="margin-bottom:12px">
-          <h2 style="margin:0">调用统计</h2><span class="grow"></span>
-          <select id="stats-days"><option value="1">近 24 小时</option><option value="7">近 7 天</option><option value="30">近 30 天</option></select>
-          <button class="btn sm" id="stats-refresh">刷新</button>
-        </div>
-        <div class="stats" id="stats"></div>
-        <div class="scroll-x" style="margin-top:14px"><table id="stats-prov"></table></div>
-      </div>
-      <div class="card">
-        <h2>调用方式</h2>
-        <p class="muted small" style="margin-top:0">OpenAI 兼容。模型写成「服务商ID/模型」，写 <code>auto</code> 则按容灾链从头尝试。请求头 <code>x-gateway-fallback: off</code> 可临时关闭本次容灾。</p>
-        <pre id="curl-example"></pre>
-      </div>
-    </section>
-
-    <!-- 服务商 -->
-    <section data-pane="providers" class="hidden">
-      <div class="card">
-        <div class="row" style="margin-bottom:10px">
-          <h2 style="margin:0">服务商</h2><span class="muted small">顺序即 <code>auto</code> 默认容灾顺序（未自定义容灾链时）</span>
-          <span class="grow"></span><button class="btn primary" id="add-prov">添加服务商</button>
-        </div>
-        <div class="scroll-x"><table id="prov-table"></table></div>
-      </div>
-    </section>
-
-    <!-- 容灾 -->
-    <section data-pane="fallback" class="hidden">
-      <div class="card">
-        <h2>容灾切换</h2>
-        <div class="row" style="margin-bottom:8px">
-          <label class="switch"><input type="checkbox" id="fb-on"><span></span></label>
-          <span>请求的模型失败时，继续按下面的容灾链尝试</span>
-        </div>
-        <p class="muted small">失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。</p>
-        <ul class="chain" id="chain"></ul>
-        <div class="row">
-          <select id="chain-add" class="grow"></select>
-          <button class="btn" id="chain-add-btn">加入容灾链</button>
-          <button class="btn primary" id="chain-save">保存</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 调用密钥 -->
-    <section data-pane="keys" class="hidden">
-      <div class="card">
-        <h2>调用密钥</h2>
-        <div class="row">
-          <input type="text" id="key-name" placeholder="名称，例如：笔记本 / Cherry Studio" class="grow">
-          <button class="btn primary" id="key-create">生成新密钥</button>
-        </div>
-        <div id="key-new" class="hidden" style="margin-top:12px">
-          <div class="small" style="color:var(--warn)">明文只显示这一次，请立即复制保存：</div>
-          <div class="row"><pre id="key-new-val" class="grow mono" style="margin:6px 0"></pre><button class="btn sm" id="key-copy">复制</button></div>
-        </div>
-        <div class="scroll-x" style="margin-top:12px"><table id="key-table"></table></div>
-      </div>
-    </section>
-
-    <!-- 日志 -->
-    <section data-pane="logs" class="hidden">
-      <div class="card">
-        <div class="row" style="margin-bottom:10px">
-          <select id="lf-status"><option value="">全部状态</option><option value="ok">成功</option><option value="fail">失败</option></select>
-          <label class="row small"><input type="checkbox" id="lf-fb"> 仅容灾</label>
-          <select id="lf-provider"><option value="">全部服务商</option></select>
-          <select id="lf-key"><option value="">全部密钥</option></select>
-          <input type="text" id="lf-model" placeholder="模型包含…" style="width:150px">
-          <input type="text" id="lf-q" placeholder="错误关键词…" style="width:150px">
-          <button class="btn" id="lf-go">查询</button>
-          <span class="grow"></span>
-          <button class="btn danger" id="lf-clear">清空日志</button>
-        </div>
-        <div class="scroll-x"><table id="log-table"></table></div>
-        <div class="row" style="margin-top:10px">
-          <span class="muted small" id="log-info"></span><span class="grow"></span>
-          <button class="btn sm" id="log-prev">上一页</button><button class="btn sm" id="log-next">下一页</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 测试 -->
-    <section data-pane="test" class="hidden">
-      <div class="card">
-        <h2>测试调用</h2>
-        <p class="muted small" style="margin-top:0">走真实的转发、容灾与日志链路（日志里密钥显示为「管理页测试」）。</p>
-        <label class="f" for="t-model">模型</label>
-        <select id="t-model"></select>
-        <label class="f" for="t-prompt">提示词</label>
-        <textarea id="t-prompt">你好，用一句话介绍你自己。</textarea>
-        <div class="row" style="margin-top:10px">
-          <label class="row small"><input type="checkbox" id="t-stream"> 流式</label>
-          <label class="row small"><input type="checkbox" id="t-nofb"> 关闭容灾</label>
-          <span class="grow"></span>
-          <button class="btn primary" id="t-go">发送</button>
-        </div>
-        <div id="t-meta" class="small muted" style="margin-top:12px"></div>
-        <pre id="t-out" class="hidden"></pre>
-      </div>
-    </section>
-
-    <!-- 设置 -->
-    <section data-pane="settings" class="hidden">
-      <div class="card">
-        <h2>日志</h2>
-        <div class="row">
-          <span>日志保留</span><input type="number" id="s-ret" min="0" max="3650" style="width:90px"><span>天（0 = 永久，每日 Cron 清理）</span>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <label class="switch"><input type="checkbox" id="s-prompts"><span></span></label>
-          <span>记录最后一条用户消息原文（默认关，只记元数据）</span>
-        </div>
-        <div class="row" style="margin-top:12px"><button class="btn primary" id="s-save">保存</button></div>
-      </div>
-      <div class="card">
-        <h2>备份</h2>
-        <p class="muted small" style="margin-top:0">导出文件包含上游 API Key 明文，请妥善保存。导入会整体覆盖当前服务商与设置。</p>
-        <div class="row">
-          <button class="btn" id="s-export">导出配置</button>
-          <label class="btn">导入配置<input type="file" id="s-import" accept="application/json" class="hidden"></label>
-        </div>
-      </div>
-    </section>
-
-    <footer>FlareRouter</footer>
-  </div>
-</div>
-
-<!-- 服务商编辑 -->
-<dialog id="dlg-prov">
-  <form method="dialog" id="prov-form">
-    <div class="dh" id="prov-title">服务商</div>
-    <div class="db">
-      <div class="row">
-        <div class="grow"><label class="f" for="p-name">名称</label><input type="text" id="p-name" style="width:100%" placeholder="例如：OpenRouter"></div>
-        <div class="grow"><label class="f" for="p-id">ID（用于「ID/模型」寻址）</label><input type="text" id="p-id" style="width:100%" placeholder="例如：openrouter" spellcheck="false"></div>
-      </div>
-      <label class="f" for="p-protocol">协议类型</label>
-      <select id="p-protocol" style="width:100%">
-        <option value="openai">OpenAI 兼容（/chat/completions，Bearer 鉴权）</option>
-        <option value="anthropic">Anthropic Messages（/v1/messages，x-api-key 鉴权）</option>
-      </select>
-      <div class="muted small" id="p-protocol-tip" style="margin-top:4px"></div>
-      <label class="f" for="p-url">Base URL</label>
-      <input type="text" id="p-url" placeholder="https://api.example.com/v1" spellcheck="false">
-      <label class="f" for="p-key">API Key <span id="p-key-preview" class="mono"></span></label>
-      <input type="password" id="p-key" placeholder="留空则不修改" spellcheck="false" autocomplete="new-password">
-      <label class="row small" id="p-clear-wrap"><input type="checkbox" id="p-clear"> 清除已保存的 Key</label>
-      <div class="row" style="margin-top:10px">
-        <label class="f grow" for="p-models" style="margin:0">模型列表（逗号或换行分隔，第一个为默认；留空保存会自动拉取全部）</label>
-        <button class="btn sm" type="button" id="p-fetch">从服务商拉取</button>
-      </div>
-      <textarea id="p-models" spellcheck="false" style="margin-top:4px"></textarea>
-      <div id="p-fetch-box" class="hidden">
-        <div class="row" style="margin-top:6px">
-          <input type="text" id="p-fetch-q" placeholder="搜索…" class="grow">
-          <button class="btn sm" type="button" id="p-fetch-all">全选可见</button>
-          <button class="btn sm" type="button" id="p-fetch-none">取消可见</button>
-        </div>
-        <div class="models-box" id="p-fetch-list"></div>
-      </div>
-      <div id="p-fetch-err" class="err small"></div>
-      <div class="row">
-        <div><label class="f" for="p-timeout">超时（毫秒，拿到响应头为止）</label><input type="number" id="p-timeout" min="1000" step="1000" style="width:160px"></div>
-        <div class="grow"><label class="f" for="p-note">备注</label><input type="text" id="p-note" style="width:100%"></div>
-      </div>
-      <label class="row small" style="margin-top:10px"><input type="checkbox" id="p-usage"> 流式请求自动加 stream_options.include_usage</label>
-      <label class="row small" style="margin-top:4px"><input type="checkbox" id="p-enabled"> 启用</label>
-      <div id="prov-err" class="err small" style="margin-top:8px"></div>
-    </div>
-    <div class="df">
-      <button class="btn" value="cancel" formnovalidate>取消</button>
-      <button class="btn primary" type="button" id="prov-save">保存</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- 日志详情 -->
-<dialog id="dlg-log">
-  <div class="dh">调用详情</div>
-  <div class="db" id="log-detail"></div>
-  <div class="df"><button class="btn" onclick="this.closest('dialog').close()">关闭</button></div>
-</dialog>
-
-<script>
 (function () {
   'use strict';
   var $ = function (s) { return document.querySelector(s); };
@@ -353,13 +28,67 @@
     return data;
   }
 
-  // ---- 主题 ----
-  $$('[data-theme-toggle]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = t; localStorage.setItem('gw-theme', t);
+  // ---- 主题（对齐 FlarePanel：跟随系统 + 日月按钮 + 星空） ----
+  var starsContainer = null;
+  function systemPrefersDark() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function createSkyStars() {
+    if (!starsContainer) {
+      starsContainer = document.createElement('div');
+      starsContainer.className = 'stars-container';
+      starsContainer.id = 'sky-stars-container';
+      document.body.appendChild(starsContainer);
+    }
+    starsContainer.innerHTML = '';
+    for (var i = 0; i < 35; i++) {
+      var star = document.createElement('div');
+      star.className = 'star';
+      var size = (Math.random() * 1.5 + 1).toFixed(1);
+      star.style.cssText = 'width:' + size + 'px;height:' + size + 'px;top:' + (Math.random() * 100).toFixed(1) + '%;left:' + (Math.random() * 100).toFixed(1) + '%;animation-delay:' + (Math.random() * 3).toFixed(1) + 's;animation-duration:' + (Math.random() * 5 + 4).toFixed(1) + 's';
+      starsContainer.appendChild(star);
+    }
+  }
+  function clearSkyStars() {
+    if (starsContainer) { starsContainer.remove(); starsContainer = null; }
+  }
+  function updateThemeButtons(isDark) {
+    var label = isDark ? '切换到日间' : '切换到夜间';
+    $('[data-theme-toggle]').forEach(function (b) {
+      b.setAttribute('title', label);
+      b.setAttribute('aria-label', label);
     });
-  });
+  }
+  function applyTheme(isDark) {
+    document.documentElement.classList.remove('day-theme', 'night-theme');
+    document.documentElement.classList.add(isDark ? 'night-theme' : 'day-theme');
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    if (isDark) createSkyStars(); else clearSkyStars();
+    updateThemeButtons(isDark);
+  }
+  function initTheme() {
+    var saved = null;
+    try { saved = localStorage.getItem('gw-theme'); } catch (e) {}
+    var isDark = saved ? (saved === 'dark') : systemPrefersDark();
+    applyTheme(isDark);
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+        try { localStorage.removeItem('gw-theme'); } catch (err) {}
+        applyTheme(e.matches);
+      });
+    }
+    $('[data-theme-toggle]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var nextDark = document.documentElement.getAttribute('data-theme') !== 'dark';
+        try {
+          if (nextDark === systemPrefersDark()) localStorage.removeItem('gw-theme');
+          else localStorage.setItem('gw-theme', nextDark ? 'dark' : 'light');
+        } catch (err) {}
+        applyTheme(nextDark);
+      });
+    });
+  }
+  initTheme();
 
   function show(v) {
     $('#v-login').classList.toggle('hidden', v !== 'login');
@@ -755,6 +484,3 @@
   }
   boot();
 })();
-</script>
-</body>
-</html>

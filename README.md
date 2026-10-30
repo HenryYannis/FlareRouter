@@ -7,7 +7,7 @@
 [![CI](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-面向一个人自用：没有用户体系、计费和配额，零构建，管理页是一个 HTML 文件。错误信息一律原文返回、原文显示，不做隐藏。
+面向一个人自用：没有用户体系、计费和配额，零构建，管理页拆成 HTML/CSS/JS 后由入口注入成单页打进 Worker。错误信息一律原文返回、原文显示，不做隐藏。
 
 ## 功能
 
@@ -19,7 +19,7 @@
 - **容灾切换**：失败（网络错误、超时、任何非 2xx）就按容灾链换下一个；流式请求只在上游开始返回之前切换；请求头 `x-gateway-fallback: off` 可单次关闭，设置里也可整体关闭
 - **调用密钥**：`Authorization: Bearer`、`x-api-key` 或 `api-key` 鉴权；管理页可生成多个、吊销、删除；D1 只存 SHA-256 哈希
 - **调用日志**：存 D1，`ctx.waitUntil` 异步写；可按状态、容灾、协议、服务商、密钥、模型、错误关键词筛选，可清空；失败的每次尝试都记录上游原始报错
-- **管理页**：同一个 Worker 的 `/admin`，管理员密码登录；概览、服务商、容灾、调用密钥、日志、测试、设置；中文界面，日间/夜间模式
+- **管理页**：同一个 Worker 的 `/admin`，管理员密码登录；概览、服务商、容灾、调用密钥、日志、测试、设置；源码在 `src/admin/`（`index.html`、`style.css`、`app.js`）；中文界面；日夜模式默认跟随系统（与 FlarePanel 一致），可手动切换，含星空与玻璃风格
 
 ## 部署
 
