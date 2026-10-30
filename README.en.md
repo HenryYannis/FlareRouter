@@ -108,4 +108,4 @@ See the Chinese README for the full notes.
 
 ## License
 
-[MIT](LICENSE) © 2026 Cheng Xiaobao
+[MIT](LICENSE) © 2026 Henry Yannis
