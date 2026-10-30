@@ -7,6 +7,8 @@ A personal AI gateway on a single Cloudflare Worker: it serves both an OpenAI-co
 [![CI](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+![FlareRouter](docs/social-preview.png)
+
 Built for one person: no user accounts, billing or quotas, no build step. The admin UI is HTML/CSS/JS injected into one page and bundled into the Worker. Errors are always returned and shown verbatim, never hidden.
 
 ## Features

@@ -7,6 +7,8 @@
 [![CI](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+![FlareRouter](docs/social-preview.png)
+
 為個人自用設計：沒有使用者系統、計費和配額，不需建置，管理頁拆成 HTML/CSS/JS 後由入口注入成單頁打進 Worker。錯誤訊息一律原文回傳、原文顯示，不做隱藏。
 
 ## 功能
