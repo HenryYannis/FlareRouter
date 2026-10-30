@@ -155,9 +155,12 @@ try {
       t.includes('night-theme') &&
       t.includes('stars-container') &&
       t.includes('data-theme-toggle') &&
+      t.includes('var $$ = function') &&
       !/gradient/i.test(t),
-    'GET /admin 返回管理页（主题/星空、无渐变）',
+    'GET /admin 返回管理页（主题/星空、保留 var $$、无渐变）',
   );
+  let rFavicon = await req('/favicon.ico');
+  ok(rFavicon.status === 204, 'GET /favicon.ico -> 204');
   r = await req('/admin/api/config');
   ok(r.status === 401, '未登录访问管理接口 -> 401');
   r = await req('/admin/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'wrong' }) });

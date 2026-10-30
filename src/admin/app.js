@@ -54,7 +54,7 @@
   }
   function updateThemeButtons(isDark) {
     var label = isDark ? '切换到日间' : '切换到夜间';
-    $('[data-theme-toggle]').forEach(function (b) {
+    $$('[data-theme-toggle]').forEach(function (b) {
       b.setAttribute('title', label);
       b.setAttribute('aria-label', label);
     });
@@ -77,7 +77,7 @@
         applyTheme(e.matches);
       });
     }
-    $('[data-theme-toggle]').forEach(function (b) {
+    $$('[data-theme-toggle]').forEach(function (b) {
       b.addEventListener('click', function () {
         var nextDark = document.documentElement.getAttribute('data-theme') !== 'dark';
         try {

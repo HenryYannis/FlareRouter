@@ -13,13 +13,17 @@ import { CORS_HEADERS, apiError, errText, extractBearer, json } from './util.js'
 
 function adminPage() {
   return ADMIN_HTML
-    .replace('<!--INJECT_CSS-->', `<style>\n${ADMIN_CSS}\n</style>`)
-    .replace('<!--INJECT_JS-->', `<script>\n${ADMIN_APP}\n</script>`);
+    .replace('<!--INJECT_CSS-->', () => `<style>\n${ADMIN_CSS}\n</style>`)
+    .replace('<!--INJECT_JS-->', () => `<script>\n${ADMIN_APP}\n</script>`);
 }
 
 async function route(request, env, ctx) {
   const url = new URL(request.url);
   let path = url.pathname.replace(/\/+$/, '') || '/';
+
+  if (path === '/favicon.ico') {
+    return new Response(null, { status: 204 });
+  }
 
   // ---- 管理页 ----
   if (path === '/admin' || path === '/') {
