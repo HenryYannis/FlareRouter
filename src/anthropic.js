@@ -224,11 +224,14 @@ function oaContentToAnthBlocks(content) {
 export function openAIToAnthropicRequest(body, model, { stream } = {}) {
   const system = [];
   const msgs = [];
+  let skipMerge = false;
   const push = (role, blocks) => {
     if (!blocks.length) return;
     const last = msgs[msgs.length - 1];
-    if (last && last.role === role) last.content.push(...blocks); // 相邻同角色合并
+    // 抽走中间的 system 之后，原来不相邻的消息不要粘在一起。tool 结果和紧随的 user 仍合并。
+    if (!skipMerge && last && last.role === role) last.content.push(...blocks);
     else msgs.push({ role, content: [...blocks] });
+    skipMerge = false;
   };
 
   for (const m of Array.isArray(body.messages) ? body.messages : []) {
@@ -236,6 +239,7 @@ export function openAIToAnthropicRequest(body, model, { stream } = {}) {
     if (m.role === 'system' || m.role === 'developer') {
       const t = textOf(m.content);
       if (t) system.push(t);
+      skipMerge = true;
     } else if (m.role === 'assistant') {
       const blocks = oaContentToAnthBlocks(m.content).filter((b) => b.type === 'text');
       for (const tc of Array.isArray(m.tool_calls) ? m.tool_calls : []) {
