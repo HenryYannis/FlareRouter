@@ -13,6 +13,7 @@
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
         totalCalls: '调用次数', successRate: '成功率', failedCalls: '失败', fallbackTriggered: '触发容灾', totalTokens: 'Tokens', avgLatency: '平均耗时',
+        cacheHit: '缓存命中',
         usageTitle: '调用方式', usageDesc: 'OpenAI 兼容。模型写成「服务商 ID/模型」，写 auto 则按容灾链从头尝试。请求头 x-gateway-fallback: off 可临时关闭本次容灾。',
         thProvider: '服务商', thCalls: '调用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暂无调用', unhit: '（未命中）'
       },
@@ -61,7 +62,7 @@
         detailTitle: '调用详情', detailFieldTime: '时间', detailFieldEndpoint: '接口', detailFieldClientProto: '入口协议', detailFieldUpstreamProto: '上游协议',
         detailFieldKey: '密钥', detailFieldReqModel: '请求模型', detailFieldFinalProv: '最终服务商', detailFieldFinalModel: '最终模型',
         detailFieldStatus: '状态', detailFieldStream: '流式', detailFieldLatency: '总耗时', detailFieldTTFB: '首包',
-        detailFieldTokens: 'Tokens', detailFieldAttempts: '尝试次数', detailTrail: '失败的尝试（原文）', detailError: '错误',
+        detailFieldTokens: 'Tokens', detailFieldCacheRead: '缓存读 Token', detailFieldAttempts: '尝试次数', detailTrail: '失败的尝试（原文）', detailError: '错误',
         detailPrompt: '用户消息', yes: '是', no: '否', close: '关闭'
       },
       test: {
@@ -100,6 +101,7 @@
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
         totalCalls: '調用次數', successRate: '成功率', failedCalls: '失敗', fallbackTriggered: '觸發容災', totalTokens: 'Tokens', avgLatency: '平均耗時',
+        cacheHit: '快取命中',
         usageTitle: '調用方式', usageDesc: 'OpenAI 相容。模型寫成「服務商 ID/模型」，寫 auto 則按容災鏈從頭嘗試。請求頭 x-gateway-fallback: off 可臨時關閉本次容災。',
         thProvider: '服務商', thCalls: '調用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暫無調用', unhit: '（未命中）'
       },
@@ -148,7 +150,7 @@
         detailTitle: '調用詳情', detailFieldTime: '時間', detailFieldEndpoint: '介面', detailFieldClientProto: '入口協議', detailFieldUpstreamProto: '上游協議',
         detailFieldKey: '密鑰', detailFieldReqModel: '請求模型', detailFieldFinalProv: '最終服務商', detailFieldFinalModel: '最終模型',
         detailFieldStatus: '狀態', detailFieldStream: '串流', detailFieldLatency: '總耗時', detailFieldTTFB: '首包',
-        detailFieldTokens: 'Tokens', detailFieldAttempts: '嘗試次數', detailTrail: '失敗的嘗試（原文）', detailError: '錯誤',
+        detailFieldTokens: 'Tokens', detailFieldCacheRead: '快取讀 Token', detailFieldAttempts: '嘗試次數', detailTrail: '失敗的嘗試（原文）', detailError: '錯誤',
         detailPrompt: '使用者訊息', yes: '是', no: '否', close: '關閉'
       },
       test: {
@@ -187,6 +189,7 @@
       overview: {
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh',
         totalCalls: 'Total Calls', successRate: 'Success Rate', failedCalls: 'Failed', fallbackTriggered: 'Failovers', totalTokens: 'Tokens', avgLatency: 'Avg Latency',
+        cacheHit: 'Cache Hit',
         usageTitle: 'Usage Guide', usageDesc: 'OpenAI compatible. Specify model as "provider/model", or "auto" to try along the failover chain. Header "x-gateway-fallback: off" disables failover per request.',
         thProvider: 'Provider', thCalls: 'Calls', thSuccess: 'Success', thTokens: 'Tokens', noStats: 'No calls yet', unhit: '(Unhit)'
       },
@@ -235,7 +238,7 @@
         detailTitle: 'Call Details', detailFieldTime: 'Time', detailFieldEndpoint: 'Endpoint', detailFieldClientProto: 'Client Protocol', detailFieldUpstreamProto: 'Upstream Protocol',
         detailFieldKey: 'Key', detailFieldReqModel: 'Requested Model', detailFieldFinalProv: 'Final Provider', detailFieldFinalModel: 'Final Model',
         detailFieldStatus: 'Status', detailFieldStream: 'Stream', detailFieldLatency: 'Latency', detailFieldTTFB: 'TTFB',
-        detailFieldTokens: 'Tokens', detailFieldAttempts: 'Attempts', detailTrail: 'Failed Attempts (Raw)', detailError: 'Error',
+        detailFieldTokens: 'Tokens', detailFieldCacheRead: 'Cache Read Tokens', detailFieldAttempts: 'Attempts', detailTrail: 'Failed Attempts (Raw)', detailError: 'Error',
         detailPrompt: 'User Message', yes: 'Yes', no: 'No', close: 'Close'
       },
       test: {
@@ -759,10 +762,17 @@
     try {
       var s = await api('/admin/api/stats?days=' + $('#stats-days').value);
       var total = s.total || 0, ok = s.ok || 0;
+      var cacheVal = '—';
+      if (s.cache_read_tokens != null && s.prompt_tokens_for_cache > 0) {
+        cacheVal = num(s.cache_read_tokens) + ' / ' + (s.cache_read_tokens * 100 / s.prompt_tokens_for_cache).toFixed(1) + '%';
+      } else if (s.cache_read_tokens != null) {
+        cacheVal = num(s.cache_read_tokens);
+      }
       $('#stats').innerHTML = [
         [t('overview.totalCalls'), num(total)], [t('overview.successRate'), total ? (ok * 100 / total).toFixed(1) + '%' : '—'],
         [t('overview.failedCalls'), num(total - ok)], [t('overview.fallbackTriggered'), num(s.fallback || 0)],
-        [t('overview.totalTokens'), num(s.tokens || 0)], [t('overview.avgLatency'), s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—']
+        [t('overview.totalTokens'), num(s.tokens || 0)], [t('overview.avgLatency'), s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—'],
+        [t('overview.cacheHit'), cacheVal]
       ].map(function (x) { return '<div class="stat"><span class="muted small">' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
       var rows = s.byProvider || [];
       $('#stats-prov').innerHTML = '<tr><th>' + t('overview.thProvider') + '</th><th>' + t('overview.thCalls') + '</th><th>' + t('overview.thSuccess') + '</th><th>' + t('overview.thTokens') + '</th></tr>' +
@@ -929,7 +939,9 @@
       [t('logs.detailFieldKey'), l.key_name || '—'], [t('logs.detailFieldReqModel'), l.requested_model],
       [t('logs.detailFieldFinalProv'), (l.provider_name || '—') + ' (' + (l.provider_id || '—') + ')'], [t('logs.detailFieldFinalModel'), l.model || '—'],
       [t('logs.detailFieldStatus'), l.status], [t('logs.detailFieldStream'), l.stream ? t('logs.yes') : t('logs.no')], [t('logs.detailFieldLatency'), num(l.latency_ms) + ' ms'], [t('logs.detailFieldTTFB'), l.ttfb_ms == null ? '—' : num(l.ttfb_ms) + ' ms'],
-      [t('logs.detailFieldTokens'), num(l.prompt_tokens) + ' / ' + num(l.completion_tokens) + ' / ' + num(l.total_tokens)], [t('logs.detailFieldAttempts'), l.attempts]
+      [t('logs.detailFieldTokens'), num(l.prompt_tokens) + ' / ' + num(l.completion_tokens) + ' / ' + num(l.total_tokens)],
+      [t('logs.detailFieldCacheRead'), l.cache_read_tokens == null ? '—' : num(l.cache_read_tokens)],
+      [t('logs.detailFieldAttempts'), l.attempts]
     ].map(function (row) { return '<tr><th style="width:110px">' + row[0] + '</th><td class="mono small">' + esc(row[1]) + '</td></tr>'; }).join('') + '</table>';
     if (l.trail && l.trail.length) {
       h += '<h3 style="font-size:14px;margin:14px 0 4px">' + t('logs.detailTrail') + '</h3>' + l.trail.map(function (trItem, i) {
