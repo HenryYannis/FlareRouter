@@ -141,6 +141,10 @@ const upstream = http.createServer(async (req, res) => {
       echo: { temperature: body.temperature, tools: body.tools, custom: body.custom_field },
     });
   }
+  if (req.url.startsWith('/err200/')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: { message: 'quota exceeded but HTTP 200', type: 'upstream' } }));
+  }
   send(404, { error: { message: `mock: no route ${req.url}` } });
 });
 await new Promise((r) => upstream.listen(0, '127.0.0.1', r));
@@ -297,6 +301,13 @@ try {
   d = await j(r);
   ok(r.status === 502 && d.error.attempts.length === 2 && d.error.message.includes('请求超时') && d.error.message.includes('upstream exploded'), '全部失败：返回每次尝试的原文', JSON.stringify(d).slice(0, 400));
 
+  await admin('/admin/api/providers', { provider: { id: 'err200', name: '伪200', baseUrl: `${UP}/err200/v1`, apiKey: 'k', models: 'm' } });
+  await admin('/admin/api/settings', { fallbackEnabled: true, fallbackChain: ['good/m1'] });
+  r = await chat({ model: 'err200/m', messages: [{ role: 'user', content: 'hi' }] });
+  d = await j(r);
+  ok(r.status === 200 && d.choices?.[0]?.message?.content === 'pong from m1' && r.headers.get('x-gateway-provider') === 'good' && !JSON.stringify(d).includes('quota exceeded'), '同协议 HTTP 200 错误体切换到下一家，不把错误当成功', JSON.stringify(d).slice(0, 300));
+  await admin('/admin/api/providers/delete', { id: 'err200' });
+
   // ---- 流式 ----
   await admin('/admin/api/settings', { fallbackChain: ['bad/x', 'good/m1'] });
   r = await chat({ model: 'good/m2', stream: true, messages: [{ role: 'user', content: '你好' }] });
@@ -310,6 +321,12 @@ try {
   r = await chat({ model: 'broken/z', stream: true, messages: [{ role: 'user', content: 'hi' }] }, { 'x-gateway-fallback': 'off' });
   t = await r.text().catch((e) => `ERR ${e}`);
   ok(r.status === 200, '上游流中途断开不致崩溃', t.slice(0, 100));
+  await admin('/admin/api/providers', { provider: { id: 'err200', name: '伪200', baseUrl: `${UP}/err200/v1`, apiKey: 'k', models: 'm' } });
+  await admin('/admin/api/settings', { fallbackEnabled: true, fallbackChain: ['good/m1'] });
+  r = await chat({ model: 'err200/m', stream: true, messages: [{ role: 'user', content: '你好' }] });
+  t = await r.text();
+  ok(r.status === 200 && content(t) === '你好，世界' && r.headers.get('x-gateway-provider') === 'good', '流式请求遇到 HTTP 200 JSON 错误体时，在写出 SSE 前切换', t.slice(0, 200));
+  await admin('/admin/api/providers/delete', { id: 'err200' });
 
   // ---- embeddings ----
   r = await req('/v1/embeddings', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', input: 'abc' }) });
@@ -372,6 +389,12 @@ try {
 
   const XH = { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' };
   const msgs = (b, extra = {}) => req('/v1/messages', { method: 'POST', headers: { ...XH, ...extra }, body: JSON.stringify(b) });
+  await admin('/admin/api/providers', { provider: { id: 'err200', name: '伪200', baseUrl: `${UP}/err200/v1`, apiKey: 'k', models: 'm' } });
+  await admin('/admin/api/settings', { fallbackEnabled: true, fallbackChain: ['good/m1'] });
+  r = await msgs({ model: 'err200/m', max_tokens: 16, messages: [{ role: 'user', content: 'hi' }] });
+  d = await j(r);
+  ok(r.status === 200 && d.type === 'message' && d.content?.[0]?.text === 'pong from m1' && d.content.length === 1 && !JSON.stringify(d).includes('quota exceeded'), '跨协议 HTTP 200 错误体不转成空的 end_turn', JSON.stringify(d).slice(0, 300));
+  await admin('/admin/api/providers/delete', { id: 'err200' });
   const parseSSE = (s) => s.split('\n\n').filter((x) => x.trim()).map((blk) => {
     const ev = (blk.match(/^event: (.*)$/m) || [])[1];
     const da = (blk.match(/^data: (.*)$/m) || [])[1];

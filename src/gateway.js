@@ -194,6 +194,22 @@ function estimatePrompt(clientProtocol, body) {
   return clientProtocol === 'anthropic' ? estimateAnthropicInputTokens(body) : estimateMessagesTokens(body.messages);
 }
 
+function formatUpstreamErrorValue(error) {
+  if (error == null) return '';
+  if (typeof error === 'string') return error;
+  if (typeof error.message === 'string' && error.message) return error.message;
+  try { return JSON.stringify(error); } catch { return String(error); }
+}
+
+// HTTP 200 但没有 choices/content/data、只有 error 时，视为失败（部分聚合上游会这样返回）
+function upstreamErrorMessage(parsed) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  if (parsed.choices || parsed.content || parsed.data) return null;
+  if (parsed.type === 'error' && parsed.error) return formatUpstreamErrorValue(parsed.error);
+  if (parsed.error) return formatUpstreamErrorValue(parsed.error);
+  return null;
+}
+
 /**
  * 处理 /v1/chat/completions、/v1/embeddings（OpenAI 入口）与 /v1/messages（Anthropic 入口）
  * endpoint: 'chat/completions' | 'embeddings' | 'messages'
@@ -287,14 +303,37 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       trail,
     };
 
+    let prefetchedText = null;
     if (stream) {
-      const handler = createStreamHandler(clientProtocol, up.upstreamProtocol, { clientModel: body.model, includeUsage });
-      return pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate: () => estimatePrompt(clientProtocol, body) });
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      const jsonNotSse = ct.includes('application/json') && !ct.includes('text/event-stream');
+      if (!jsonNotSse) {
+        const handler = createStreamHandler(clientProtocol, up.upstreamProtocol, { clientModel: body.model, includeUsage });
+        return pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate: () => estimatePrompt(clientProtocol, body) });
+      }
+      prefetchedText = await res.text();
+      let peeked = null;
+      try { peeked = JSON.parse(prefetchedText); } catch { /* 非 JSON 在下面当错误切换 */ }
+      const streamErr = upstreamErrorMessage(peeked);
+      if (streamErr || !peeked || typeof peeked !== 'object' || Array.isArray(peeked)) {
+        const msg = streamErr
+          ? `上游返回 HTTP 200 但正文是错误：${streamErr}`
+          : `上游返回 200 但不是 SSE：${String(prefetchedText).slice(0, 1000)}`;
+        fail1(502, msg.slice(0, ERROR_TEXT_LIMIT));
+        lastStatus = 502;
+        continue;
+      }
     }
 
-    const text = await res.text();
+    const text = prefetchedText != null ? prefetchedText : await res.text();
     let parsed = null;
     try { parsed = JSON.parse(text); } catch { /* 同协议时原样返回 */ }
+    const bodyErr = upstreamErrorMessage(parsed);
+    if (bodyErr) {
+      fail1(502, `上游返回 HTTP 200 但正文是错误：${bodyErr}`.slice(0, ERROR_TEXT_LIMIT));
+      lastStatus = 502;
+      continue;
+    }
     let outText = text;
     let contentType = res.headers.get('content-type') || 'application/json; charset=utf-8';
     if (up.upstreamProtocol !== clientProtocol && endpoint !== 'embeddings') {
