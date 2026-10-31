@@ -475,6 +475,16 @@ try {
   r = await chat({ model: 'anth/claude-x', tools: [{ type: 'function', function: { name: 'get_weather', parameters: {} } }], messages: [{ role: 'user', content: 'weather?' }] });
   d = await j(r);
   ok(d.choices[0].finish_reason === 'tool_calls' && d.choices[0].message.content === '好的' && d.choices[0].message.tool_calls[0].id === 'toolu_n1' && JSON.parse(d.choices[0].message.tool_calls[0].function.arguments).city === '北京', 'Anthropic tool_use → OpenAI tool_calls', JSON.stringify(d));
+  r = await chat({
+    model: 'anth/claude-x',
+    messages: [
+      { role: 'user', content: '第一轮' },
+      { role: 'system', content: '中途提醒' },
+      { role: 'user', content: '第二轮' },
+    ],
+  });
+  up = seen.at(-1);
+  ok(up.body.system === '中途提醒' && up.body.messages.length === 2 && up.body.messages[0].content[0].text === '第一轮' && up.body.messages[1].content[0].text === '第二轮', '对话中间的 system 不会把两条 user 粘成一条', JSON.stringify(up.body));
 
   // /v1/chat/completions → Anthropic 上游（流式）
   r = await chat({ model: 'anth/claude-x', stream: true, stream_options: { include_usage: true }, messages: [{ role: 'user', content: 'hi' }] });
