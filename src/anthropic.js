@@ -5,7 +5,9 @@ import { estimateTokens, randomHex } from './util.js';
 
 export const DEFAULT_ANTHROPIC_VERSION = '2023-06-01';
 // chat/completions → anthropic 上游时，调用方没给 max_tokens 的默认值（Anthropic 要求必填）
-export const DEFAULT_MAX_TOKENS = 8192;
+// 不少模型的输出上限是 4096。默认再高会直接 400，然后被容灾换到别的模型。
+// 需要更长输出的调用方自己传 max_tokens / max_completion_tokens。
+export const DEFAULT_MAX_TOKENS = 4096;
 
 // ---------------------------------------------------------------- 地址与请求头
 
@@ -108,6 +110,34 @@ function partsToOpenAIContent(parts) {
   return parts;
 }
 
+const SERVER_TOOL_RESULTS = new Set([
+  'web_search_tool_result',
+  'code_execution_tool_result',
+  'mcp_tool_result',
+  'bash_code_execution_tool_result',
+  'text_editor_code_execution_tool_result',
+  'tool_search_tool_result',
+]);
+
+function looseBlockText(content) {
+  if (content == null) return '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map((c) => {
+      if (!c) return '';
+      if (typeof c === 'string') return c;
+      if (typeof c.text === 'string' && c.text) return c.text;
+      if (c.title || c.url) return [c.title, c.url].filter(Boolean).join(' ');
+      try { return JSON.stringify(c); } catch { return ''; }
+    }).filter(Boolean).join('\n');
+  }
+  if (typeof content === 'object') {
+    if (typeof content.text === 'string') return content.text;
+    try { return JSON.stringify(content); } catch { return ''; }
+  }
+  return String(content);
+}
+
 function convertAnthUserMessage(m, out) {
   if (typeof m.content === 'string') { out.push({ role: 'user', content: m.content }); return; }
   const blocks = Array.isArray(m.content) ? m.content : [];
@@ -115,10 +145,11 @@ function convertAnthUserMessage(m, out) {
   const extraImages = [];
   for (const b of blocks) {
     if (!b || typeof b !== 'object') continue;
-    if (b.type === 'tool_result') {
+    if (b.type === 'tool_result' || SERVER_TOOL_RESULTS.has(b.type)) {
       // tool 消息必须紧跟在 assistant 的 tool_calls 后面，所以先输出
       let content;
-      if (typeof b.content === 'string') content = b.content;
+      if (b.type !== 'tool_result') content = looseBlockText(b.content);
+      else if (typeof b.content === 'string') content = b.content;
       else if (Array.isArray(b.content)) {
         content = b.content.filter((c) => c && c.type === 'text').map((c) => c.text).join('\n');
         for (const c of b.content) if (c && c.type === 'image') { const im = anthImageToOpenAI(c); if (im) extraImages.push(im); }
@@ -159,6 +190,11 @@ function convertAnthAssistantMessage(m, out) {
   out.push(msg);
 }
 
+function useMaxCompletionTokens(model) {
+  const name = String(model || '').split('/').pop().toLowerCase();
+  return /^o\d/.test(name);
+}
+
 export function anthropicToOpenAIRequest(body, model, { stream, streamUsage } = {}) {
   const messages = [];
   const sys = textOf(body.system);
@@ -170,7 +206,10 @@ export function anthropicToOpenAIRequest(body, model, { stream, streamUsage } = 
   }
 
   const out = { model, messages };
-  if (body.max_tokens != null) out.max_tokens = body.max_tokens;
+  if (body.max_tokens != null) {
+    if (useMaxCompletionTokens(model)) out.max_completion_tokens = body.max_tokens;
+    else out.max_tokens = body.max_tokens;
+  }
   if (body.temperature != null) out.temperature = body.temperature;
   if (body.top_p != null) out.top_p = body.top_p;
   if (Array.isArray(body.stop_sequences) && body.stop_sequences.length) out.stop = body.stop_sequences;
@@ -219,6 +258,17 @@ function oaPartToAnth(p) {
   return null;
 }
 
+function jsonFormatHint(fmt) {
+  if (!fmt || typeof fmt !== 'object') return '';
+  if (fmt.type === 'json_object') return '请只输出一个 JSON 对象，不要输出其它文字。';
+  if (fmt.type === 'json_schema') {
+    let extra = '';
+    try { extra = fmt.json_schema ? `\n${JSON.stringify(fmt.json_schema)}` : ''; } catch { extra = ''; }
+    return `请只输出符合下列 JSON Schema 的 JSON。${extra}`;
+  }
+  return '';
+}
+
 function oaContentToAnthBlocks(content) {
   if (content == null) return [];
   if (typeof content === 'string') return content ? [{ type: 'text', text: content }] : [];
@@ -229,11 +279,14 @@ function oaContentToAnthBlocks(content) {
 export function openAIToAnthropicRequest(body, model, { stream } = {}) {
   const system = [];
   const msgs = [];
+  let skipMerge = false;
   const push = (role, blocks) => {
     if (!blocks.length) return;
     const last = msgs[msgs.length - 1];
-    if (last && last.role === role) last.content.push(...blocks); // 相邻同角色合并
+    // 抽走中间的 system 之后，原来不相邻的消息不要粘在一起。tool 结果和紧随的 user 仍合并。
+    if (!skipMerge && last && last.role === role) last.content.push(...blocks);
     else msgs.push({ role, content: [...blocks] });
+    skipMerge = false;
   };
 
   for (const m of Array.isArray(body.messages) ? body.messages : []) {
@@ -241,6 +294,7 @@ export function openAIToAnthropicRequest(body, model, { stream } = {}) {
     if (m.role === 'system' || m.role === 'developer') {
       const t = textOf(m.content);
       if (t) system.push(t);
+      skipMerge = true;
     } else if (m.role === 'assistant') {
       const blocks = oaContentToAnthBlocks(m.content).filter((b) => b.type === 'text');
       if (typeof m.reasoning_content === 'string' && m.reasoning_content && typeof m.reasoning_signature === 'string' && m.reasoning_signature) {
@@ -258,7 +312,10 @@ export function openAIToAnthropicRequest(body, model, { stream } = {}) {
     }
   }
 
-  const out = { model, max_tokens: body.max_tokens || body.max_completion_tokens || DEFAULT_MAX_TOKENS, messages: msgs };
+  const formatHint = jsonFormatHint(body.response_format);
+  if (formatHint) system.push(formatHint);
+  const requestedMax = body.max_tokens ?? body.max_completion_tokens;
+  const out = { model, max_tokens: requestedMax ?? DEFAULT_MAX_TOKENS, messages: msgs };
   if (system.length) out.system = system.join('\n\n');
   if (body.temperature != null) out.temperature = Math.min(1, Math.max(0, Number(body.temperature)));
   if (body.top_p != null) out.top_p = body.top_p;
