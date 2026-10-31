@@ -4,6 +4,7 @@
 import { getConfig } from './config.js';
 import { handleAdminApi } from './admin.js';
 import { handleCountTokens, handleProxy, listModels, protocolError } from './gateway.js';
+import { MEDIA_ENDPOINTS, handleMedia } from './media.js';
 import { verifyApiKey } from './keys.js';
 import { clearLogs } from './logs.js';
 import ADMIN_HTML from './admin/index.html';
@@ -49,7 +50,9 @@ async function route(request, env, ctx) {
   const isEmb = path === '/v1/embeddings';
   const isMessages = path === '/v1/messages';
   const isCount = path === '/v1/messages/count_tokens';
-  if (!isModels && !isChat && !isEmb && !isMessages && !isCount) {
+  const mediaPath = path.startsWith('/v1/') ? path.slice(4) : '';
+  const isMedia = Object.prototype.hasOwnProperty.call(MEDIA_ENDPOINTS, mediaPath);
+  if (!isModels && !isChat && !isEmb && !isMessages && !isCount && !isMedia) {
     return protocolError(path.startsWith('/v1/messages') ? 'anthropic' : 'openai', `未知接口 ${request.method} ${url.pathname}`, 404);
   }
   const proto = isMessages || isCount ? 'anthropic' : 'openai';
@@ -66,6 +69,7 @@ async function route(request, env, ctx) {
   }
   if (request.method !== 'POST') return protocolError(proto, 'Method Not Allowed', 405);
   if (isCount) return handleCountTokens(request, env);
+  if (isMedia) return handleMedia(request, env, ctx, { mediaPath, caller });
   return handleProxy(request, env, ctx, { endpoint: isMessages ? 'messages' : isChat ? 'chat/completions' : 'embeddings', caller });
 }
 

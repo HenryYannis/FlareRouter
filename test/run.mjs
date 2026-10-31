@@ -15,9 +15,14 @@ const ok = (cond, name, extra = '') => {
 // ---------- 假上游 ----------
 const seen = []; // 记录上游收到的请求
 const upstream = http.createServer(async (req, res) => {
-  let raw = '';
-  for await (const c of req) raw += c;
-  const body = raw ? JSON.parse(raw) : null;
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  const rawBuf = Buffer.concat(chunks);
+  const raw = rawBuf.toString('latin1');
+  let body = null;
+  if (raw) {
+    try { body = JSON.parse(rawBuf.toString('utf8')); } catch { body = raw; }
+  }
   seen.push({ path: req.url, auth: req.headers.authorization, xkey: req.headers['x-api-key'], ver: req.headers['anthropic-version'], beta: req.headers['anthropic-beta'], body });
   const send = (status, obj) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); };
   const lastText = () => {
@@ -73,6 +78,25 @@ const upstream = http.createServer(async (req, res) => {
     return;
   }
   if (req.url === '/good/v1/embeddings') return send(200, { object: 'list', data: [{ embedding: [0.1, 0.2] }], usage: { prompt_tokens: 3, total_tokens: 3 } });
+  if (req.url === '/good/v1/images/generations') {
+    return send(200, { created: 1, data: [{ url: 'https://example.com/a.png', revised_prompt: body.prompt || '' }], model: body.model });
+  }
+  if (req.url === '/good/v1/images/edits') {
+    const rawBody = typeof body === 'string' ? body : '';
+    const m = rawBody.match(/name="model"\r\n\r\n([^\r\n]*)/);
+    return send(200, { created: 1, data: [{ b64_json: 'aaa' }], model: m ? m[1] : 'unknown' });
+  }
+  if (req.url === '/good/v1/audio/transcriptions') {
+    const rawBody = typeof body === 'string' ? body : '';
+    const m = rawBody.match(/name="model"\r\n\r\n([^\r\n]*)/);
+    return send(200, { text: '你好世界', model: m ? m[1] : 'unknown' });
+  }
+  if (req.url === '/good/v1/audio/speech') {
+    res.writeHead(200, { 'Content-Type': 'audio/mpeg' });
+    return res.end(Buffer.from('ID3fake-mp3-' + (body && body.model || '') + '-' + (body && body.voice || '')));
+  }
+  if (req.url === '/bad/v1/images/generations') return send(500, { error: { message: 'image upstream down' } });
+  if (req.url === '/bad/v1/audio/speech') return send(500, { error: { message: 'tts upstream down' } });
   if (req.url === '/good/v1/chat/completions' && wantTool()) {
     if (body.stream) {
       res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
@@ -295,6 +319,49 @@ try {
   r = await req('/v1/embeddings', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', input: 'abc' }) });
   d = await j(r);
   ok(r.status === 200 && d.data[0].embedding.length === 2 && seen.at(-1).path === '/good/v1/embeddings', '/v1/embeddings 转发');
+
+  // ---- 图片 / 语音（对齐控制台网关） ----
+  r = await req('/v1/images/generations', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', prompt: 'a cat', size: '256x256' }) });
+  d = await j(r);
+  ok(r.status === 200 && d.data[0].url && seen.at(-1).path === '/good/v1/images/generations' && seen.at(-1).body.model === 'm1' && seen.at(-1).body.prompt === 'a cat', '/v1/images/generations 转发并去掉服务商前缀', JSON.stringify(d));
+  await admin('/admin/api/settings', { fallbackChain: ['bad/x', 'good/m1'], fallbackEnabled: true });
+  r = await req('/v1/images/generations', { method: 'POST', headers: H, body: JSON.stringify({ model: 'auto', prompt: 'failover' }) });
+  d = await j(r);
+  ok(r.status === 200 && r.headers.get('x-gateway-provider') === 'good' && Number(r.headers.get('x-gateway-attempts')) >= 2, '/v1/images/generations 容灾', JSON.stringify({ status: r.status, h: Object.fromEntries([...r.headers]), d }));
+
+  const boundary = '----flaretest';
+  const mp = (fields) => {
+    let s = '';
+    for (const [name, val] of Object.entries(fields)) {
+      s += `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${val}\r\n`;
+    }
+    s += `--${boundary}--\r\n`;
+    return s;
+  };
+  r = await req('/v1/images/edits', {
+    method: 'POST',
+    headers: { ...H, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    body: mp({ model: 'good/m2', prompt: 'edit me' }),
+  });
+  d = await j(r);
+  ok(r.status === 200 && d.data[0].b64_json === 'aaa' && seen.at(-1).path === '/good/v1/images/edits' && d.model === 'm2', '/v1/images/edits multipart 转发', JSON.stringify(d));
+  r = await req('/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { ...H, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    body: mp({ model: 'good/m1', language: 'zh' }),
+  });
+  d = await j(r);
+  ok(r.status === 200 && d.text === '你好世界' && seen.at(-1).path === '/good/v1/audio/transcriptions', '/v1/audio/transcriptions 转发', JSON.stringify(d));
+  r = await req('/v1/images/generations', { method: 'POST', headers: H, body: JSON.stringify({ prompt: 'no model' }) });
+  ok(r.status === 400, '/v1/images/generations 缺 model -> 400');
+
+  r = await req('/v1/audio/speech', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', input: '你好', voice: 'alloy' }) });
+  t = await r.text();
+  ok(r.status === 200 && (r.headers.get('content-type') || '').includes('audio/mpeg') && t.includes('ID3fake-mp3-m1-alloy') && seen.at(-1).path === '/good/v1/audio/speech' && seen.at(-1).body.model === 'm1', '/v1/audio/speech TTS 二进制转发', t.slice(0, 80));
+  await admin('/admin/api/settings', { fallbackChain: ['bad/x', 'good/m1'], fallbackEnabled: true });
+  r = await req('/v1/audio/speech', { method: 'POST', headers: H, body: JSON.stringify({ model: 'auto', input: 'failover', voice: 'nova' }) });
+  t = await r.text();
+  ok(r.status === 200 && r.headers.get('x-gateway-provider') === 'good' && Number(r.headers.get('x-gateway-attempts')) >= 2 && t.includes('ID3fake-mp3-m1-nova'), '/v1/audio/speech 容灾', t.slice(0, 80));
 
   // ================= Anthropic 协议 =================
   r = await admin('/admin/api/providers', { provider: { id: 'anth', name: 'Claude 官方', protocol: 'anthropic', baseUrl: `${UP}/anth`, apiKey: 'sk-ant-secret-1234567890', models: 'claude-x\nclaude-y' } });
