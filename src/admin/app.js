@@ -768,11 +768,13 @@
       } else if (s.cache_read_tokens != null) {
         cacheVal = num(s.cache_read_tokens);
       }
+      // 缓存命中并进 Tokens 卡，保持 6 格对齐，避免第 7 格单独换行
+      var tokensHtml = num(s.tokens || 0) +
+        '<span class="stat-sub">' + t('overview.cacheHit') + ' ' + cacheVal + '</span>';
       $('#stats').innerHTML = [
         [t('overview.totalCalls'), num(total)], [t('overview.successRate'), total ? (ok * 100 / total).toFixed(1) + '%' : '—'],
         [t('overview.failedCalls'), num(total - ok)], [t('overview.fallbackTriggered'), num(s.fallback || 0)],
-        [t('overview.totalTokens'), num(s.tokens || 0)], [t('overview.avgLatency'), s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—'],
-        [t('overview.cacheHit'), cacheVal]
+        [t('overview.totalTokens'), tokensHtml], [t('overview.avgLatency'), s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—']
       ].map(function (x) { return '<div class="stat"><span class="muted small">' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
       var rows = s.byProvider || [];
       $('#stats-prov').innerHTML = '<tr><th>' + t('overview.thProvider') + '</th><th>' + t('overview.thCalls') + '</th><th>' + t('overview.thSuccess') + '</th><th>' + t('overview.thTokens') + '</th></tr>' +
