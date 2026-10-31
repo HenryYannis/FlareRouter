@@ -9,10 +9,18 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
 <script>
   (function () {
-    var saved = localStorage.getItem('gw-theme');
-    var isDark = saved ? (saved === 'dark') : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var savedTheme = localStorage.getItem('gw-theme');
+    var isDark = savedTheme ? (savedTheme === 'dark') : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.add(isDark ? 'night-theme' : 'day-theme');
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+
+    var savedLang = null;
+    try { savedLang = localStorage.getItem('gw_lang'); } catch (e) {}
+    if (savedLang !== 'zh' && savedLang !== 'zh-Hant' && savedLang !== 'en') {
+      var nav = String(navigator.language || '').toLowerCase();
+      savedLang = /^zh-(hant|tw|hk|mo)/.test(nav) ? 'zh-Hant' : (nav.indexOf('zh') === 0 ? 'zh' : 'en');
+    }
+    document.documentElement.setAttribute('lang', savedLang === 'zh' ? 'zh-CN' : (savedLang === 'zh-Hant' ? 'zh-TW' : 'en-US'));
   })();
 </script>
 <!--INJECT_CSS-->
@@ -23,13 +31,18 @@
   <!-- 登录 -->
   <div id="v-login" class="login hidden">
     <div class="card">
-      <h2>FlareRouter · 管理登录</h2>
+      <h2 data-i18n="login.title">FlareRouter · 管理登录</h2>
       <form id="login-form">
-        <label class="f" for="pw">管理员密码</label>
+        <label class="f" for="pw" data-i18n="login.passwordLabel">管理员密码</label>
         <input type="password" id="pw" autocomplete="current-password" autofocus>
         <div class="row" style="margin-top:12px">
-          <button class="btn primary" type="submit">登录</button>
+          <button class="btn primary" type="submit" data-i18n="login.submit">登录</button>
           <span class="grow"></span>
+          <select class="btn sm lang-select" data-lang-select title="Language / 语言" aria-label="Language / 语言">
+            <option value="zh">简体中文</option>
+            <option value="zh-Hant">繁體中文</option>
+            <option value="en">English</option>
+          </select>
           <button class="btn theme-toggle" type="button" data-theme-toggle title="切换到夜间" aria-label="切换到夜间">
             <svg class="theme-icon-moon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             <svg class="theme-icon-sun" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -45,38 +58,47 @@
     <header>
       <h1>FlareRouter</h1>
       <span class="endpoint mono" id="ep"></span>
-      <button class="btn sm" id="copy-ep">复制地址</button>
+      <button class="btn sm" id="copy-ep" data-i18n="header.copyEndpoint">复制地址</button>
       <span class="sp"></span>
+      <select class="btn sm lang-select" data-lang-select title="Language / 语言" aria-label="Language / 语言">
+        <option value="zh">简体中文</option>
+        <option value="zh-Hant">繁體中文</option>
+        <option value="en">English</option>
+      </select>
       <button class="btn sm theme-toggle" type="button" data-theme-toggle title="切换到夜间" aria-label="切换到夜间">
         <svg class="theme-icon-moon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <svg class="theme-icon-sun" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       </button>
-      <button class="btn sm" id="logout">退出</button>
+      <button class="btn sm" id="logout" data-i18n="header.logout">退出</button>
     </header>
     <nav id="tabs">
-      <button data-tab="overview" class="on">概览</button>
-      <button data-tab="providers">服务商</button>
-      <button data-tab="fallback">容灾</button>
-      <button data-tab="keys">调用密钥</button>
-      <button data-tab="logs">日志</button>
-      <button data-tab="test">测试</button>
-      <button data-tab="settings">设置</button>
+      <button data-tab="overview" class="on" data-i18n="tabs.overview">概览</button>
+      <button data-tab="providers" data-i18n="tabs.providers">服务商</button>
+      <button data-tab="fallback" data-i18n="tabs.fallback">容灾</button>
+      <button data-tab="keys" data-i18n="tabs.keys">调用密钥</button>
+      <button data-tab="logs" data-i18n="tabs.logs">日志</button>
+      <button data-tab="test" data-i18n="tabs.test">测试</button>
+      <button data-tab="settings" data-i18n="tabs.settings">设置</button>
     </nav>
 
     <!-- 概览 -->
     <section data-pane="overview">
       <div class="card">
         <div class="row" style="margin-bottom:12px">
-          <h2 style="margin:0">调用统计</h2><span class="grow"></span>
-          <select id="stats-days"><option value="1">近 24 小时</option><option value="7">近 7 天</option><option value="30">近 30 天</option></select>
-          <button class="btn sm" id="stats-refresh">刷新</button>
+          <h2 style="margin:0" data-i18n="overview.statsTitle">调用统计</h2><span class="grow"></span>
+          <select id="stats-days">
+            <option value="1" data-i18n="overview.days24h">近 24 小时</option>
+            <option value="7" data-i18n="overview.days7d">近 7 天</option>
+            <option value="30" data-i18n="overview.days30d">近 30 天</option>
+          </select>
+          <button class="btn sm" id="stats-refresh" data-i18n="overview.refresh">刷新</button>
         </div>
         <div class="stats" id="stats"></div>
         <div class="scroll-x" style="margin-top:14px"><table id="stats-prov"></table></div>
       </div>
       <div class="card">
-        <h2>调用方式</h2>
-        <p class="muted small" style="margin-top:0">OpenAI 兼容。模型写成「服务商ID/模型」，写 <code>auto</code> 则按容灾链从头尝试。请求头 <code>x-gateway-fallback: off</code> 可临时关闭本次容灾。</p>
+        <h2 data-i18n="overview.usageTitle">调用方式</h2>
+        <p class="muted small" style="margin-top:0" data-i18n="overview.usageDesc">OpenAI 兼容。模型写成「服务商ID/模型」，写 auto 则按容灾链从头尝试。请求头 x-gateway-fallback: off 可临时关闭本次容灾。</p>
         <pre id="curl-example"></pre>
       </div>
     </section>
@@ -85,8 +107,10 @@
     <section data-pane="providers" class="hidden">
       <div class="card">
         <div class="row" style="margin-bottom:10px">
-          <h2 style="margin:0">服务商</h2><span class="muted small">顺序即 <code>auto</code> 默认容灾顺序（未自定义容灾链时）</span>
-          <span class="grow"></span><button class="btn primary" id="add-prov">添加服务商</button>
+          <h2 style="margin:0" data-i18n="providers.title">服务商</h2>
+          <span class="muted small" data-i18n="providers.desc">顺序即 auto 默认容灾顺序（未自定义容灾链时）</span>
+          <span class="grow"></span>
+          <button class="btn primary" id="add-prov" data-i18n="providers.add">添加服务商</button>
         </div>
         <div class="scroll-x"><table id="prov-table"></table></div>
       </div>
@@ -95,17 +119,17 @@
     <!-- 容灾 -->
     <section data-pane="fallback" class="hidden">
       <div class="card">
-        <h2>容灾切换</h2>
+        <h2 data-i18n="fallback.title">容灾切换</h2>
         <div class="row" style="margin-bottom:8px">
           <label class="switch"><input type="checkbox" id="fb-on"><span></span></label>
-          <span>请求的模型失败时，继续按下面的容灾链尝试</span>
+          <span data-i18n="fallback.switchLabel">请求的模型失败时，继续按下面的容灾链尝试</span>
         </div>
-        <p class="muted small">失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。</p>
+        <p class="muted small" data-i18n="fallback.desc">失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。</p>
         <ul class="chain" id="chain"></ul>
         <div class="row">
           <select id="chain-add" class="grow"></select>
-          <button class="btn" id="chain-add-btn">加入容灾链</button>
-          <button class="btn primary" id="chain-save">保存</button>
+          <button class="btn" id="chain-add-btn" data-i18n="fallback.addToChain">加入容灾链</button>
+          <button class="btn primary" id="chain-save" data-i18n="fallback.save">保存</button>
         </div>
       </div>
     </section>
@@ -113,14 +137,14 @@
     <!-- 调用密钥 -->
     <section data-pane="keys" class="hidden">
       <div class="card">
-        <h2>调用密钥</h2>
+        <h2 data-i18n="keys.title">调用密钥</h2>
         <div class="row">
-          <input type="text" id="key-name" placeholder="名称，例如：笔记本 / Cherry Studio" class="grow">
-          <button class="btn primary" id="key-create">生成新密钥</button>
+          <input type="text" id="key-name" data-i18n-placeholder="keys.namePlaceholder" placeholder="名称，例如：笔记本 / Cherry Studio" class="grow">
+          <button class="btn primary" id="key-create" data-i18n="keys.generate">生成新密钥</button>
         </div>
         <div id="key-new" class="hidden" style="margin-top:12px">
-          <div class="small" style="color:var(--warn)">明文只显示这一次，请立即复制保存：</div>
-          <div class="row"><pre id="key-new-val" class="grow mono" style="margin:6px 0"></pre><button class="btn sm" id="key-copy">复制</button></div>
+          <div class="small" style="color:var(--ok)" data-i18n="keys.newKeyNotice">新密钥已生成，已完整保存至列表，可随时查看或复制：</div>
+          <div class="row"><pre id="key-new-val" class="grow mono" style="margin:6px 0"></pre><button class="btn sm" id="key-copy" data-i18n="keys.copy">复制</button></div>
         </div>
         <div class="scroll-x" style="margin-top:12px"><table id="key-table"></table></div>
       </div>
@@ -130,20 +154,24 @@
     <section data-pane="logs" class="hidden">
       <div class="card">
         <div class="row" style="margin-bottom:10px">
-          <select id="lf-status"><option value="">全部状态</option><option value="ok">成功</option><option value="fail">失败</option></select>
-          <label class="row small"><input type="checkbox" id="lf-fb"> 仅容灾</label>
-          <select id="lf-provider"><option value="">全部服务商</option></select>
-          <select id="lf-key"><option value="">全部密钥</option></select>
-          <input type="text" id="lf-model" placeholder="模型包含…" style="width:150px">
-          <input type="text" id="lf-q" placeholder="错误关键词…" style="width:150px">
-          <button class="btn" id="lf-go">查询</button>
+          <select id="lf-status">
+            <option value="" data-i18n="logs.allStatus">全部状态</option>
+            <option value="ok" data-i18n="logs.success">成功</option>
+            <option value="fail" data-i18n="logs.fail">失败</option>
+          </select>
+          <label class="row small"><input type="checkbox" id="lf-fb"> <span data-i18n="logs.onlyFallback">仅容灾</span></label>
+          <select id="lf-provider"><option value="" data-i18n="logs.allProviders">全部服务商</option></select>
+          <select id="lf-key"><option value="" data-i18n="logs.allKeys">全部密钥</option></select>
+          <input type="text" id="lf-model" data-i18n-placeholder="logs.modelContains" placeholder="模型包含…" style="width:150px">
+          <input type="text" id="lf-q" data-i18n-placeholder="logs.errKeyword" placeholder="错误关键词…" style="width:150px">
+          <button class="btn" id="lf-go" data-i18n="logs.query">查询</button>
           <span class="grow"></span>
-          <button class="btn danger" id="lf-clear">清空日志</button>
+          <button class="btn danger" id="lf-clear" data-i18n="logs.clearLogs">清空日志</button>
         </div>
         <div class="scroll-x"><table id="log-table"></table></div>
         <div class="row" style="margin-top:10px">
           <span class="muted small" id="log-info"></span><span class="grow"></span>
-          <button class="btn sm" id="log-prev">上一页</button><button class="btn sm" id="log-next">下一页</button>
+          <button class="btn sm" id="log-prev" data-i18n="logs.prevPage">上一页</button><button class="btn sm" id="log-next" data-i18n="logs.nextPage">下一页</button>
         </div>
       </div>
     </section>
@@ -151,17 +179,17 @@
     <!-- 测试 -->
     <section data-pane="test" class="hidden">
       <div class="card">
-        <h2>测试调用</h2>
-        <p class="muted small" style="margin-top:0">走真实的转发、容灾与日志链路（日志里密钥显示为「管理页测试」）。</p>
-        <label class="f" for="t-model">模型</label>
+        <h2 data-i18n="test.title">测试调用</h2>
+        <p class="muted small" style="margin-top:0" data-i18n="test.desc">走真实的转发、容灾与日志链路（日志里密钥显示为「管理页测试」）。</p>
+        <label class="f" for="t-model" data-i18n="test.labelModel">模型</label>
         <select id="t-model"></select>
-        <label class="f" for="t-prompt">提示词</label>
-        <textarea id="t-prompt">你好，用一句话介绍你自己。</textarea>
+        <label class="f" for="t-prompt" data-i18n="test.labelPrompt">提示词</label>
+        <textarea id="t-prompt" data-i18n="test.defaultPrompt">你好，用一句话介绍你自己。</textarea>
         <div class="row" style="margin-top:10px">
-          <label class="row small"><input type="checkbox" id="t-stream"> 流式</label>
-          <label class="row small"><input type="checkbox" id="t-nofb"> 关闭容灾</label>
+          <label class="row small"><input type="checkbox" id="t-stream"> <span data-i18n="test.stream">流式</span></label>
+          <label class="row small"><input type="checkbox" id="t-nofb"> <span data-i18n="test.noFallback">关闭容灾</span></label>
           <span class="grow"></span>
-          <button class="btn primary" id="t-go">发送</button>
+          <button class="btn primary" id="t-go" data-i18n="test.send">发送</button>
         </div>
         <div id="t-meta" class="small muted" style="margin-top:12px"></div>
         <pre id="t-out" class="hidden"></pre>
@@ -171,22 +199,24 @@
     <!-- 设置 -->
     <section data-pane="settings" class="hidden">
       <div class="card">
-        <h2>日志</h2>
+        <h2 data-i18n="settings.logsTitle">日志</h2>
         <div class="row">
-          <span>日志保留</span><input type="number" id="s-ret" min="0" max="3650" style="width:90px"><span>天（0 = 永久，每日 Cron 清理）</span>
+          <span data-i18n="settings.retentionLabel">日志保留</span>
+          <input type="number" id="s-ret" min="0" max="3650" style="width:90px">
+          <span data-i18n="settings.daysUnit">天（0 = 永久，每日 Cron 清理）</span>
         </div>
         <div class="row" style="margin-top:10px">
           <label class="switch"><input type="checkbox" id="s-prompts"><span></span></label>
-          <span>记录最后一条用户消息原文（默认关，只记元数据）</span>
+          <span data-i18n="settings.logPromptsLabel">记录最后一条用户消息原文（默认关，只记元数据）</span>
         </div>
-        <div class="row" style="margin-top:12px"><button class="btn primary" id="s-save">保存</button></div>
+        <div class="row" style="margin-top:12px"><button class="btn primary" id="s-save" data-i18n="settings.save">保存</button></div>
       </div>
       <div class="card">
-        <h2>备份</h2>
-        <p class="muted small" style="margin-top:0">导出文件包含上游 API Key 明文，请妥善保存。导入会整体覆盖当前服务商与设置。</p>
+        <h2 data-i18n="settings.backupTitle">备份</h2>
+        <p class="muted small" style="margin-top:0" data-i18n="settings.backupDesc">导出文件包含上游 API Key 明文，请妥善保存。导入会整体覆盖当前服务商与设置。</p>
         <div class="row">
-          <button class="btn" id="s-export">导出配置</button>
-          <label class="btn">导入配置<input type="file" id="s-import" accept="application/json" class="hidden"></label>
+          <button class="btn" id="s-export" data-i18n="settings.exportBtn">导出配置</button>
+          <label class="btn"><span data-i18n="settings.importBtn">导入配置</span><input type="file" id="s-import" accept="application/json" class="hidden"></label>
         </div>
       </div>
     </section>
@@ -198,57 +228,57 @@
 <!-- 服务商编辑 -->
 <dialog id="dlg-prov">
   <form method="dialog" id="prov-form">
-    <div class="dh" id="prov-title">服务商</div>
+    <div class="dh" id="prov-title" data-i18n="providers.title">服务商</div>
     <div class="db">
       <div class="row">
-        <div class="grow"><label class="f" for="p-name">名称</label><input type="text" id="p-name" style="width:100%" placeholder="例如：OpenRouter"></div>
-        <div class="grow"><label class="f" for="p-id">ID（用于「ID/模型」寻址）</label><input type="text" id="p-id" style="width:100%" placeholder="例如：openrouter" spellcheck="false"></div>
+        <div class="grow"><label class="f" for="p-name" data-i18n="providers.labelName">名称</label><input type="text" id="p-name" style="width:100%" placeholder="例如：OpenRouter"></div>
+        <div class="grow"><label class="f" for="p-id" data-i18n="providers.labelId">ID（用于「ID/模型」寻址）</label><input type="text" id="p-id" style="width:100%" placeholder="例如：openrouter" spellcheck="false"></div>
       </div>
-      <label class="f" for="p-protocol">协议类型</label>
+      <label class="f" for="p-protocol" data-i18n="providers.labelProto">协议类型</label>
       <select id="p-protocol" style="width:100%">
-        <option value="openai">OpenAI 兼容（/chat/completions，Bearer 鉴权）</option>
-        <option value="anthropic">Anthropic Messages（/v1/messages，x-api-key 鉴权）</option>
+        <option value="openai" data-i18n="providers.protoOpenAI">OpenAI 兼容（/chat/completions，Bearer 鉴权）</option>
+        <option value="anthropic" data-i18n="providers.protoAnthropic">Anthropic Messages（/v1/messages，x-api-key 鉴权）</option>
       </select>
       <div class="muted small" id="p-protocol-tip" style="margin-top:4px"></div>
       <label class="f" for="p-url">Base URL</label>
       <input type="text" id="p-url" placeholder="https://api.example.com/v1" spellcheck="false">
       <label class="f" for="p-key">API Key <span id="p-key-preview" class="mono"></span></label>
       <input type="password" id="p-key" placeholder="留空则不修改" spellcheck="false" autocomplete="new-password">
-      <label class="row small" id="p-clear-wrap"><input type="checkbox" id="p-clear"> 清除已保存的 Key</label>
+      <label class="row small" id="p-clear-wrap"><input type="checkbox" id="p-clear"> <span data-i18n="providers.clearKey">清除已保存的 Key</span></label>
       <div class="row" style="margin-top:10px">
-        <label class="f grow" for="p-models" style="margin:0">模型列表（逗号或换行分隔，第一个为默认；留空保存会自动拉取全部）</label>
-        <button class="btn sm" type="button" id="p-fetch">从服务商拉取</button>
+        <label class="f grow" for="p-models" style="margin:0" data-i18n="providers.labelModels">模型列表（逗号或换行分隔，第一个为默认；留空保存会自动拉取全部）</label>
+        <button class="btn sm" type="button" id="p-fetch" data-i18n="providers.fetchModels">从服务商拉取</button>
       </div>
       <textarea id="p-models" spellcheck="false" style="margin-top:4px"></textarea>
       <div id="p-fetch-box" class="hidden">
         <div class="row" style="margin-top:6px">
-          <input type="text" id="p-fetch-q" placeholder="搜索…" class="grow">
-          <button class="btn sm" type="button" id="p-fetch-all">全选可见</button>
-          <button class="btn sm" type="button" id="p-fetch-none">取消可见</button>
+          <input type="text" id="p-fetch-q" data-i18n-placeholder="providers.searchModels" placeholder="搜索…" class="grow">
+          <button class="btn sm" type="button" id="p-fetch-all" data-i18n="providers.selectAll">全选可见</button>
+          <button class="btn sm" type="button" id="p-fetch-none" data-i18n="providers.selectNone">取消可见</button>
         </div>
         <div class="models-box" id="p-fetch-list"></div>
       </div>
       <div id="p-fetch-err" class="err small"></div>
       <div class="row">
-        <div><label class="f" for="p-timeout">超时（毫秒，拿到响应头为止）</label><input type="number" id="p-timeout" min="1000" step="1000" style="width:160px"></div>
-        <div class="grow"><label class="f" for="p-note">备注</label><input type="text" id="p-note" style="width:100%"></div>
+        <div><label class="f" for="p-timeout" data-i18n="providers.labelTimeout">超时（毫秒，拿到响应头为止）</label><input type="number" id="p-timeout" min="1000" step="1000" style="width:160px"></div>
+        <div class="grow"><label class="f" for="p-note" data-i18n="providers.labelNote">备注</label><input type="text" id="p-note" style="width:100%"></div>
       </div>
-      <label class="row small" style="margin-top:10px"><input type="checkbox" id="p-usage"> 流式请求自动加 stream_options.include_usage</label>
-      <label class="row small" style="margin-top:4px"><input type="checkbox" id="p-enabled"> 启用</label>
+      <label class="row small" style="margin-top:10px"><input type="checkbox" id="p-usage"> <span data-i18n="providers.streamUsage">流式请求自动加 stream_options.include_usage</span></label>
+      <label class="row small" style="margin-top:4px"><input type="checkbox" id="p-enabled"> <span data-i18n="providers.enabled">启用</span></label>
       <div id="prov-err" class="err small" style="margin-top:8px"></div>
     </div>
     <div class="df">
-      <button class="btn" value="cancel" formnovalidate>取消</button>
-      <button class="btn primary" type="button" id="prov-save">保存</button>
+      <button class="btn" value="cancel" formnovalidate data-i18n="providers.cancel">取消</button>
+      <button class="btn primary" type="button" id="prov-save" data-i18n="providers.save">保存</button>
     </div>
   </form>
 </dialog>
 
 <!-- 日志详情 -->
 <dialog id="dlg-log">
-  <div class="dh">调用详情</div>
+  <div class="dh" data-i18n="logs.detailTitle">调用详情</div>
   <div class="db" id="log-detail"></div>
-  <div class="df"><button class="btn" onclick="this.closest('dialog').close()">关闭</button></div>
+  <div class="df"><button class="btn" onclick="this.closest('dialog').close()" data-i18n="logs.close">关闭</button></div>
 </dialog>
 
 <!--INJECT_JS-->

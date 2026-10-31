@@ -336,5 +336,8 @@ dialog .df {
   white-space: pre-wrap;
 }
 .scroll-x { overflow-x: auto; }
+.lang-select { cursor: pointer; padding: 2px 6px; font-size: 12.5px; }
+.key-cell { display: inline-flex; align-items: center; gap: 6px; }
+.key-val { user-select: all; }
 footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 24px; }
 @media (max-width: 720px) { .hide-sm { display: none; } }

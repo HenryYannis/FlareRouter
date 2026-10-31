@@ -1,4 +1,4 @@
-// 调用密钥：D1 表 api_keys 只存 SHA-256 哈希与脱敏预览，明文只在生成时返回一次
+// 调用密钥：D1 表 api_keys 存储哈希、脱敏预览与明文（自用方便随时查看与复制）
 
 import { randomHex, sha256Hex } from './util.js';
 
@@ -30,10 +30,20 @@ export async function verifyApiKey(env, ctx, token) {
 }
 
 export async function listKeys(env) {
-  const { results } = await env.DB.prepare(
-    'SELECT id, name, preview, created_at, last_used_at, revoked FROM api_keys ORDER BY created_at DESC'
-  ).all();
-  return results || [];
+  try {
+    const { results } = await env.DB.prepare(
+      'SELECT id, name, preview, raw_key, created_at, last_used_at, revoked FROM api_keys ORDER BY created_at DESC'
+    ).all();
+    return results || [];
+  } catch (e) {
+    if (/no column|no such column/i.test((e && e.message) || '')) {
+      const { results } = await env.DB.prepare(
+        'SELECT id, name, preview, created_at, last_used_at, revoked FROM api_keys ORDER BY created_at DESC'
+      ).all();
+      return results || [];
+    }
+    throw e;
+  }
 }
 
 export async function createKey(env, name) {
@@ -42,11 +52,22 @@ export async function createKey(env, name) {
   const hash = await sha256Hex(key);
   const preview = `${key.slice(0, 9)}…${key.slice(-4)}`;
   const now = Date.now();
-  await env.DB.prepare(
-    'INSERT INTO api_keys (id, name, key_hash, preview, created_at, revoked) VALUES (?, ?, ?, ?, ?, 0)'
-  ).bind(id, String(name || '未命名').slice(0, 60), hash, preview, now).run();
+  const nameVal = String(name || '未命名').slice(0, 60);
+  try {
+    await env.DB.prepare(
+      'INSERT INTO api_keys (id, name, key_hash, preview, raw_key, created_at, revoked) VALUES (?, ?, ?, ?, ?, ?, 0)'
+    ).bind(id, nameVal, hash, preview, key, now).run();
+  } catch (e) {
+    if (/no column|no such column/i.test((e && e.message) || '')) {
+      await env.DB.prepare(
+        'INSERT INTO api_keys (id, name, key_hash, preview, created_at, revoked) VALUES (?, ?, ?, ?, ?, 0)'
+      ).bind(id, nameVal, hash, preview, now).run();
+    } else {
+      throw e;
+    }
+  }
   authCache.clear();
-  return { id, name, key, preview, created_at: now };
+  return { id, name: nameVal, key, raw_key: key, preview, created_at: now };
 }
 
 export async function revokeKey(env, id) {

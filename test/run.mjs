@@ -155,9 +155,11 @@ try {
       t.includes('night-theme') &&
       t.includes('stars-container') &&
       t.includes('data-theme-toggle') &&
+      t.includes('data-lang-select') &&
+      t.includes('data-i18n') &&
       t.includes('var $$ = function') &&
       !/gradient/i.test(t),
-    'GET /admin 返回管理页（主题/星空、保留 var $$、无渐变）',
+    'GET /admin 返回管理页（主题/星空、三语国际化、保留 var $$、无渐变）',
   );
   let rFavicon = await req('/favicon.ico');
   ok(rFavicon.status === 204, 'GET /favicon.ico -> 204');
@@ -227,7 +229,10 @@ try {
   const key = (await j(r)).key;
   ok(/^sk-gw-[0-9a-f]{48}$/.test(key), '生成调用密钥');
   const keyRow = await db.prepare('SELECT * FROM api_keys').first();
-  ok(keyRow && !JSON.stringify(keyRow).includes(key), 'D1 不存明文密钥');
+  ok(keyRow && keyRow.raw_key === key, 'D1 记录明文密钥供自用随时查看');
+  const listKeysRes = await admin('/admin/api/keys');
+  const listKeysData = await j(listKeysRes);
+  ok(listKeysData.items && listKeysData.items[0].raw_key === key, '密钥列表包含 raw_key 供前端一键复制与查看');
   const H = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
   const chat = (body, extra = {}) => req('/v1/chat/completions', { method: 'POST', headers: { ...H, ...extra }, body: JSON.stringify(body) });
 
