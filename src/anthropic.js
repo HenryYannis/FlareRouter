@@ -154,6 +154,11 @@ function convertAnthAssistantMessage(m, out) {
   out.push(msg);
 }
 
+function useMaxCompletionTokens(model) {
+  const name = String(model || '').split('/').pop().toLowerCase();
+  return /^o\d/.test(name);
+}
+
 export function anthropicToOpenAIRequest(body, model, { stream, streamUsage } = {}) {
   const messages = [];
   const sys = textOf(body.system);
@@ -165,7 +170,10 @@ export function anthropicToOpenAIRequest(body, model, { stream, streamUsage } = 
   }
 
   const out = { model, messages };
-  if (body.max_tokens != null) out.max_tokens = body.max_tokens;
+  if (body.max_tokens != null) {
+    if (useMaxCompletionTokens(model)) out.max_completion_tokens = body.max_tokens;
+    else out.max_tokens = body.max_tokens;
+  }
   if (body.temperature != null) out.temperature = body.temperature;
   if (body.top_p != null) out.top_p = body.top_p;
   if (Array.isArray(body.stop_sequences) && body.stop_sequences.length) out.stop = body.stop_sequences;
@@ -214,6 +222,17 @@ function oaPartToAnth(p) {
   return null;
 }
 
+function jsonFormatHint(fmt) {
+  if (!fmt || typeof fmt !== 'object') return '';
+  if (fmt.type === 'json_object') return '请只输出一个 JSON 对象，不要输出其它文字。';
+  if (fmt.type === 'json_schema') {
+    let extra = '';
+    try { extra = fmt.json_schema ? `\n${JSON.stringify(fmt.json_schema)}` : ''; } catch { extra = ''; }
+    return `请只输出符合下列 JSON Schema 的 JSON。${extra}`;
+  }
+  return '';
+}
+
 function oaContentToAnthBlocks(content) {
   if (content == null) return [];
   if (typeof content === 'string') return content ? [{ type: 'text', text: content }] : [];
@@ -254,6 +273,8 @@ export function openAIToAnthropicRequest(body, model, { stream } = {}) {
     }
   }
 
+  const formatHint = jsonFormatHint(body.response_format);
+  if (formatHint) system.push(formatHint);
   const requestedMax = body.max_tokens ?? body.max_completion_tokens;
   const out = { model, max_tokens: requestedMax ?? DEFAULT_MAX_TOKENS, messages: msgs };
   if (system.length) out.system = system.join('\n\n');

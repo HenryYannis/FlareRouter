@@ -486,6 +486,10 @@ try {
     && am[1].role === 'assistant' && am[1].content[0].type === 'tool_use' && am[1].content[0].input.city === '深圳'
     && am[2].role === 'user' && am[2].content[0].type === 'tool_result' && am[2].content[0].tool_use_id === 'call_9' && am[2].content[1].text === '然后呢',
   'OpenAI→Anthropic 请求：system、图片、tool_calls、tool 消息合并、max_tokens 默认、温度截断', JSON.stringify(up.body).slice(0, 600));
+  r = await chat({ model: 'anth/claude-x', response_format: { type: 'json_object' }, messages: [{ role: 'user', content: 'hi' }] });
+  ok(String(seen.at(-1).body.system || '').includes('JSON'), 'response_format=json_object 折进 Anthropic system', JSON.stringify(seen.at(-1).body.system));
+  r = await msgs({ model: 'good/o3-mini', max_tokens: 32, messages: [{ role: 'user', content: 'hi' }] });
+  ok(seen.at(-1).body.max_completion_tokens === 32 && seen.at(-1).body.max_tokens == null, 'o 系列上游使用 max_completion_tokens', JSON.stringify({ max_tokens: seen.at(-1).body.max_tokens, max_completion_tokens: seen.at(-1).body.max_completion_tokens }));
   r = await chat({ model: 'anth/claude-x', max_tokens: 0, messages: [{ role: 'user', content: 'hi' }] });
   ok(seen.at(-1).body.max_tokens === 0, '显式 max_tokens: 0 不会被默认值替换', JSON.stringify(seen.at(-1).body.max_tokens));
   r = await chat({ model: 'anth/claude-x', max_completion_tokens: 123, messages: [{ role: 'user', content: 'hi' }] });
