@@ -345,14 +345,19 @@ export function anthropicToOpenAIResponse(an, clientModel) {
   };
 }
 
-// 两种 usage 统一成日志用的 {promptTokens, completionTokens}
+// 两种 usage 统一成日志用的 {promptTokens, completionTokens, cacheReadTokens?}
 export function usageForLog(protocol, u) {
   if (!u || typeof u !== 'object') return {};
   if (protocol === 'anthropic') {
     const o = anthUsageToOA(u);
-    return { promptTokens: o.prompt_tokens, completionTokens: o.completion_tokens };
+    const out = { promptTokens: o.prompt_tokens, completionTokens: o.completion_tokens };
+    if (typeof u.cache_read_input_tokens === 'number') out.cacheReadTokens = u.cache_read_input_tokens;
+    return out;
   }
-  return { promptTokens: u.prompt_tokens, completionTokens: u.completion_tokens };
+  const out = { promptTokens: u.prompt_tokens, completionTokens: u.completion_tokens };
+  const cached = u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens;
+  if (typeof cached === 'number') out.cacheReadTokens = cached;
+  return out;
 }
 
 // ================================================================ token 估算

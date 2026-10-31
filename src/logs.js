@@ -3,12 +3,19 @@
 const MAX_TEXT = 4000;
 const cut = (s, n = MAX_TEXT) => (s == null ? null : String(s).slice(0, n));
 
+// 含 cache_read_tokens（0004）；缺列时退回 COLS_LEGACY
 const COLS = `ts, key_id, key_name, endpoint, requested_model, provider_id, provider_name, model,
+       stream, status, latency_ms, ttfb_ms, prompt_tokens, completion_tokens, total_tokens, cache_read_tokens,
+       fallback, attempts, trail, error, prompt`;
+
+const COLS_LEGACY = `ts, key_id, key_name, endpoint, requested_model, provider_id, provider_name, model,
        stream, status, latency_ms, ttfb_ms, prompt_tokens, completion_tokens, total_tokens,
        fallback, attempts, trail, error, prompt`;
 
+const missingCol = (e) => /no column|no such column|has no column/i.test((e && e.message) || '');
+
 export function writeLog(env, ctx, entry) {
-  const base = [
+  const baseLegacy = [
     entry.ts,
     entry.keyId || null,
     entry.keyName || null,
@@ -30,16 +37,27 @@ export function writeLog(env, ctx, entry) {
     cut(entry.error),
     cut(entry.prompt),
   ];
+  // cache_read_tokens 插在 total_tokens 之后
+  const base = [
+    ...baseLegacy.slice(0, 15),
+    entry.cacheReadTokens ?? null,
+    ...baseLegacy.slice(15),
+  ];
   const proto = [entry.clientProtocol || null, entry.upstreamProtocol || null];
-  const p = env.DB.prepare(`INSERT INTO call_logs (${COLS}, client_protocol, upstream_protocol) VALUES (${Array(22).fill('?').join(', ')})`)
+  const p = env.DB.prepare(`INSERT INTO call_logs (${COLS}, client_protocol, upstream_protocol) VALUES (${Array(23).fill('?').join(', ')})`)
     .bind(...base, ...proto)
     .run()
     .catch((e) => {
-      // 还没跑 0002 迁移（缺协议列）时退回旧列，不丢日志
-      if (/no column|no such column|has no column/i.test((e && e.message) || '')) {
-        return env.DB.prepare(`INSERT INTO call_logs (${COLS}) VALUES (${Array(20).fill('?').join(', ')})`).bind(...base).run();
-      }
-      throw e;
+      if (!missingCol(e)) throw e;
+      // 缺 cache_read_tokens：退回 0002 形态（协议列仍在）
+      return env.DB.prepare(`INSERT INTO call_logs (${COLS_LEGACY}, client_protocol, upstream_protocol) VALUES (${Array(22).fill('?').join(', ')})`)
+        .bind(...baseLegacy, ...proto)
+        .run()
+        .catch((e2) => {
+          // 还没跑 0002（缺协议列）：再退回最旧 20 列
+          if (!missingCol(e2)) throw e2;
+          return env.DB.prepare(`INSERT INTO call_logs (${COLS_LEGACY}) VALUES (${Array(20).fill('?').join(', ')})`).bind(...baseLegacy).run();
+        });
     })
     .catch((e) => console.error('写日志失败', e && e.message));
   ctx.waitUntil(p);
@@ -82,14 +100,29 @@ export async function queryLogs(env, q) {
 }
 
 export async function statsSummary(env, sinceTs) {
-  const row = await env.DB.prepare(
-    `SELECT COUNT(*) AS total,
-            SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
-            SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
-            SUM(COALESCE(total_tokens, 0)) AS tokens,
-            AVG(latency_ms) AS avg_latency
-       FROM call_logs WHERE ts >= ?`
-  ).bind(sinceTs).first();
+  let row;
+  try {
+    row = await env.DB.prepare(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
+              SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
+              SUM(COALESCE(total_tokens, 0)) AS tokens,
+              AVG(latency_ms) AS avg_latency,
+              SUM(cache_read_tokens) AS cache_read_tokens,
+              SUM(CASE WHEN cache_read_tokens IS NOT NULL THEN COALESCE(prompt_tokens, 0) ELSE 0 END) AS prompt_tokens_for_cache
+         FROM call_logs WHERE ts >= ?`
+    ).bind(sinceTs).first();
+  } catch (e) {
+    if (!missingCol(e)) throw e;
+    row = await env.DB.prepare(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
+              SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
+              SUM(COALESCE(total_tokens, 0)) AS tokens,
+              AVG(latency_ms) AS avg_latency
+         FROM call_logs WHERE ts >= ?`
+    ).bind(sinceTs).first();
+  }
   const byProvider = await env.DB.prepare(
     `SELECT provider_id, provider_name, COUNT(*) AS total,
             SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,

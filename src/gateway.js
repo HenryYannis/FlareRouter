@@ -309,7 +309,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       contentType = 'application/json; charset=utf-8';
     }
 
-    let { promptTokens, completionTokens } = usageForLog(up.upstreamProtocol, parsed && parsed.usage);
+    let { promptTokens, completionTokens, cacheReadTokens } = usageForLog(up.upstreamProtocol, parsed && parsed.usage);
     let totalTokens = typeof promptTokens === 'number' && typeof completionTokens === 'number' ? promptTokens + completionTokens : parsed?.usage?.total_tokens;
     if (typeof totalTokens !== 'number' && isChat) {
       promptTokens = estimatePrompt(clientProtocol, body);
@@ -318,6 +318,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
         : parsed?.choices?.[0]?.message?.content || '';
       completionTokens = estimateTokens(outStr);
       totalTokens = promptTokens + completionTokens;
+      cacheReadTokens = undefined; // 估算补全没有缓存信息
     }
     writeLog(env, ctx, {
       ...logCommon,
@@ -327,6 +328,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       promptTokens,
       completionTokens,
       totalTokens,
+      cacheReadTokens,
     });
     return new Response(outText, { status: res.status, headers: { 'Content-Type': contentType, ...CORS_HEADERS, ...gwHeaders } });
   }
@@ -451,7 +453,8 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
     const st = handler.stats;
     let promptTokens = st.promptTokens;
     let completionTokens = st.completionTokens;
-    if (typeof promptTokens !== 'number') promptTokens = promptEstimate();
+    let cacheReadTokens = st.cacheReadTokens;
+    if (typeof promptTokens !== 'number') { promptTokens = promptEstimate(); cacheReadTokens = undefined; }
     if (typeof completionTokens !== 'number') completionTokens = estimateTokens(st.outText);
     await writeLog(env, ctx, {
       ...logCommon,
@@ -461,6 +464,7 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
       promptTokens,
       completionTokens,
       totalTokens: promptTokens + completionTokens,
+      cacheReadTokens,
       error: streamError || st.error || (clientGone ? '客户端提前断开' : null),
     });
   })();

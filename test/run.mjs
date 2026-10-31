@@ -137,7 +137,7 @@ const upstream = http.createServer(async (req, res) => {
     return send(200, {
       id: 'x', object: 'chat.completion', model: body.model,
       choices: [{ index: 0, message: { role: 'assistant', content: `pong from ${body.model}` } }],
-      usage: { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13 },
+      usage: { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13, prompt_tokens_details: { cached_tokens: 4 } },
       echo: { temperature: body.temperature, tools: body.tools, custom: body.custom_field },
     });
   }
@@ -425,7 +425,7 @@ try {
     && um[3].role === 'tool' && um[3].tool_call_id === 'toolu_01' && um[3].content === '晴 25 度' && um[4].role === 'user' && um[4].content === '谢谢，再说一句',
   'Anthropic→OpenAI 请求：system、多轮、图片、tool_use、tool_result 转换', JSON.stringify(um));
   ok(up.body.max_tokens === 200 && up.body.temperature === 0.3 && JSON.stringify(up.body.stop) === '["END"]' && up.body.tools.length === 1 && up.body.tools[0].function.parameters.properties.city && up.body.tool_choice === 'auto' && !up.body.system, 'Anthropic→OpenAI 请求：参数与 tools 转换（丢弃服务端工具）', JSON.stringify(up.body).slice(0, 400));
-  ok(r.status === 200 && d.type === 'message' && d.role === 'assistant' && d.model === 'good/m1' && d.content[0].type === 'text' && d.content[0].text === 'pong from m1' && d.stop_reason === 'end_turn' && d.usage.input_tokens === 10 && d.usage.output_tokens === 3 && r.headers.get('x-gateway-protocol') === 'anthropic->openai', 'OpenAI→Anthropic 响应（非流式）', JSON.stringify(d));
+  ok(r.status === 200 && d.type === 'message' && d.role === 'assistant' && d.model === 'good/m1' && d.content[0].type === 'text' && d.content[0].text === 'pong from m1' && d.stop_reason === 'end_turn' && d.usage.input_tokens === 6 && d.usage.output_tokens === 3 && d.usage.cache_read_input_tokens === 4 && r.headers.get('x-gateway-protocol') === 'anthropic->openai', 'OpenAI→Anthropic 响应（非流式，usage 含缓存）', JSON.stringify(d));
 
   // tool_use 非流式
   const toolAsk = { model: 'good/m1', max_tokens: 100, tools: [convBody.tools[0]], messages: [{ role: 'user', content: 'weather in 广州?' }] };
@@ -471,7 +471,7 @@ try {
     && am[1].role === 'assistant' && am[1].content[0].type === 'tool_use' && am[1].content[0].input.city === '深圳'
     && am[2].role === 'user' && am[2].content[0].type === 'tool_result' && am[2].content[0].tool_use_id === 'call_9' && am[2].content[1].text === '然后呢',
   'OpenAI→Anthropic 请求：system、图片、tool_calls、tool 消息合并、max_tokens 默认、温度截断', JSON.stringify(up.body).slice(0, 600));
-  ok(r.status === 200 && d.object === 'chat.completion' && d.choices[0].message.content === 'claude pong from claude-x' && d.choices[0].finish_reason === 'stop' && d.usage.prompt_tokens === 16 && d.usage.completion_tokens === 4 && d.model === 'anth/claude-x', 'Anthropic→OpenAI 响应（非流式，usage 含缓存）', JSON.stringify(d));
+  ok(r.status === 200 && d.object === 'chat.completion' && d.choices[0].message.content === 'claude pong from claude-x' && d.choices[0].finish_reason === 'stop' && d.usage.prompt_tokens === 16 && d.usage.completion_tokens === 4 && d.usage.prompt_tokens_details?.cached_tokens === 5 && d.model === 'anth/claude-x', 'Anthropic→OpenAI 响应（非流式，usage 含缓存）', JSON.stringify(d));
   r = await chat({ model: 'anth/claude-x', tools: [{ type: 'function', function: { name: 'get_weather', parameters: {} } }], messages: [{ role: 'user', content: 'weather?' }] });
   d = await j(r);
   ok(d.choices[0].finish_reason === 'tool_calls' && d.choices[0].message.content === '好的' && d.choices[0].message.tool_calls[0].id === 'toolu_n1' && JSON.parse(d.choices[0].message.tool_calls[0].function.arguments).city === '北京', 'Anthropic tool_use → OpenAI tool_calls', JSON.stringify(d));
@@ -608,6 +608,10 @@ try {
   ok(r.status === 200 && d.total >= 12, `日志异步写入 D1（${d.total} 条）`);
   const streamLog = d.items.find((l) => l.stream && l.model === 'm2');
   ok(streamLog && streamLog.total_tokens === 12 && streamLog.prompt_tokens === 7 && streamLog.key_name === '笔记本' && streamLog.ttfb_ms != null, '流式日志带上游 usage、密钥名、首包', JSON.stringify(streamLog));
+  const anthCacheLog = d.items.find((l) => l.provider_id === 'anth' && !l.stream && l.cache_read_tokens === 5);
+  ok(!!anthCacheLog, 'Anthropic 上游 cache_read 写入日志', JSON.stringify(anthCacheLog && { cache_read_tokens: anthCacheLog.cache_read_tokens, prompt_tokens: anthCacheLog.prompt_tokens }));
+  const oaCacheLog = d.items.find((l) => l.provider_id === 'good' && !l.stream && l.cache_read_tokens === 4);
+  ok(!!oaCacheLog, 'OpenAI cached_tokens 写入日志', JSON.stringify(oaCacheLog && { cache_read_tokens: oaCacheLog.cache_read_tokens, prompt_tokens: oaCacheLog.prompt_tokens }));
   const fbLog = d.items.find((l) => l.fallback && l.status === 200 && l.attempts === 3);
   ok(fbLog && fbLog.trail.length === 2 && fbLog.trail[0].error.includes('upstream exploded') && fbLog.trail[1].error.includes('AbortError'), '容灾日志记录失败服务商、模型与原始错误', JSON.stringify(fbLog && fbLog.trail));
   const brokenLog = d.items.find((l) => l.provider_id === 'broken');
@@ -626,6 +630,7 @@ try {
   r = await admin('/admin/api/stats?days=1');
   d = await j(r);
   ok(r.status === 200 && d.total > 0 && d.byProvider.length > 0, '统计接口');
+  ok(d.cache_read_tokens != null && d.cache_read_tokens >= 5 && d.prompt_tokens_for_cache > 0, '统计含缓存读 Token 与占比分母', JSON.stringify({ cache_read_tokens: d.cache_read_tokens, prompt_tokens_for_cache: d.prompt_tokens_for_cache }));
 
   // 日志保留清理（Cron）
   await db.prepare("INSERT INTO call_logs (ts, endpoint, status) VALUES (?, 'chat/completions', 200)").bind(Date.now() - 40 * 86400000).run();
@@ -669,14 +674,20 @@ try {
   }
   r = await req('/admin/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '1.2.3.4' }, body: JSON.stringify({ password: ADMIN_PASSWORD }) });
   ok(r.status === 429, '连续 10 次错误后锁定');
-  // 未跑 0002 迁移时日志退回旧列
+  // 未跑迁移时日志逐级退回旧列
   {
     const { writeLog } = await import('../src/logs.js');
     const calls = [];
-    const fakeDb = { prepare: (q) => ({ bind: (...a) => ({ run: async () => { calls.push({ q, n: a.length }); if (q.includes('client_protocol')) throw new Error('D1_ERROR: table call_logs has no column named client_protocol'); return {}; } }) }) };
+    const fakeDb = { prepare: (q) => ({ bind: (...a) => ({ run: async () => {
+      calls.push({ q, n: a.length });
+      if (q.includes('cache_read_tokens')) throw new Error('D1_ERROR: table call_logs has no column named cache_read_tokens');
+      if (q.includes('client_protocol')) throw new Error('D1_ERROR: table call_logs has no column named client_protocol');
+      return {};
+    } }) }) };
     const waits = [];
-    await writeLog({ DB: fakeDb }, { waitUntil: (p) => waits.push(p) }, { ts: 1, endpoint: 'messages', status: 200, clientProtocol: 'anthropic', upstreamProtocol: 'openai' });
-    ok(calls.length === 2 && calls[0].n === 22 && calls[1].n === 20 && !calls[1].q.includes('client_protocol'), '日志：缺协议列时自动退回旧列写入，不丢日志', JSON.stringify(calls.map((c) => c.n)));
+    await writeLog({ DB: fakeDb }, { waitUntil: (p) => waits.push(p) }, { ts: 1, endpoint: 'messages', status: 200, clientProtocol: 'anthropic', upstreamProtocol: 'openai', cacheReadTokens: 3 });
+    await Promise.all(waits);
+    ok(calls.length === 3 && calls[0].n === 23 && calls[1].n === 22 && calls[2].n === 20 && !calls[2].q.includes('client_protocol') && !calls[2].q.includes('cache_read_tokens'), '日志：缺缓存/协议列时逐级退回旧列写入，不丢日志', JSON.stringify(calls.map((c) => ({ n: c.n, cache: c.q.includes('cache_read_tokens'), proto: c.q.includes('client_protocol') }))));
   }
 } catch (e) {
   fail++;
