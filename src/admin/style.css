@@ -188,11 +188,11 @@ nav button {
   transition: var(--transition);
   white-space: nowrap;
 }
-@media (min-width: 721px) {
-  nav button {
-    flex: 1;
-    text-align: center;
-  }
+nav button { flex: 1; text-align: center; }
+/* 移动端：三列两行等宽，三种语言都放得下 */
+@media (max-width: 720px) {
+  nav { display: grid; grid-template-columns: repeat(3, 1fr); }
+  nav button { padding: 6px 4px; }
 }
 nav button:hover { color: var(--text); background: var(--soft); }
 nav button.on {
