@@ -465,6 +465,7 @@ export function usageForLog(protocol, u) {
 export function estimateAnthropicInputTokens(body) {
   let n = estimateTokens(textOf(body && body.system));
   for (const m of Array.isArray(body && body.messages) ? body.messages : []) {
+    if (!m || typeof m !== 'object') continue;
     n += 4;
     if (typeof m.content === 'string') { n += estimateTokens(m.content); continue; }
     for (const b of Array.isArray(m.content) ? m.content : []) {

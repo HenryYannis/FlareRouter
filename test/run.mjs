@@ -768,6 +768,12 @@ try {
   r = await req('/v1/messages/count_tokens', { method: 'POST', headers: XH, body: JSON.stringify({ model: 'good/m1', system: '系统', messages: [{ role: 'user', content: '你好你好你好' }] }) });
   d = await j(r);
   ok(r.status === 200 && d.input_tokens > 0 && r.headers.get('x-gateway-estimated') === '1', 'count_tokens：openai 上游返回估算', JSON.stringify(d));
+  r = await req('/v1/messages/count_tokens', { method: 'POST', headers: XH, body: JSON.stringify([{ model: 'good/m1' }]) });
+  d = await j(r);
+  ok(r.status === 400 && d.type === 'error' && /JSON 对象/.test(d.error.message), 'count_tokens 拒绝 JSON 数组', JSON.stringify(d));
+  r = await req('/v1/messages/count_tokens', { method: 'POST', headers: XH, body: JSON.stringify({ model: 'good/m1', messages: [null, { role: 'user', content: '你好' }] }) });
+  d = await j(r);
+  ok(r.status === 200 && d.input_tokens > 0, 'count_tokens 跳过 null 消息而不是 500', JSON.stringify(d));
   await admin('/admin/api/settings', { fallbackEnabled: true, fallbackChain: ['good/m1', 'anth/claude-x'] });
   {
     const before = seen.length;
