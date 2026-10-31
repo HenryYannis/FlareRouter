@@ -459,7 +459,7 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
     if (typeof completionTokens !== 'number') completionTokens = estimateTokens(st.outText);
     await writeLog(env, ctx, {
       ...logCommon,
-      status: res.status,
+      status: st.error ? 502 : res.status,
       latencyMs: Date.now() - t0,
       ttfbMs: ttfb,
       promptTokens,

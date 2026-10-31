@@ -555,6 +555,7 @@ function openAIToAnthropicStream({ clientModel }) {
   let stopReason = null;
   let usage = null;
   let finished = false;
+  let inbandError = false;
 
   const closeCurrent = () => {
     if (!current) return '';
@@ -577,6 +578,7 @@ function openAIToAnthropicStream({ clientModel }) {
       if (!o) return '';
       let out = '';
       if (o.error) {
+        inbandError = true;
         out += closeCurrent();
         out += sse('error', { type: 'error', error: { type: 'api_error', message: `上游在流中返回错误：${JSON.stringify(o.error)}` } });
         return out;
@@ -639,6 +641,7 @@ function openAIToAnthropicStream({ clientModel }) {
     finish(errMsg) {
       if (finished) return '';
       finished = true;
+      if (inbandError && !errMsg) return '';
       let out = closeCurrent();
       if (errMsg) {
         out += sse('error', { type: 'error', error: { type: 'api_error', message: errMsg } });
@@ -665,6 +668,7 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
   let usage = {};
   let finishReason = null;
   let finished = false;
+  let inbandError = false;
   const chunk = (delta, finish = null, extra = {}) => dataLine({ id, object: 'chat.completion.chunk', created, model: clientModel, choices: [{ index: 0, delta, finish_reason: finish }], ...extra });
 
   return {
@@ -712,6 +716,7 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
         return '';
       }
       if (type === 'error') {
+        inbandError = true;
         return dataLine({ error: { message: `上游在流中返回错误：${JSON.stringify(o.error || o)}`, type: (o.error && o.error.type) || 'upstream_error' } });
       }
       return ''; // ping / content_block_stop / message_stop
@@ -719,6 +724,7 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
     finish(errMsg) {
       if (finished) return '';
       finished = true;
+      if (inbandError && !errMsg) return '';
       let out = '';
       if (errMsg) out += dataLine({ error: { message: errMsg, type: 'upstream_error' } });
       else if (!finishReason) out += chunk({}, toolCount ? 'tool_calls' : 'stop');
