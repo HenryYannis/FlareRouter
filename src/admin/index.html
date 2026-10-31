@@ -87,7 +87,6 @@
       <button data-tab="keys" data-i18n="tabs.keys">调用密钥</button>
       <button data-tab="logs" data-i18n="tabs.logs">日志</button>
       <button data-tab="chat" data-i18n="tabs.chat">对话</button>
-      <button data-tab="test" data-i18n="tabs.test">测试</button>
       <button data-tab="settings" data-i18n="tabs.settings">设置</button>
     </nav>
 
@@ -191,9 +190,10 @@
       </div>
     </section>
 
-    <!-- 对话 -->
+    <!-- 对话（含原测试调用：真实转发 / 容灾 / 日志） -->
     <section data-pane="chat" class="hidden">
       <div class="card chat-card">
+        <p class="muted small" style="margin:0 0 10px" data-i18n="chat.desc">走真实的转发、容灾与日志链路（日志里密钥显示为「管理页测试」）。会话仅保存在本机浏览器。</p>
         <div class="row chat-toolbar">
           <label class="f" for="c-model" style="margin:0" data-i18n="chat.labelModel">模型</label>
           <select id="c-model" class="grow"></select>
@@ -210,26 +210,6 @@
             <button class="btn primary" type="button" id="c-send" data-i18n="chat.send">发送</button>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- 测试 -->
-    <section data-pane="test" class="hidden">
-      <div class="card">
-        <h2 data-i18n="test.title">测试调用</h2>
-        <p class="muted small" style="margin-top:0" data-i18n="test.desc">走真实的转发、容灾与日志链路（日志里密钥显示为「管理页测试」）。</p>
-        <label class="f" for="t-model" data-i18n="test.labelModel">模型</label>
-        <select id="t-model"></select>
-        <label class="f" for="t-prompt" data-i18n="test.labelPrompt">提示词</label>
-        <textarea id="t-prompt" data-i18n="test.defaultPrompt">你好，用一句话介绍你自己。</textarea>
-        <div class="row" style="margin-top:10px">
-          <label class="row small"><input type="checkbox" id="t-stream" checked> <span data-i18n="test.stream">流式</span></label>
-          <label class="row small"><input type="checkbox" id="t-nofb"> <span data-i18n="test.noFallback">关闭容灾</span></label>
-          <span class="grow"></span>
-          <button class="btn primary" id="t-go" data-i18n="test.send">发送</button>
-        </div>
-        <div id="t-meta" class="small muted" style="margin-top:12px"></div>
-        <pre id="t-out" class="hidden"></pre>
       </div>
     </section>
 

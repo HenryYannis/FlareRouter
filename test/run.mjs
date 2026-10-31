@@ -575,7 +575,7 @@ try {
   d = await j(r);
   ok(r.status === 200 && d.choices[0].message.content === 'pong from m1', '管理页测试支持 messages 多轮');
   t = await (await req('/admin')).text();
-  ok(t.includes('data-pane="chat"') && t.includes('id="c-messages"'), '管理页有对话栏目');
+  ok(t.includes('data-pane="chat"') && t.includes('id="c-messages"') && !t.includes('data-pane="test"'), '管理页对话栏目已合并测试');
 
   // ---- 日志 ----
   await sleep(500);
