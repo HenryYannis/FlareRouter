@@ -45,7 +45,8 @@
         nameRequired: '请先填写名称',
         showHide: '显示 / 隐藏明文', legacyNoRaw: '旧密钥无明文', thName: '名称', thKey: '密钥',
         thCreated: '创建', thLastUsed: '最近使用', thStatus: '状态', thActions: '操作',
-        active: '有效', revoked: '已吊销', revoke: '吊销', delete: '删除',
+        active: '有效', revoked: '已吊销', rename: '改名', revoke: '吊销', delete: '删除',
+        renamePrompt: '新的密钥名称',
         revokeConfirm: '吊销后该密钥立即失效（最长 30 秒缓存），继续？', delConfirm: '彻底删除该密钥记录？', empty: '还没有调用密钥。',
         unnamed: '未命名'
       },
@@ -127,7 +128,8 @@
         nameRequired: '請先填寫名稱',
         showHide: '顯示 / 隱藏明文', legacyNoRaw: '舊密鑰無明文', thName: '名稱', thKey: '密鑰',
         thCreated: '建立', thLastUsed: '最近使用', thStatus: '狀態', thActions: '操作',
-        active: '有效', revoked: '已吊銷', revoke: '吊銷', delete: '刪除',
+        active: '有效', revoked: '已吊銷', rename: '改名', revoke: '吊銷', delete: '刪除',
+        renamePrompt: '新的密鑰名稱',
         revokeConfirm: '吊銷後該密鑰立即失效（最長 30 秒快取），繼續？', delConfirm: '徹底刪除該密鑰記錄？', empty: '還沒有調用密鑰。',
         unnamed: '未命名'
       },
@@ -209,7 +211,8 @@
         nameRequired: 'Please enter a name first',
         showHide: 'Show / Hide Key', legacyNoRaw: 'Legacy (no raw key)', thName: 'Name', thKey: 'Key',
         thCreated: 'Created', thLastUsed: 'Last Used', thStatus: 'Status', thActions: 'Actions',
-        active: 'Active', revoked: 'Revoked', revoke: 'Revoke', delete: 'Delete',
+        active: 'Active', revoked: 'Revoked', rename: 'Rename', revoke: 'Revoke', delete: 'Delete',
+        renamePrompt: 'New key name',
         revokeConfirm: 'Key will become invalid immediately upon revocation (up to 30s cache). Continue?', delConfirm: 'Permanently delete this key record?', empty: 'No API keys yet.',
         unnamed: 'Unnamed'
       },
@@ -663,7 +666,7 @@
           '<td class="small">' + fmtTime(k.created_at) + '</td>' +
           '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
           '<td><span class="tag ' + (k.revoked ? 'bad' : 'ok') + '">' + (k.revoked ? t('keys.revoked') : t('keys.active')) + '</span></td>' +
-          '<td style="white-space:nowrap">' + (k.revoked ? '' : '<button class="btn sm" data-revoke="' + esc(k.id) + '">' + t('keys.revoke') + '</button> ') + '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
+          '<td style="white-space:nowrap"><button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' + (k.revoked ? '' : '<button class="btn sm" data-revoke="' + esc(k.id) + '">' + t('keys.revoke') + '</button> ') + '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
       }).join('') : '<tr><td colspan="6" class="muted">' + t('keys.empty') + '</td></tr>');
     $('#lf-key').innerHTML = '<option value="">' + t('logs.allKeys') + '</option><option value="admin">' + t('logs.adminTest') + '</option>' + state.keys.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join('');
   }
@@ -697,7 +700,7 @@
   $('#key-copy').addEventListener('click', function () { navigator.clipboard.writeText($('#key-new-val').textContent).then(function () { toast(t('header.copied')); }); });
   $('#key-new-dismiss').addEventListener('click', dismissNewKey);
   $('#key-table').addEventListener('click', async function (e) {
-    var b = e.target.closest('[data-ktoggle], [data-kcopy], [data-revoke], [data-kdel]'); if (!b) return;
+    var b = e.target.closest('[data-ktoggle], [data-kcopy], [data-rename], [data-revoke], [data-kdel]'); if (!b) return;
     try {
       if (b.dataset.ktoggle) {
         var id = b.dataset.ktoggle;
@@ -707,6 +710,22 @@
       }
       if (b.dataset.kcopy) {
         navigator.clipboard.writeText(b.dataset.kcopy).then(function () { toast(t('header.copied')); });
+        return;
+      }
+      if (b.dataset.rename) {
+        var renId = b.dataset.rename;
+        var curName = '';
+        state.keys.forEach(function (k) { if (k.id === renId) curName = k.name || ''; });
+        var nextName = window.prompt(t('keys.renamePrompt'), curName);
+        if (nextName === null) return;
+        nextName = String(nextName).trim();
+        if (!nextName) { toast(t('keys.nameRequired')); return; }
+        var prevRen = state.keys.slice();
+        renderKeys(state.keys.map(function (k) { return k.id === renId ? Object.assign({}, k, { name: nextName.slice(0, 60) }) : k; }));
+        try {
+          var renRes = await api('/admin/api/keys/rename', { body: { id: renId, name: nextName } });
+          if (renRes.items) renderKeys(renRes.items);
+        } catch (err) { renderKeys(prevRen); throw err; }
         return;
       }
       if (b.dataset.revoke) {
