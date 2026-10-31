@@ -15,6 +15,8 @@ const COLS_LEGACY = `ts, key_id, key_name, endpoint, requested_model, provider_i
 const missingCol = (e) => /no column|no such column|has no column/i.test((e && e.message) || '');
 
 export function writeLog(env, ctx, entry) {
+  let p;
+  try {
   const baseLegacy = [
     entry.ts,
     entry.keyId || null,
@@ -44,7 +46,7 @@ export function writeLog(env, ctx, entry) {
     ...baseLegacy.slice(15),
   ];
   const proto = [entry.clientProtocol || null, entry.upstreamProtocol || null];
-  const p = env.DB.prepare(`INSERT INTO call_logs (${COLS}, client_protocol, upstream_protocol) VALUES (${Array(23).fill('?').join(', ')})`)
+  p = env.DB.prepare(`INSERT INTO call_logs (${COLS}, client_protocol, upstream_protocol) VALUES (${Array(23).fill('?').join(', ')})`)
     .bind(...base, ...proto)
     .run()
     .catch((e) => {
@@ -61,6 +63,10 @@ export function writeLog(env, ctx, entry) {
     })
     .catch((e) => console.error('写日志失败', e && e.message));
   ctx.waitUntil(p);
+  } catch (e) {
+    console.error('写日志失败', e && e.message);
+    p = Promise.resolve();
+  }
   return p;
 }
 

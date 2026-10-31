@@ -690,6 +690,44 @@ try {
     await Promise.all(waits);
     ok(calls.length === 3 && calls[0].n === 23 && calls[1].n === 22 && calls[2].n === 20 && !calls[2].q.includes('client_protocol') && !calls[2].q.includes('cache_read_tokens'), '日志：缺缓存/协议列时逐级退回旧列写入，不丢日志', JSON.stringify(calls.map((c) => ({ n: c.n, cache: c.q.includes('cache_read_tokens'), proto: c.q.includes('client_protocol') }))));
   }
+  {
+    const { handleProxy } = await import('../src/gateway.js');
+    const { saveConfig, _resetConfigCache } = await import('../src/config.js');
+    const store = new Map();
+    const env = {
+      CONFIG: {
+        get: async (k, opts) => {
+          const v = store.get(k);
+          if (v == null) return null;
+          return opts && opts.type === 'json' ? JSON.parse(v) : v;
+        },
+        put: async (k, v) => { store.set(k, v); },
+      },
+      DB: { prepare() { throw new Error('D1 binding missing'); } },
+    };
+    _resetConfigCache();
+    await saveConfig(env, {
+      providers: [{ id: 'good', name: '好', protocol: 'openai', baseUrl: 'http://up.test/good/v1', apiKey: 'k', models: ['m'], enabled: true }],
+      settings: { fallbackEnabled: false, fallbackChain: [], logPrompts: false, logRetentionDays: 30 },
+    });
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      id: 'ok', choices: [{ message: { role: 'assistant', content: 'pong-sync' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+    let res;
+    let threw = null;
+    try {
+      res = await handleProxy(new Request('https://gw/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'good/m', messages: [{ role: 'user', content: 'hi' }] }),
+      }), env, { waitUntil() {} }, { endpoint: 'chat/completions', caller: { id: 'k', name: 't' } });
+    } catch (e) { threw = e; }
+    globalThis.fetch = realFetch;
+    const text = res ? await res.text() : '';
+    ok(!threw && text.includes('pong-sync'), '日志同步抛错时仍返回上游成功正文', threw && threw.message);
+  }
 } catch (e) {
   fail++;
   console.log('FAIL 测试异常', e && e.stack);
