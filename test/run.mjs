@@ -616,6 +616,10 @@ try {
   ok(t.includes('custom-dialog-overlay') || t.includes('function showConfirm'), '管理页含自有弹窗入口');
   // app.js 内嵌于页面脚本；断言不再调用系统弹窗
   ok(!/\balert\s*\(/.test(t) && !/\bconfirm\s*\(/.test(t) && !/window\.prompt\s*\(/.test(t), '管理页不再使用系统 alert/confirm/prompt');
+  {
+    const appJs = readFileSync('src/admin/app.js', 'utf8');
+    ok(/Array\.isArray\(dl\.tool_calls\)/.test(appJs) && /out\.reasoning_content = m\.reasoning/.test(appJs) && /if \(o\.error\)/.test(appJs), '管理页对话会拼接工具调用、显示流内错误，并把思考带回下一轮');
+  }
 
   // ---- 日志 ----
   await sleep(500);
@@ -680,6 +684,11 @@ try {
   r = await admin('/admin/api/export');
   t = await r.text();
   ok(t.includes('sk-good-secret-1234567890'), '导出配置含明文 Key（仅手动导出）');
+  r = await admin('/admin/api/import', { providers: [{ id: 'a/b', name: '坏', baseUrl: 'http://127.0.0.1', apiKey: 'k' }] });
+  d = await j(r);
+  ok(r.status === 400 && String(d.error || '').includes('不合法'), '导入含斜杠的服务商 ID 被拒绝', JSON.stringify(d));
+  r = await admin('/admin/api/config');
+  ok(!(await j(r)).providers.some((p) => p.id === 'a/b'), '非法导入不会写入配置');
   r = await admin('/admin/api/providers/delete', { id: 'bad' });
   cfg = await j(r);
   ok(!cfg.providers.some((p) => p.id === 'bad') && !cfg.settings.fallbackChain.some((s) => s.startsWith('bad/')), '删除服务商同步清理容灾链');
