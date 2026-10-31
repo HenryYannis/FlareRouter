@@ -75,6 +75,8 @@
         desc: '走真实的转发、容灾与日志链路。会话仅保存在本机浏览器。',
         labelModel: '模型', noFallback: '关闭容灾', clear: '清空对话', clearConfirm: '清空当前对话？此操作不可恢复。',
         placeholder: '输入消息，Enter 发送，Shift+Enter 换行', send: '发送', stop: '停止',
+        attach: '上传文件', removeAttach: '移除', dropHint: '可将图片或文件拖到此处',
+        errTooMany: '最多上传 {max} 个文件', errTooLarge: '文件过大（上限 {max} MiB）：{name}',
         empty: '还没有消息。选一个模型，开始测试。', thinking: '生成中…',
         thinkLabel: '思考过程', errAborted: '已停止', localOnly: '会话仅保存在本机浏览器',
         metaInfo: 'HTTP {status} · 服务商 {provider} · 模型 {model} · 尝试 {attempts} 次',
@@ -160,6 +162,8 @@
         desc: '走真實的轉發、容災與日誌鏈路。會話僅保存在本機瀏覽器。',
         labelModel: '模型', noFallback: '關閉容災', clear: '清空對話', clearConfirm: '清空當前對話？此操作不可恢復。',
         placeholder: '輸入訊息，Enter 發送，Shift+Enter 換行', send: '發送', stop: '停止',
+        attach: '上傳檔案', removeAttach: '移除', dropHint: '可將圖片或檔案拖到此處',
+        errTooMany: '最多上傳 {max} 個檔案', errTooLarge: '檔案過大（上限 {max} MiB）：{name}',
         empty: '還沒有訊息。選一個模型，開始測試。', thinking: '生成中…',
         thinkLabel: '思考過程', errAborted: '已停止', localOnly: '會話僅保存在本機瀏覽器',
         metaInfo: 'HTTP {status} · 服務商 {provider} · 模型 {model} · 嘗試 {attempts} 次',
@@ -245,6 +249,8 @@
         desc: 'Uses the real proxy, failover and logging path. Session is stored only in this browser.',
         labelModel: 'Model', noFallback: 'Disable Failover', clear: 'Clear Chat', clearConfirm: 'Clear this chat? This cannot be undone.',
         placeholder: 'Type a message. Enter to send, Shift+Enter for newline', send: 'Send', stop: 'Stop',
+        attach: 'Attach file', removeAttach: 'Remove', dropHint: 'Drop images or files here',
+        errTooMany: 'At most {max} files', errTooLarge: 'File too large (max {max} MiB): {name}',
         empty: 'No messages yet. Pick a model and start testing.', thinking: 'Generating…',
         thinkLabel: 'Thinking', errAborted: 'Stopped', localOnly: 'Session is stored only in this browser',
         metaInfo: 'HTTP {status} · Provider {provider} · Model {model} · Attempts {attempts}',
@@ -936,45 +942,204 @@
   });
 
   // ---- 对话（多轮 + 流式 + Markdown，会话存本机）----
-  var CHAT_LS_KEY = 'gw_chat_v1';
+  var CHAT_LS_KEY = 'gw_chat_v2';
+  var CHAT_LS_KEY_LEGACY = 'gw_chat_v1';
+  var CHAT_MAX_ATTACH = 5;
+  var CHAT_MAX_ATTACH_BYTES = 4 * 1024 * 1024;
   var chatState = { model: 'auto', noFallback: false, messages: [] };
   var chatAbort = null;
   var chatBusy = false;
+  var pendingAttachments = [];
+  var attachIdSeq = 0;
 
+  function isImageMime(mime) {
+    return typeof mime === 'string' && mime.indexOf('image/') === 0;
+  }
+  function formatBytes(n) {
+    n = Number(n) || 0;
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10 * 1024 ? 1 : 0) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+  function contentTextOf(content) {
+    if (typeof content === 'string') return content;
+    if (!Array.isArray(content)) return '';
+    return content.filter(function (p) { return p && p.type === 'text' && p.text; }).map(function (p) { return p.text; }).join('\n');
+  }
+  function normalizeStoredContent(content) {
+    if (typeof content === 'string') return content;
+    if (!Array.isArray(content)) return '';
+    var parts = [];
+    content.forEach(function (p) {
+      if (!p || typeof p !== 'object') return;
+      if (p.type === 'text' && typeof p.text === 'string') parts.push({ type: 'text', text: p.text });
+      else if (p.type === 'image_url') {
+        var url = typeof p.image_url === 'string' ? p.image_url : (p.image_url && p.image_url.url);
+        if (url) parts.push({ type: 'image_url', image_url: { url: String(url) } });
+      } else if (p.type === 'file' && p.file && p.file.file_data) {
+        parts.push({
+          type: 'file',
+          file: {
+            filename: String(p.file.filename || 'file'),
+            file_data: String(p.file.file_data)
+          }
+        });
+      }
+    });
+    if (!parts.length) return '';
+    if (parts.length === 1 && parts[0].type === 'text') return parts[0].text;
+    return parts;
+  }
+  function stripMediaFromContent(content) {
+    if (typeof content === 'string') return content;
+    if (!Array.isArray(content)) return '';
+    var texts = [];
+    content.forEach(function (p) {
+      if (!p || typeof p !== 'object') return;
+      if (p.type === 'text' && p.text) texts.push(p.text);
+      else if (p.type === 'image_url') texts.push('[image]');
+      else if (p.type === 'file') texts.push('[file: ' + ((p.file && p.file.filename) || 'file') + ']');
+    });
+    return texts.join('\n');
+  }
+  function isValidChatMessage(m) {
+    if (!m || (m.role !== 'user' && m.role !== 'assistant')) return false;
+    if (typeof m.content === 'string') return true;
+    if (!Array.isArray(m.content)) return false;
+    return m.content.some(function (p) {
+      return p && (p.type === 'text' || p.type === 'image_url' || p.type === 'file');
+    });
+  }
   function loadChatState() {
     try {
       var raw = localStorage.getItem(CHAT_LS_KEY);
+      if (!raw) raw = localStorage.getItem(CHAT_LS_KEY_LEGACY);
       if (!raw) return;
       var o = JSON.parse(raw);
       if (!o || typeof o !== 'object') return;
       chatState.model = typeof o.model === 'string' ? o.model : 'auto';
       chatState.noFallback = !!o.noFallback;
-      chatState.messages = Array.isArray(o.messages) ? o.messages.filter(function (m) {
-        return m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string';
-      }).map(function (m) {
+      chatState.messages = Array.isArray(o.messages) ? o.messages.filter(isValidChatMessage).map(function (m) {
         return {
           role: m.role,
-          content: m.content,
+          content: normalizeStoredContent(m.content),
           reasoning: typeof m.reasoning === 'string' ? m.reasoning : ''
         };
       }).slice(-40) : [];
     } catch (e) {}
   }
   function saveChatState() {
+    var payload = {
+      model: $('#c-model').value || chatState.model || 'auto',
+      noFallback: $('#c-nofb').checked,
+      messages: chatState.messages.map(function (m) {
+        return { role: m.role, content: m.content, reasoning: m.reasoning || '' };
+      })
+    };
     try {
-      localStorage.setItem(CHAT_LS_KEY, JSON.stringify({
-        model: $('#c-model').value || chatState.model || 'auto',
-        noFallback: $('#c-nofb').checked,
-        messages: chatState.messages.map(function (m) {
-          return { role: m.role, content: m.content, reasoning: m.reasoning || '' };
-        })
-      }));
-    } catch (e) {}
+      localStorage.setItem(CHAT_LS_KEY, JSON.stringify(payload));
+    } catch (e) {
+      try {
+        payload.messages = chatState.messages.map(function (m) {
+          return { role: m.role, content: stripMediaFromContent(m.content), reasoning: m.reasoning || '' };
+        });
+        localStorage.setItem(CHAT_LS_KEY, JSON.stringify(payload));
+      } catch (e2) {}
+    }
   }
   function apiMessagesFromChat() {
     return chatState.messages.map(function (m) {
       return { role: m.role, content: m.content };
     });
+  }
+  function readFileAsDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || '')); };
+      reader.onerror = function () { reject(reader.error || new Error('read failed')); };
+      reader.readAsDataURL(file);
+    });
+  }
+  function renderPendingAttachments() {
+    var box = $('#c-attach-list');
+    if (!box) return;
+    if (!pendingAttachments.length) {
+      box.innerHTML = '';
+      box.classList.add('hidden');
+      return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = pendingAttachments.map(function (a) {
+      var preview = a.isImage
+        ? '<img class="chat-attach-thumb" src="' + esc(a.dataUrl) + '" alt="">'
+        : '<span class="chat-attach-icon">FILE</span>';
+      return '<div class="chat-attach-chip" data-id="' + a.id + '">' +
+        preview +
+        '<span class="chat-attach-meta"><span class="chat-attach-name" title="' + esc(a.name) + '">' + esc(a.name) + '</span>' +
+        '<span class="chat-attach-size">' + esc(formatBytes(a.size)) + '</span></span>' +
+        '<button type="button" class="chat-attach-remove" data-remove-id="' + a.id + '" aria-label="' + esc(t('chat.removeAttach')) + '">×</button>' +
+        '</div>';
+    }).join('');
+  }
+  async function addFilesToPending(fileList) {
+    var files = Array.prototype.slice.call(fileList || []).filter(Boolean);
+    if (!files.length) return;
+    var status = $('#c-status');
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      if (pendingAttachments.length >= CHAT_MAX_ATTACH) {
+        if (status) status.textContent = t('chat.errTooMany', { max: CHAT_MAX_ATTACH });
+        break;
+      }
+      if (file.size > CHAT_MAX_ATTACH_BYTES) {
+        if (status) status.textContent = t('chat.errTooLarge', { max: 4, name: file.name || 'file' });
+        continue;
+      }
+      try {
+        var dataUrl = await readFileAsDataUrl(file);
+        if (!dataUrl) continue;
+        pendingAttachments.push({
+          id: ++attachIdSeq,
+          name: file.name || ('file-' + attachIdSeq),
+          size: file.size || 0,
+          mime: file.type || 'application/octet-stream',
+          isImage: isImageMime(file.type),
+          dataUrl: dataUrl
+        });
+      } catch (e) {}
+    }
+    renderPendingAttachments();
+  }
+  function buildUserContent(text, attachments) {
+    var list = attachments || [];
+    if (!list.length) return text;
+    var parts = [];
+    if (text) parts.push({ type: 'text', text: text });
+    list.forEach(function (a) {
+      if (a.isImage) parts.push({ type: 'image_url', image_url: { url: a.dataUrl } });
+      else parts.push({ type: 'file', file: { filename: a.name, file_data: a.dataUrl } });
+    });
+    return parts;
+  }
+  function renderUserContentHtml(content) {
+    if (typeof content === 'string') return esc(content).replace(/\n/g, '<br>');
+    if (!Array.isArray(content)) return '';
+    var media = [];
+    var texts = [];
+    content.forEach(function (p) {
+      if (!p || typeof p !== 'object') return;
+      if (p.type === 'text' && p.text) texts.push(esc(p.text).replace(/\n/g, '<br>'));
+      else if (p.type === 'image_url') {
+        var url = typeof p.image_url === 'string' ? p.image_url : (p.image_url && p.image_url.url);
+        if (url) media.push('<img class="chat-msg-img" src="' + esc(url) + '" alt="">');
+      } else if (p.type === 'file' && p.file) {
+        media.push('<span class="chat-msg-file">' + esc(p.file.filename || 'file') + '</span>');
+      }
+    });
+    var html = '';
+    if (media.length) html += '<div class="chat-msg-attachments">' + media.join('') + '</div>';
+    if (texts.length) html += texts.join('<br>');
+    return html || '';
   }
   function renderMd(src) {
     var s = String(src == null ? '' : src);
@@ -1036,7 +1201,7 @@
       if (role === 'assistant' && m.reasoning) {
         think = '<details class="chat-think"><summary>' + esc(t('chat.thinkLabel')) + '</summary><div class="chat-think-body">' + esc(m.reasoning).replace(/\n/g, '<br>') + '</div></details>';
       }
-      var body = role === 'assistant' ? renderMd(m.content) : esc(m.content).replace(/\n/g, '<br>');
+      var body = role === 'assistant' ? renderMd(contentTextOf(m.content)) : renderUserContentHtml(m.content);
       var md = role === 'assistant' ? '<div class="chat-md">' + body + '</div>' : body;
       return '<div class="chat-bubble ' + role + '" data-idx="' + idx + '"><div class="chat-role">' + (role === 'assistant' ? 'AI' : 'You') + '</div><div class="chat-body">' + think + md + '</div></div>';
     }).join('');
@@ -1049,6 +1214,8 @@
     $('#c-clear').disabled = chatBusy;
     $('#c-model').disabled = chatBusy;
     $('#c-nofb').disabled = chatBusy;
+    $('#c-attach').disabled = chatBusy;
+    $('#c-file').disabled = chatBusy;
     $('#c-stop').classList.toggle('hidden', !chatBusy);
     if (chatBusy) $('#c-status').textContent = t('chat.thinking');
   }
@@ -1056,15 +1223,18 @@
     loadChatState();
     $('#c-nofb').checked = !!chatState.noFallback;
     if (chatState.model) $('#c-model').value = chatState.model;
+    renderPendingAttachments();
     renderChatMessages();
   }
   $('#c-model').addEventListener('change', function () { chatState.model = this.value; saveChatState(); });
   $('#c-nofb').addEventListener('change', function () { chatState.noFallback = this.checked; saveChatState(); });
   $('#c-clear').addEventListener('click', async function () {
-    if (!chatState.messages.length) return;
-    if (!(await showConfirm({ message: t('chat.clearConfirm'), danger: true }))) return;
+    if (!chatState.messages.length && !pendingAttachments.length) return;
+    if (chatState.messages.length && !(await showConfirm({ message: t('chat.clearConfirm'), danger: true }))) return;
     if (chatAbort) try { chatAbort.abort(); } catch (e) {}
     chatState.messages = [];
+    pendingAttachments = [];
+    renderPendingAttachments();
     saveChatState();
     renderChatMessages();
     $('#c-status').textContent = '';
@@ -1073,12 +1243,83 @@
   $('#c-stop').addEventListener('click', function () {
     if (chatAbort) try { chatAbort.abort(); } catch (e) {}
   });
+  $('#c-attach').addEventListener('click', function () {
+    if (chatBusy) return;
+    $('#c-file').click();
+  });
+  $('#c-file').addEventListener('change', async function () {
+    var input = this;
+    await addFilesToPending(input.files);
+    input.value = '';
+  });
+  $('#c-attach-list').addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('[data-remove-id]') : null;
+    if (!btn) return;
+    var id = +btn.getAttribute('data-remove-id');
+    pendingAttachments = pendingAttachments.filter(function (a) { return a.id !== id; });
+    renderPendingAttachments();
+  });
+  (function bindComposeDragDrop() {
+    var compose = $('#c-compose');
+    if (!compose) return;
+    var dragDepth = 0;
+    function hasFiles(e) {
+      var types = e.dataTransfer && e.dataTransfer.types;
+      if (!types) return false;
+      return Array.prototype.indexOf.call(types, 'Files') !== -1 || Array.prototype.indexOf.call(types, 'application/x-moz-file') !== -1;
+    }
+    compose.addEventListener('dragenter', function (e) {
+      if (!hasFiles(e) || chatBusy) return;
+      e.preventDefault();
+      dragDepth++;
+      compose.classList.add('drag-over');
+    });
+    compose.addEventListener('dragover', function (e) {
+      if (!hasFiles(e) || chatBusy) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    });
+    compose.addEventListener('dragleave', function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (!dragDepth) compose.classList.remove('drag-over');
+    });
+    compose.addEventListener('drop', async function (e) {
+      e.preventDefault();
+      dragDepth = 0;
+      compose.classList.remove('drag-over');
+      if (chatBusy) return;
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files.length) await addFilesToPending(files);
+    });
+  })();
+  $('#c-input').addEventListener('paste', async function (e) {
+    if (chatBusy) return;
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items || !items.length) return;
+    var files = [];
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      if (item.kind === 'file') {
+        var f = item.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (!files.length) return;
+    e.preventDefault();
+    await addFilesToPending(files);
+  });
   async function sendChat() {
     if (chatBusy) return;
     var text = $('#c-input').value.trim();
-    if (!text) return;
+    var attachments = pendingAttachments.slice();
+    if (!text && !attachments.length) return;
     $('#c-input').value = '';
-    chatState.messages.push({ role: 'user', content: text, reasoning: '' });
+    pendingAttachments = [];
+    renderPendingAttachments();
+    var userContent = buildUserContent(text, attachments);
+    chatState.messages.push({ role: 'user', content: userContent, reasoning: '' });
     chatState.messages.push({ role: 'assistant', content: '', reasoning: '' });
     renderChatMessages();
     saveChatState();

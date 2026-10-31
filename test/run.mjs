@@ -574,8 +574,28 @@ try {
   });
   d = await j(r);
   ok(r.status === 200 && d.choices[0].message.content === 'pong from m1', '管理页测试支持 messages 多轮');
+  r = await admin('/admin/api/test', {
+    model: 'good/m1',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: 'ping' },
+        { type: 'image_url', image_url: { url: `data:image/png;base64,${img}` } },
+        { type: 'file', file: { filename: 'note.txt', file_data: 'data:text/plain;base64,aGVsbG8=' } },
+      ],
+    }],
+  });
+  d = await j(r);
+  up = seen.at(-1);
+  const adminParts = up && up.body && up.body.messages && up.body.messages[0] && up.body.messages[0].content;
+  ok(r.status === 200 && d.choices[0].message.content === 'pong from m1'
+    && Array.isArray(adminParts) && adminParts[0].type === 'text' && adminParts[0].text === 'ping'
+    && adminParts[1].type === 'image_url' && adminParts[1].image_url.url === `data:image/png;base64,${img}`
+    && adminParts[2].type === 'file' && adminParts[2].file.filename === 'note.txt',
+  '管理页测试透传多模态 content', JSON.stringify(adminParts));
   t = await (await req('/admin')).text();
   ok(t.includes('data-pane="chat"') && t.includes('id="c-messages"') && !t.includes('data-pane="test"'), '管理页对话栏目已合并测试');
+  ok(t.includes('id="c-compose"') && t.includes('id="c-attach"') && t.includes('id="c-file"') && t.includes('chat-compose-actions'), '管理页对话输入区含上传与并排发送');
   ok(t.includes('data-pane="settings"') && t.includes('id="fb-on"') && t.includes('id="chain"') && !t.includes('data-pane="fallback"') && !t.includes('data-tab="fallback"'), '容灾已并入设置栏目');
   ok(t.includes('custom-dialog-overlay') || t.includes('function showConfirm'), '管理页含自有弹窗入口');
   // app.js 内嵌于页面脚本；断言不再调用系统弹窗
