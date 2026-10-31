@@ -17,7 +17,7 @@
 - **OpenAI 相容介面**：`/v1/chat/completions`（串流 SSE 原樣轉送）、`/v1/embeddings`、`/v1/models`；圖片與語音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；對齊控制台閘道並補充合成，依模型找到服務商後原樣轉送）
 - **Anthropic 介面**：`/v1/messages`（含串流）、`/v1/messages/count_tokens`，Claude Code 可直接接入
 - **協定互轉**：兩種入口都能呼叫兩種協定的服務商，請求、回應、串流事件、工具呼叫自動轉換
-- **模型定址**：`服務商ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只寫模型名稱（在已啟用服務商的模型清單中尋找，不分大小寫）；寫 `auto` 則依容災鏈從頭嘗試
+- **模型定址**：`服務商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只寫模型名稱（在已啟用服務商的模型清單中尋找，不分大小寫）；寫 `auto` 則依容災鏈從頭嘗試
 - **容災切換**：失敗（網路錯誤、逾時、任何非 2xx）就依容災鏈換下一個；串流請求只在上游開始回傳之前切換；請求標頭 `x-gateway-fallback: off` 可單次關閉，設定中也可整體關閉
 - **呼叫密鑰**：以 `Authorization: Bearer`、`x-api-key` 或 `api-key` 驗證；管理頁可產生多把、隨時查看明文、一鍵複製、撤銷、刪除；D1 儲存明文與雜湊
 - **呼叫日誌**：存在 D1，以 `ctx.waitUntil` 非同步寫入；可依狀態、容災、協定、服務商、密鑰、模型、錯誤關鍵字篩選，可清空；失敗的每次嘗試都記錄上游原始錯誤
@@ -133,7 +133,7 @@ curl https://ai.example.com/v1/chat/completions \
   -d '{"model":"gemini/gemini-2.5-flash","messages":[{"role":"user","content":"hi"}]}'
 ```
 
-在 Cherry Studio、Chatbox、Cursor 等用戶端中：API 位址填 `https://ai.example.com/v1`，密鑰填 `sk-gw-...`，模型填 `服務商ID/模型` 或 `auto`。
+在 Cherry Studio、Chatbox、Cursor 等用戶端中：API 位址填 `https://ai.example.com/v1`，密鑰填 `sk-gw-...`，模型填 `服務商 ID/模型` 或 `auto`。
 
 回應標頭會帶上 `x-gateway-provider`、`x-gateway-model`、`x-gateway-attempts`、`x-gateway-fallback`、`x-gateway-protocol`，方便查看這次實際走了哪一家。
 所有候選都失敗時，HTTP 狀態取最後一次上游的狀態碼（沒有則為 502），`error.message` 和 `error.attempts` 中有每一次嘗試的原始錯誤。
@@ -181,7 +181,7 @@ curl https://ai.example.com/v1/messages \
 export ANTHROPIC_BASE_URL=https://ai.example.com
 export ANTHROPIC_AUTH_TOKEN=sk-gw-你的呼叫密鑰
 # 指定模型（Claude Code 預設會送出 claude-sonnet-… 這類官方名稱，閘道找不到就會回傳 404）
-export ANTHROPIC_MODEL=anthropic/claude-sonnet-4-5                # 服務商ID/模型，或 auto
+export ANTHROPIC_MODEL=anthropic/claude-sonnet-4-5                # 服務商 ID/模型，或 auto
 export ANTHROPIC_DEFAULT_HAIKU_MODEL=anthropic/claude-haiku-4-5   # 背景小任務用的快速模型
 claude
 ```

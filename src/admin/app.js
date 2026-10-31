@@ -13,7 +13,7 @@
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
         totalCalls: '调用次数', successRate: '成功率', failedCalls: '失败', fallbackTriggered: '触发容灾', totalTokens: 'Tokens', avgLatency: '平均耗时',
-        usageTitle: '调用方式', usageDesc: 'OpenAI 兼容。模型写成「服务商ID/模型」，写 auto 则按容灾链从头尝试。请求头 x-gateway-fallback: off 可临时关闭本次容灾。',
+        usageTitle: '调用方式', usageDesc: 'OpenAI 兼容。模型写成「服务商 ID/模型」，写 auto 则按容灾链从头尝试。请求头 x-gateway-fallback: off 可临时关闭本次容灾。',
         thProvider: '服务商', thCalls: '调用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暂无调用', unhit: '（未命中）'
       },
       providers: {
@@ -85,7 +85,7 @@
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
         totalCalls: '調用次數', successRate: '成功率', failedCalls: '失敗', fallbackTriggered: '觸發容災', totalTokens: 'Tokens', avgLatency: '平均耗時',
-        usageTitle: '調用方式', usageDesc: 'OpenAI 相容。模型寫成「服務商ID/模型」，寫 auto 則按容災鏈從頭嘗試。請求頭 x-gateway-fallback: off 可臨時關閉本次容災。',
+        usageTitle: '調用方式', usageDesc: 'OpenAI 相容。模型寫成「服務商 ID/模型」，寫 auto 則按容災鏈從頭嘗試。請求頭 x-gateway-fallback: off 可臨時關閉本次容災。',
         thProvider: '服務商', thCalls: '調用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暫無調用', unhit: '（未命中）'
       },
       providers: {
