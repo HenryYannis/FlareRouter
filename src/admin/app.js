@@ -1158,7 +1158,9 @@
   }
   function apiMessagesFromChat() {
     return chatState.messages.map(function (m) {
-      return { role: m.role, content: m.content };
+      var out = { role: m.role, content: m.content };
+      if (m.role === 'assistant' && m.reasoning) out.reasoning_content = m.reasoning;
+      return out;
     });
   }
   function readFileAsDataUrl(file) {
@@ -1466,6 +1468,21 @@
         $('#c-status').textContent = meta + ' · ' + t('chat.totalOnly', { total: Math.round(performance.now() - t0) });
       } else if (res.body) {
         var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', contentOut = '', reasonOut = '';
+        var toolAcc = {};
+        function renderTools() {
+          var keys = Object.keys(toolAcc).sort(function (a, b) { return Number(a) - Number(b); });
+          if (!keys.length) return '';
+          return keys.map(function (k) {
+            var item = toolAcc[k];
+            var head = '调用 ' + (item.name || 'tool');
+            return item.args ? head + '\n```json\n' + item.args + '\n```' : head;
+          }).join('\n\n');
+        }
+        function visibleContent() {
+          var tools = renderTools();
+          if (contentOut && tools) return contentOut + '\n\n' + tools;
+          return contentOut || tools;
+        }
         for (;;) {
           var r = await reader.read(); if (r.done) break;
           if (!first) first = performance.now();
@@ -1479,14 +1496,31 @@
               if (dl) {
                 if (dl.reasoning_content) reasonOut += dl.reasoning_content;
                 if (dl.content) contentOut += dl.content;
+                if (Array.isArray(dl.tool_calls)) {
+                  dl.tool_calls.forEach(function (tc) {
+                    if (!tc) return;
+                    var i = tc.index != null ? tc.index : 0;
+                    if (!toolAcc[i]) toolAcc[i] = { name: '', args: '' };
+                    var fn = tc.function || {};
+                    if (fn.name) toolAcc[i].name = fn.name;
+                    if (typeof fn.arguments === 'string') toolAcc[i].args += fn.arguments;
+                  });
+                }
+              }
+              if (o.error) {
+                var em = o.error && o.error.message;
+                if (!em) {
+                  try { em = typeof o.error === 'string' ? o.error : JSON.stringify(o.error); } catch (e2) { em = 'error'; }
+                }
+                contentOut += (contentOut ? '\n' : '') + em;
               }
             } catch (e) { contentOut += '\n' + d; }
           });
           chatState.messages[assistantIdx].reasoning = reasonOut;
-          chatState.messages[assistantIdx].content = contentOut;
+          chatState.messages[assistantIdx].content = visibleContent();
           renderChatMessages();
         }
-        if (!contentOut && !reasonOut) chatState.messages[assistantIdx].content = '(empty)';
+        if (!visibleContent() && !reasonOut) chatState.messages[assistantIdx].content = '(empty)';
         $('#c-status').textContent = meta + ' · ' + t('chat.ttfbTotal', {
           ttfb: Math.round((first || performance.now()) - t0),
           total: Math.round(performance.now() - t0)
