@@ -35,11 +35,11 @@
         labelProto: '协议类型', protoOpenAI: 'OpenAI 兼容（/chat/completions，Bearer 鉴权）', protoAnthropic: 'Anthropic Messages（/v1/messages，x-api-key 鉴权）',
         tipAnthropic: 'Base URL 写到域名即可（带不带 /v1 都行），请求发往 /v1/messages，模型列表取 /v1/models；也适用于提供 Anthropic 兼容接口的服务商。',
         tipOpenAI: 'Base URL 一般以 /v1 结尾，请求发往 /chat/completions，模型列表取 /models。',
-        keyEmptyTag: '未填', clearKey: '清除已保存的 Key', keyCurrent: '当前：', keyPlaceholderEdit: '留空则不修改', keyPlaceholderNew: '必填（部分本地服务可留空）',
+        keyEmptyTag: '未填', keyPlaceholderEdit: '留空则清除已保存的 Key', keyPlaceholderNew: '必填（部分本地服务可留空）',
         labelModels: '模型列表（逗号或换行分隔，第一个为默认；留空可点「从服务商拉取」）', fetchModels: '从服务商拉取', fetching: '拉取中…',
         fetchPopulated: '已写入全部 {count} 个模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
         noMatchModels: '没有匹配的模型（共 {count} 个）', labelTimeout: '超时（毫秒，拿到响应头为止）', labelNote: '备注',
-        streamUsage: '流式请求自动加 stream_options.include_usage', enabled: '启用', cancel: '取消', save: '保存', saved: '已保存',
+        streamUsage: '流式请求自动加 stream_options.include_usage', cancel: '取消', save: '保存', saved: '已保存',
         savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」'
       },
       fallback: {
@@ -132,11 +132,11 @@
         labelProto: '協議類型', protoOpenAI: 'OpenAI 相容（/chat/completions，Bearer 鑑權）', protoAnthropic: 'Anthropic Messages（/v1/messages，x-api-key 鑑權）',
         tipAnthropic: 'Base URL 寫到網域即可（帶不帶 /v1 都行），請求發往 /v1/messages，模型列表取 /v1/models；也適用於提供 Anthropic 相容介面的服務商。',
         tipOpenAI: 'Base URL 一般以 /v1 結尾，請求發往 /chat/completions，模型列表取 /models。',
-        keyEmptyTag: '未填', clearKey: '清除已儲存的 Key', keyCurrent: '當前：', keyPlaceholderEdit: '留空則不修改', keyPlaceholderNew: '必填（部分本地服務可留空）',
+        keyEmptyTag: '未填', keyPlaceholderEdit: '留空則清除已儲存的 Key', keyPlaceholderNew: '必填（部分本地服務可留空）',
         labelModels: '模型列表（逗號或換行分隔，第一個為預設；留空可點「從服務商拉取」）', fetchModels: '從服務商拉取', fetching: '拉取中…',
         fetchPopulated: '已寫入全部 {count} 個模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
         noMatchModels: '沒有匹配的模型（共 {count} 個）', labelTimeout: '超時（毫秒，拿到回應頭為止）', labelNote: '備註',
-        streamUsage: '串流請求自動加 stream_options.include_usage', enabled: '啟用', cancel: '取消', save: '儲存', saved: '已儲存',
+        streamUsage: '串流請求自動加 stream_options.include_usage', cancel: '取消', save: '儲存', saved: '已儲存',
         savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」'
       },
       fallback: {
@@ -229,11 +229,11 @@
         labelProto: 'Protocol Type', protoOpenAI: 'OpenAI Compatible (/chat/completions, Bearer auth)', protoAnthropic: 'Anthropic Messages (/v1/messages, x-api-key auth)',
         tipAnthropic: 'Base URL can be just the domain (with or without /v1). Requests go to /v1/messages, models to /v1/models; also works with Anthropic-compatible proxies.',
         tipOpenAI: 'Base URL usually ends in /v1. Requests go to /chat/completions, models to /models.',
-        keyEmptyTag: 'None', clearKey: 'Clear saved Key', keyCurrent: 'Current: ', keyPlaceholderEdit: 'Leave empty to keep unchanged', keyPlaceholderNew: 'Required (can be empty for local)',
+        keyEmptyTag: 'None', keyPlaceholderEdit: 'Leave empty to clear saved Key', keyPlaceholderNew: 'Required (can be empty for local)',
         labelModels: 'Models (comma or newline separated, 1st is default; leave empty and use Fetch from Provider)', fetchModels: 'Fetch from Provider', fetching: 'Fetching…',
         fetchPopulated: 'Populated all {count} models', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
         noMatchModels: 'No matching models ({count} total)', labelTimeout: 'Timeout (ms, until response headers)', labelNote: 'Note',
-        streamUsage: 'Auto add stream_options.include_usage to stream requests', enabled: 'Enabled', cancel: 'Cancel', save: 'Save', saved: 'Saved',
+        streamUsage: 'Auto add stream_options.include_usage to stream requests', cancel: 'Cancel', save: 'Save', saved: 'Saved',
         savedEmptyModels: 'Saved. Models empty — use Fetch from Provider'
       },
       fallback: {
@@ -691,13 +691,10 @@
     $('#p-key').type = 'password';
     $('#p-key-toggle').textContent = '👁';
     $('#p-key').placeholder = p && p.hasKey ? t('providers.keyPlaceholderEdit') : t('providers.keyPlaceholderNew');
-    $('#p-clear').checked = false;
-    $('#p-clear-wrap').classList.toggle('hidden', !(p && p.hasKey));
     $('#p-models').value = p ? p.models.join('\n') : '';
     $('#p-timeout').value = p ? p.timeoutMs : 60000;
     $('#p-note').value = p ? p.note || '' : '';
     $('#p-usage').checked = p ? p.streamUsage !== false : true;
-    $('#p-enabled').checked = p ? p.enabled : true;
     $('#prov-err').textContent = ''; $('#p-fetch-err').textContent = '';
     $('#p-fetch-box').classList.add('hidden');
     $('#dlg-prov').showModal();
@@ -728,13 +725,17 @@
   });
   $('#prov-save').addEventListener('click', async function () {
     $('#prov-err').textContent = '';
+    var keyVal = $('#p-key').value.trim();
+    var editingId = state.editing || '';
+    var prev = editingId ? (state.cfg.providers || []).find(function (x) { return x.id === editingId; }) : null;
     var body = {
-      originalId: state.editing || '',
-      clearKey: $('#p-clear').checked,
+      originalId: editingId,
+      clearKey: !!(editingId && !keyVal),
       provider: {
         id: $('#p-id').value.trim(), name: $('#p-name').value.trim(), protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(),
-        apiKey: $('#p-key').value.trim(), models: $('#p-models').value, timeoutMs: +$('#p-timeout').value || 60000,
-        note: $('#p-note').value.trim(), streamUsage: $('#p-usage').checked, enabled: $('#p-enabled').checked
+        apiKey: keyVal, models: $('#p-models').value, timeoutMs: +$('#p-timeout').value || 60000,
+        note: $('#p-note').value.trim(), streamUsage: $('#p-usage').checked,
+        enabled: prev ? !!prev.enabled : true
       }
     };
     try {
