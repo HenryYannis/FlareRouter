@@ -217,7 +217,7 @@
     }
   };
 
-  var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, editing: null, fetched: [], lang: 'zh', unmaskedKeys: {} };
+  var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, editing: null, fetched: [], lang: 'zh', maskedKeys: {} };
 
   function t(path, params) {
     var lang = state.lang || 'zh';
@@ -631,11 +631,11 @@
       $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th>' + t('keys.thStatus') + '</th><th>' + t('keys.thActions') + '</th></tr>' +
         (r.items.length ? r.items.map(function (k) {
           var hasRaw = !!k.raw_key;
-          var isUnmasked = !!state.unmaskedKeys[k.id];
-          var displayKey = hasRaw ? (isUnmasked ? k.raw_key : k.preview) : k.preview;
+          var isMasked = !!state.maskedKeys[k.id];
+          var displayKey = hasRaw ? (isMasked ? k.preview : k.raw_key) : k.preview;
           var keyHtml = '<span class="key-cell">' +
             '<span class="mono small key-val">' + esc(displayKey) + '</span>' +
-            (hasRaw ? ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isUnmasked ? '🙈' : '👁') + '</button>' : ' <span class="muted small" title="' + t('keys.legacyNoRaw') + '">(' + t('keys.legacyNoRaw') + ')</span>') +
+            (hasRaw ? ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isMasked ? '👁' : '🙈') + '</button>' : ' <span class="muted small" title="' + t('keys.legacyNoRaw') + '">(' + t('keys.legacyNoRaw') + ')</span>') +
             (hasRaw ? ' <button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button>' : '') +
             '</span>';
           return '<tr><td><b>' + esc(k.name) + '</b></td>' +
@@ -661,7 +661,7 @@
     try {
       if (b.dataset.ktoggle) {
         var id = b.dataset.ktoggle;
-        state.unmaskedKeys[id] = !state.unmaskedKeys[id];
+        state.maskedKeys[id] = !state.maskedKeys[id];
         loadKeys();
         return;
       }
