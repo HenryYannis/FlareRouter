@@ -478,6 +478,26 @@ dialog .df {
 }
 .chain { list-style: none; padding: 0; margin: 0 0 10px; }
 .login { max-width: 360px; margin: 14vh auto 0; }
+.login-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.login-top h2 { margin: 0; flex: 1; min-width: 0; }
+.login-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.login-submit {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  text-align: center;
+  justify-content: center;
+}
 .toast {
   position: fixed;
   right: 16px;
