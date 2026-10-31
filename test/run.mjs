@@ -480,12 +480,16 @@ try {
   d = await j(r);
   up = seen.at(-1);
   const am = up.body.messages || [];
-  ok(up.path === '/anth/v1/messages' && up.xkey === 'sk-ant-secret-1234567890' && up.body.system === '系统A' && up.body.max_tokens === 8192 && up.body.temperature === 1 && JSON.stringify(up.body.stop_sequences) === '["STOP"]'
+  ok(up.path === '/anth/v1/messages' && up.xkey === 'sk-ant-secret-1234567890' && up.body.system === '系统A' && up.body.max_tokens === 4096 && up.body.temperature === 1 && JSON.stringify(up.body.stop_sequences) === '["STOP"]'
     && up.body.tools[0].input_schema.properties.city && up.body.tool_choice.type === 'any'
     && am[0].role === 'user' && am[0].content[1].type === 'image' && am[0].content[1].source.media_type === 'image/jpeg'
     && am[1].role === 'assistant' && am[1].content[0].type === 'tool_use' && am[1].content[0].input.city === '深圳'
     && am[2].role === 'user' && am[2].content[0].type === 'tool_result' && am[2].content[0].tool_use_id === 'call_9' && am[2].content[1].text === '然后呢',
   'OpenAI→Anthropic 请求：system、图片、tool_calls、tool 消息合并、max_tokens 默认、温度截断', JSON.stringify(up.body).slice(0, 600));
+  r = await chat({ model: 'anth/claude-x', max_tokens: 0, messages: [{ role: 'user', content: 'hi' }] });
+  ok(seen.at(-1).body.max_tokens === 0, '显式 max_tokens: 0 不会被默认值替换', JSON.stringify(seen.at(-1).body.max_tokens));
+  r = await chat({ model: 'anth/claude-x', max_completion_tokens: 123, messages: [{ role: 'user', content: 'hi' }] });
+  ok(seen.at(-1).body.max_tokens === 123, '只传 max_completion_tokens 时映射为 Anthropic max_tokens', JSON.stringify(seen.at(-1).body.max_tokens));
   ok(r.status === 200 && d.object === 'chat.completion' && d.choices[0].message.content === 'claude pong from claude-x' && d.choices[0].finish_reason === 'stop' && d.usage.prompt_tokens === 16 && d.usage.completion_tokens === 4 && d.usage.prompt_tokens_details?.cached_tokens === 5 && d.model === 'anth/claude-x', 'Anthropic→OpenAI 响应（非流式，usage 含缓存）', JSON.stringify(d));
   r = await chat({ model: 'anth/claude-x', tools: [{ type: 'function', function: { name: 'get_weather', parameters: {} } }], messages: [{ role: 'user', content: 'weather?' }] });
   d = await j(r);
