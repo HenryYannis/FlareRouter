@@ -51,7 +51,8 @@
       },
       keys: {
         title: '调用密钥', namePlaceholder: '名称，例如：笔记本 / Cherry Studio', generate: '生成新密钥',
-        newKeyNotice: '已为「{name}」生成密钥，已保存至列表，可随时查看或复制：', copy: '复制', dismiss: '关闭',
+        newKeyTitle: '密钥已生成',
+        newKeyNotice: '已为「{name}」生成密钥，已自动复制到剪贴板，并保存至列表：', copy: '复制',
         nameRequired: '请先填写名称',
         showHide: '显示 / 隐藏明文', legacyNoRaw: '旧密钥无明文', thName: '名称', thKey: '密钥',
         thCreated: '创建', thLastUsed: '最近使用', thStatus: '状态', thActions: '操作',
@@ -148,7 +149,8 @@
       },
       keys: {
         title: '調用密鑰', namePlaceholder: '名稱，例如：筆記本 / Cherry Studio', generate: '生成新密鑰',
-        newKeyNotice: '已為「{name}」產生密鑰，已儲存至列表，可隨時查看或複製：', copy: '複製', dismiss: '關閉',
+        newKeyTitle: '密鑰已產生',
+        newKeyNotice: '已為「{name}」產生密鑰，已自動複製到剪貼簿，並儲存至列表：', copy: '複製',
         nameRequired: '請先填寫名稱',
         showHide: '顯示 / 隱藏明文', legacyNoRaw: '舊密鑰無明文', thName: '名稱', thKey: '密鑰',
         thCreated: '建立', thLastUsed: '最近使用', thStatus: '狀態', thActions: '操作',
@@ -245,7 +247,8 @@
       },
       keys: {
         title: 'API Keys', namePlaceholder: 'Name, e.g. Laptop / Cursor', generate: 'Generate Key',
-        newKeyNotice: 'Key created for "{name}" and saved to the list. You can view or copy it anytime:', copy: 'Copy', dismiss: 'Dismiss',
+        newKeyTitle: 'Key Created',
+        newKeyNotice: 'Key created for "{name}", copied to clipboard, and saved to the list:', copy: 'Copy',
         nameRequired: 'Please enter a name first',
         showHide: 'Show / Hide Key', legacyNoRaw: 'Legacy (no raw key)', thName: 'Name', thKey: 'Key',
         thCreated: 'Created', thLastUsed: 'Last Used', thStatus: 'Status', thActions: 'Actions',
@@ -904,12 +907,6 @@
       renderKeys(r.items);
     } catch (err) { $('#key-table').innerHTML = '<tr><td class="err">' + esc(err.message) + '</td></tr>'; }
   }
-  function dismissNewKey() {
-    $('#key-new').classList.add('hidden');
-    $('#key-new-val').textContent = '';
-    $('#key-new-notice').textContent = '';
-    $('#key-name').value = '';
-  }
   $('#key-create').addEventListener('click', async function () {
     var name = $('#key-name').value.trim();
     if (!name) {
@@ -919,14 +916,19 @@
     }
     try {
       var k = await api('/admin/api/keys', { body: { name: name } });
-      $('#key-new-notice').textContent = t('keys.newKeyNotice', { name: name });
-      $('#key-new-val').textContent = k.key;
-      $('#key-new').classList.remove('hidden');
+      $('#key-name').value = '';
       loadKeys();
+      try {
+        await navigator.clipboard.writeText(k.key);
+        toast(t('header.copied'));
+      } catch (e) {}
+      await showAlert({
+        type: 'success',
+        title: t('keys.newKeyTitle'),
+        message: t('keys.newKeyNotice', { name: name }) + '\n\n' + k.key
+      });
     } catch (err) { await showAlert({ message: err.message }); }
   });
-  $('#key-copy').addEventListener('click', function () { navigator.clipboard.writeText($('#key-new-val').textContent).then(function () { toast(t('header.copied')); }); });
-  $('#key-new-dismiss').addEventListener('click', dismissNewKey);
   $('#key-table').addEventListener('click', async function (e) {
     var b = e.target.closest('[data-ktoggle], [data-kcopy], [data-rename], [data-revoke], [data-kdel]'); if (!b) return;
     try {
