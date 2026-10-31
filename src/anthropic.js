@@ -378,7 +378,7 @@ export const mapAnthropicStop = (r) => (r ? ANTH_TO_OA_STOP[r] || 'stop' : null)
 
 function oaUsageToAnth(u) {
   if (!u) return { input_tokens: 0, output_tokens: 0 };
-  const cached = (u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens) || 0;
+  const cached = openAICachedTokens(u) || 0;
   const out = { input_tokens: Math.max(0, (u.prompt_tokens || 0) - cached), output_tokens: u.completion_tokens || 0 };
   if (cached) out.cache_read_input_tokens = cached;
   return out;
@@ -456,9 +456,26 @@ export function usageForLog(protocol, u) {
     return out;
   }
   const out = { promptTokens: u.prompt_tokens, completionTokens: u.completion_tokens };
-  const cached = u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens;
+  const cached = openAICachedTokens(u);
   if (typeof cached === 'number') out.cacheReadTokens = cached;
   return out;
+}
+
+// OpenAI 兼容服务商的缓存字段并不统一：
+// OpenAI/OpenRouter prompt_tokens_details.cached_tokens；DeepSeek prompt_cache_hit_tokens；
+// Moonshot/部分中转 cached_tokens；Responses 风格 input_tokens_details.cached_tokens；
+// 少数中转直接透传 Anthropic 的 cache_read_input_tokens
+export function openAICachedTokens(u) {
+  if (!u || typeof u !== 'object') return undefined;
+  const cands = [
+    u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens,
+    u.prompt_cache_hit_tokens,
+    u.cached_tokens,
+    u.input_tokens_details && u.input_tokens_details.cached_tokens,
+    u.cache_read_input_tokens,
+  ];
+  for (const v of cands) if (typeof v === 'number') return v;
+  return undefined;
 }
 
 // ================================================================ token 估算

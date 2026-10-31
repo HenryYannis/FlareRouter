@@ -1056,6 +1056,15 @@ try {
     const text = res ? await res.text() : '';
     ok(!threw && text.includes('pong-sync'), '日志同步抛错时仍返回上游成功正文', threw && threw.message);
   }
+  {
+    const { usageForLog } = await import('../src/anthropic.js');
+    const c = (u) => usageForLog('openai', u).cacheReadTokens;
+    ok(c({ prompt_tokens: 10, prompt_tokens_details: { cached_tokens: 7 } }) === 7, '缓存字段：OpenAI prompt_tokens_details');
+    ok(c({ prompt_tokens: 10, prompt_cache_hit_tokens: 6 }) === 6, '缓存字段：DeepSeek prompt_cache_hit_tokens');
+    ok(c({ prompt_tokens: 10, cached_tokens: 5 }) === 5, '缓存字段：顶层 cached_tokens');
+    ok(c({ prompt_tokens: 10, cache_read_input_tokens: 4 }) === 4, '缓存字段：透传 cache_read_input_tokens');
+    ok(c({ prompt_tokens: 10 }) === undefined, '缓存字段：无字段保持空');
+  }
 } catch (e) {
   fail++;
   console.log('FAIL 测试异常', e && e.stack);
