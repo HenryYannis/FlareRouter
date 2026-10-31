@@ -1,7 +1,7 @@
 // 管理接口：管理员密码登录（Worker secret ADMIN_PASSWORD），HMAC 签名的会话 Cookie
 
 import { getConfig, saveConfig, normalizeProvider, parseModels } from './config.js';
-import { createKey, deleteKey, listKeys, revokeKey } from './keys.js';
+import { createKey, deleteKey, listKeys, renameKey, revokeKey } from './keys.js';
 import { clearLogs, queryLogs, statsSummary } from './logs.js';
 import { handleProxy, listModels } from './gateway.js';
 import { anthropicHeaders, anthropicUrl } from './anthropic.js';
@@ -255,6 +255,15 @@ export async function handleAdminApi(request, env, ctx, path) {
   if (path === '/admin/api/keys' && method === 'POST') {
     const { name } = await readJson(request);
     return json(await createKey(env, String(name || '').trim() || '未命名'));
+  }
+  if (path === '/admin/api/keys/rename' && method === 'POST') {
+    const { id, name } = await readJson(request);
+    try {
+      await renameKey(env, id, name);
+    } catch (e) {
+      return err((e && e.message) || String(e));
+    }
+    return json({ ok: true, items: await listKeys(env) });
   }
   if (path === '/admin/api/keys/revoke' && method === 'POST') {
     const { id } = await readJson(request);

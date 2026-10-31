@@ -70,6 +70,16 @@ export async function createKey(env, name) {
   return { id, name: nameVal, key, raw_key: key, preview, created_at: now };
 }
 
+export async function renameKey(env, id, name) {
+  const nameVal = String(name || '').trim().slice(0, 60);
+  if (!id) throw new Error('缺少密钥 id');
+  if (!nameVal) throw new Error('名称不能为空');
+  const r = await env.DB.prepare('UPDATE api_keys SET name = ? WHERE id = ?').bind(nameVal, id).run();
+  if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
+  authCache.clear();
+  return nameVal;
+}
+
 export async function revokeKey(env, id) {
   await env.DB.prepare('UPDATE api_keys SET revoked = 1 WHERE id = ?').bind(id).run();
   authCache.clear();

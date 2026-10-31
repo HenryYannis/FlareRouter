@@ -616,7 +616,12 @@ try {
   d = await j(r);
   ok(r.status === 200 && (await db.prepare('SELECT COUNT(*) AS n FROM call_logs').first()).n === 0, '清空日志');
 
-  // ---- 吊销 / 删除（响应带 items，免二次 GET）----
+  // ---- 改名 / 吊销 / 删除（响应带 items，免二次 GET）----
+  r = await admin('/admin/api/keys/rename', { id: keyRow.id, name: '工作站' });
+  d = await j(r);
+  ok(r.status === 200 && d.ok && Array.isArray(d.items) && d.items.some((k) => k.id === keyRow.id && k.name === '工作站'), '改名返回 items 且名称已更新', JSON.stringify(d).slice(0, 300));
+  r = await admin('/admin/api/keys/rename', { id: keyRow.id, name: '   ' });
+  ok(r.status === 400, '空名称改名 -> 400');
   r = await admin('/admin/api/keys/revoke', { id: keyRow.id });
   d = await j(r);
   ok(r.status === 200 && d.ok && Array.isArray(d.items) && d.items.some((k) => k.id === keyRow.id && k.revoked), '吊销返回 items', JSON.stringify(d).slice(0, 300));
