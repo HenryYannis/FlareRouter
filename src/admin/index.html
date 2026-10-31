@@ -85,7 +85,6 @@
       <button data-tab="providers" data-i18n="tabs.providers">上游</button>
       <button data-tab="keys" data-i18n="tabs.keys">密钥</button>
       <button data-tab="chat" data-i18n="tabs.chat">测试</button>
-      <button data-tab="fallback" data-i18n="tabs.fallback">容灾</button>
       <button data-tab="logs" data-i18n="tabs.logs">日志</button>
       <button data-tab="settings" data-i18n="tabs.settings">设置</button>
     </nav>
@@ -122,24 +121,6 @@
           <button class="btn primary" id="add-prov" data-i18n="providers.add">添加服务商</button>
         </div>
         <div class="scroll-x"><table id="prov-table"></table></div>
-      </div>
-    </section>
-
-    <!-- 容灾 -->
-    <section data-pane="fallback" class="hidden">
-      <div class="card">
-        <h2 data-i18n="fallback.title">容灾切换</h2>
-        <div class="row" style="margin-bottom:8px">
-          <label class="switch"><input type="checkbox" id="fb-on"><span></span></label>
-          <span data-i18n="fallback.switchLabel">请求的模型失败时，继续按下面的容灾链尝试</span>
-        </div>
-        <p class="muted small" data-i18n="fallback.desc">失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。</p>
-        <ul class="chain" id="chain"></ul>
-        <div class="row">
-          <select id="chain-add" class="grow"></select>
-          <button class="btn" id="chain-add-btn" data-i18n="fallback.addToChain">加入容灾链</button>
-          <button class="btn primary" id="chain-save" data-i18n="fallback.save">保存</button>
-        </div>
       </div>
     </section>
 
@@ -213,8 +194,22 @@
       </div>
     </section>
 
-    <!-- 设置 -->
+    <!-- 设置（含容灾） -->
     <section data-pane="settings" class="hidden">
+      <div class="card">
+        <h2 data-i18n="fallback.title">容灾切换</h2>
+        <div class="row" style="margin-bottom:8px">
+          <label class="switch"><input type="checkbox" id="fb-on"><span></span></label>
+          <span data-i18n="fallback.switchLabel">请求的模型失败时，继续按下面的容灾链尝试</span>
+        </div>
+        <p class="muted small" data-i18n="fallback.desc">失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。</p>
+        <ul class="chain" id="chain"></ul>
+        <div class="row">
+          <select id="chain-add" class="grow"></select>
+          <button class="btn" id="chain-add-btn" data-i18n="fallback.addToChain">加入容灾链</button>
+          <button class="btn primary" id="chain-save" data-i18n="fallback.save">保存</button>
+        </div>
+      </div>
       <div class="card">
         <h2 data-i18n="settings.logsTitle">日志</h2>
         <div class="row">

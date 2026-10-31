@@ -151,6 +151,7 @@ header .endpoint {
   line-height: 26px;
   display: inline-flex;
   align-items: center;
+  transform: translateY(2px);
 }
 header .sp { flex: 1; }
 
