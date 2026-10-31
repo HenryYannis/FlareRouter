@@ -83,12 +83,12 @@ const upstream = http.createServer(async (req, res) => {
   }
   if (req.url === '/good/v1/images/edits') {
     const rawBody = typeof body === 'string' ? body : '';
-    const m = rawBody.match(/name="model"\r\n\r\n([^\r\n]*)/);
+    const m = rawBody.match(/name="model"\r?\n\r?\n([^\r\n]*)/);
     return send(200, { created: 1, data: [{ b64_json: 'aaa' }], model: m ? m[1] : 'unknown' });
   }
   if (req.url === '/good/v1/audio/transcriptions') {
     const rawBody = typeof body === 'string' ? body : '';
-    const m = rawBody.match(/name="model"\r\n\r\n([^\r\n]*)/);
+    const m = rawBody.match(/name="model"\r?\n\r?\n([^\r\n]*)/);
     return send(200, { text: '你好世界', model: m ? m[1] : 'unknown' });
   }
   if (req.url === '/good/v1/audio/speech') {
@@ -341,6 +341,21 @@ try {
   });
   d = await j(r);
   ok(r.status === 200 && d.data[0].b64_json === 'aaa' && seen.at(-1).path === '/good/v1/images/edits' && d.model === 'm2', '/v1/images/edits multipart 转发', JSON.stringify(d));
+  const lf = (fields) => {
+    let s = '';
+    for (const [name, val] of Object.entries(fields)) {
+      s += `--${boundary}\nContent-Disposition: form-data; name="${name}"\n\n${val}\n`;
+    }
+    s += `--${boundary}--\n`;
+    return s;
+  };
+  r = await req('/v1/images/edits', {
+    method: 'POST',
+    headers: { ...H, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    body: lf({ model: 'good/m2', prompt: 'lf edit' }),
+  });
+  d = await j(r);
+  ok(r.status === 200 && d.model === 'm2', 'multipart 使用 LF 时也会把模型名换成上游模型', JSON.stringify(d));
   r = await req('/v1/audio/transcriptions', {
     method: 'POST',
     headers: { ...H, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
@@ -465,7 +480,7 @@ try {
   d = await j(r);
   up = seen.at(-1);
   const am = up.body.messages || [];
-  ok(up.path === '/anth/v1/messages' && up.xkey === 'sk-ant-secret-1234567890' && up.body.system === '系统A' && up.body.max_tokens === 8192 && up.body.temperature === 1 && JSON.stringify(up.body.stop_sequences) === '["STOP"]'
+  ok(up.path === '/anth/v1/messages' && up.xkey === 'sk-ant-secret-1234567890' && up.body.system === '系统A' && up.body.max_tokens === 4096 && up.body.temperature === 1 && JSON.stringify(up.body.stop_sequences) === '["STOP"]'
     && up.body.tools[0].input_schema.properties.city && up.body.tool_choice.type === 'any'
     && am[0].role === 'user' && am[0].content[1].type === 'image' && am[0].content[1].source.media_type === 'image/jpeg'
     && am[1].role === 'assistant' && am[1].content[0].type === 'tool_use' && am[1].content[0].input.city === '深圳'
@@ -475,10 +490,24 @@ try {
   ok(String(seen.at(-1).body.system || '').includes('JSON'), 'response_format=json_object 折进 Anthropic system', JSON.stringify(seen.at(-1).body.system));
   r = await msgs({ model: 'good/o3-mini', max_tokens: 32, messages: [{ role: 'user', content: 'hi' }] });
   ok(seen.at(-1).body.max_completion_tokens === 32 && seen.at(-1).body.max_tokens == null, 'o 系列上游使用 max_completion_tokens', JSON.stringify({ max_tokens: seen.at(-1).body.max_tokens, max_completion_tokens: seen.at(-1).body.max_completion_tokens }));
+  r = await chat({ model: 'anth/claude-x', max_tokens: 0, messages: [{ role: 'user', content: 'hi' }] });
+  ok(seen.at(-1).body.max_tokens === 0, '显式 max_tokens: 0 不会被默认值替换', JSON.stringify(seen.at(-1).body.max_tokens));
+  r = await chat({ model: 'anth/claude-x', max_completion_tokens: 123, messages: [{ role: 'user', content: 'hi' }] });
+  ok(seen.at(-1).body.max_tokens === 123, '只传 max_completion_tokens 时映射为 Anthropic max_tokens', JSON.stringify(seen.at(-1).body.max_tokens));
   ok(r.status === 200 && d.object === 'chat.completion' && d.choices[0].message.content === 'claude pong from claude-x' && d.choices[0].finish_reason === 'stop' && d.usage.prompt_tokens === 16 && d.usage.completion_tokens === 4 && d.usage.prompt_tokens_details?.cached_tokens === 5 && d.model === 'anth/claude-x', 'Anthropic→OpenAI 响应（非流式，usage 含缓存）', JSON.stringify(d));
   r = await chat({ model: 'anth/claude-x', tools: [{ type: 'function', function: { name: 'get_weather', parameters: {} } }], messages: [{ role: 'user', content: 'weather?' }] });
   d = await j(r);
   ok(d.choices[0].finish_reason === 'tool_calls' && d.choices[0].message.content === '好的' && d.choices[0].message.tool_calls[0].id === 'toolu_n1' && JSON.parse(d.choices[0].message.tool_calls[0].function.arguments).city === '北京', 'Anthropic tool_use → OpenAI tool_calls', JSON.stringify(d));
+  r = await chat({
+    model: 'anth/claude-x',
+    messages: [
+      { role: 'user', content: '第一轮' },
+      { role: 'system', content: '中途提醒' },
+      { role: 'user', content: '第二轮' },
+    ],
+  });
+  up = seen.at(-1);
+  ok(up.body.system === '中途提醒' && up.body.messages.length === 2 && up.body.messages[0].content[0].text === '第一轮' && up.body.messages[1].content[0].text === '第二轮', '对话中间的 system 不会把两条 user 粘成一条', JSON.stringify(up.body));
 
   // /v1/chat/completions → Anthropic 上游（流式）
   r = await chat({ model: 'anth/claude-x', stream: true, stream_options: { include_usage: true }, messages: [{ role: 'user', content: 'hi' }] });
@@ -605,6 +634,10 @@ try {
   ok(t.includes('custom-dialog-overlay') || t.includes('function showConfirm'), '管理页含自有弹窗入口');
   // app.js 内嵌于页面脚本；断言不再调用系统弹窗
   ok(!/\balert\s*\(/.test(t) && !/\bconfirm\s*\(/.test(t) && !/window\.prompt\s*\(/.test(t), '管理页不再使用系统 alert/confirm/prompt');
+  {
+    const appJs = readFileSync('src/admin/app.js', 'utf8');
+    ok(/Array\.isArray\(dl\.tool_calls\)/.test(appJs) && /out\.reasoning_content = m\.reasoning/.test(appJs) && /if \(o\.error\)/.test(appJs), '管理页对话会拼接工具调用、显示流内错误，并把思考带回下一轮');
+  }
 
   // ---- 日志 ----
   await sleep(500);
@@ -632,6 +665,9 @@ try {
   r = await admin('/admin/api/logs?q=exploded');
   d = await j(r);
   ok(d.items.length > 0, '日志按错误关键词筛选');
+  r = await admin('/admin/api/logs?q=' + encodeURIComponent('找不到模型') + '&limit=5');
+  d = await j(r);
+  ok(d.items.some((l) => l.status === 404 && l.attempts === 0), '找不到模型时日志 attempts 为 0', JSON.stringify(d.items.map((l) => l.attempts)));
   r = await admin('/admin/api/stats?days=1');
   d = await j(r);
   ok(r.status === 200 && d.total > 0 && d.byProvider.length > 0, '统计接口');
@@ -669,6 +705,11 @@ try {
   r = await admin('/admin/api/export');
   t = await r.text();
   ok(t.includes('sk-good-secret-1234567890'), '导出配置含明文 Key（仅手动导出）');
+  r = await admin('/admin/api/import', { providers: [{ id: 'a/b', name: '坏', baseUrl: 'http://127.0.0.1', apiKey: 'k' }] });
+  d = await j(r);
+  ok(r.status === 400 && String(d.error || '').includes('不合法'), '导入含斜杠的服务商 ID 被拒绝', JSON.stringify(d));
+  r = await admin('/admin/api/config');
+  ok(!(await j(r)).providers.some((p) => p.id === 'a/b'), '非法导入不会写入配置');
   r = await admin('/admin/api/providers/delete', { id: 'bad' });
   cfg = await j(r);
   ok(!cfg.providers.some((p) => p.id === 'bad') && !cfg.settings.fallbackChain.some((s) => s.startsWith('bad/')), '删除服务商同步清理容灾链');
@@ -693,6 +734,54 @@ try {
     await writeLog({ DB: fakeDb }, { waitUntil: (p) => waits.push(p) }, { ts: 1, endpoint: 'messages', status: 200, clientProtocol: 'anthropic', upstreamProtocol: 'openai', cacheReadTokens: 3 });
     await Promise.all(waits);
     ok(calls.length === 3 && calls[0].n === 23 && calls[1].n === 22 && calls[2].n === 20 && !calls[2].q.includes('client_protocol') && !calls[2].q.includes('cache_read_tokens'), '日志：缺缓存/协议列时逐级退回旧列写入，不丢日志', JSON.stringify(calls.map((c) => ({ n: c.n, cache: c.q.includes('cache_read_tokens'), proto: c.q.includes('client_protocol') }))));
+    const bound = [];
+    const fakeDb2 = { prepare: () => ({ bind: (...a) => ({ run: async () => { bound.push(a); return {}; } }) }) };
+    const waits2 = [];
+    const longTrail = Array.from({ length: 6 }, (_, i) => ({ provider: 'p' + i, providerName: 'P' + i, model: 'm', status: 500, error: 'E'.repeat(2000) }));
+    await writeLog({ DB: fakeDb2 }, { waitUntil: (p) => waits2.push(p) }, { ts: 2, endpoint: 'chat/completions', status: 500, attempts: 6, trail: longTrail });
+    await Promise.all(waits2);
+    const trailVal = bound[0].find((x) => typeof x === 'string' && x.startsWith('['));
+    let parsedTrail = null;
+    try { parsedTrail = JSON.parse(trailVal); } catch { parsedTrail = null; }
+    ok(Array.isArray(parsedTrail) && trailVal.length <= 8000 && parsedTrail.length >= 1 && parsedTrail.every((x) => x && x.provider), '超长 trail 截断后仍是合法 JSON', JSON.stringify({ len: trailVal && trailVal.length, n: parsedTrail && parsedTrail.length }));
+  }
+  {
+    const { handleProxy } = await import('../src/gateway.js');
+    const { saveConfig, _resetConfigCache } = await import('../src/config.js');
+    const store = new Map();
+    const env = {
+      CONFIG: {
+        get: async (k, opts) => {
+          const v = store.get(k);
+          if (v == null) return null;
+          return opts && opts.type === 'json' ? JSON.parse(v) : v;
+        },
+        put: async (k, v) => { store.set(k, v); },
+      },
+      DB: { prepare() { throw new Error('D1 binding missing'); } },
+    };
+    _resetConfigCache();
+    await saveConfig(env, {
+      providers: [{ id: 'good', name: '好', protocol: 'openai', baseUrl: 'http://up.test/good/v1', apiKey: 'k', models: ['m'], enabled: true }],
+      settings: { fallbackEnabled: false, fallbackChain: [], logPrompts: false, logRetentionDays: 30 },
+    });
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      id: 'ok', choices: [{ message: { role: 'assistant', content: 'pong-sync' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+    let res;
+    let threw = null;
+    try {
+      res = await handleProxy(new Request('https://gw/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'good/m', messages: [{ role: 'user', content: 'hi' }] }),
+      }), env, { waitUntil() {} }, { endpoint: 'chat/completions', caller: { id: 'k', name: 't' } });
+    } catch (e) { threw = e; }
+    globalThis.fetch = realFetch;
+    const text = res ? await res.text() : '';
+    ok(!threw && text.includes('pong-sync'), '日志同步抛错时仍返回上游成功正文', threw && threw.message);
   }
 } catch (e) {
   fail++;
