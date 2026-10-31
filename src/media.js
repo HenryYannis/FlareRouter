@@ -39,7 +39,7 @@ function replaceMultipartField(bytes, name, value) {
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   const utf8 = Array.from(new TextEncoder().encode(value), (b) => String.fromCharCode(b)).join('');
   const safeName = name.replace(/[^a-z0-9_]/gi, '');
-  const re = new RegExp(`(Content-Disposition:\\s*form-data;\\s*name="${safeName}"[^\\r\\n]*\\r\\n(?:[^\\r\\n]+\\r\\n)*\\r\\n)[^\\r\\n]*`, 'i');
+  const re = new RegExp(`(Content-Disposition:\\s*form-data;\\s*name="${safeName}"[^\\r\\n]*\\r?\\n(?:[^\\r\\n]+\\r?\\n)*\\r?\\n)[^\\r\\n]*`, 'i');
   bin = bin.replace(re, (m, head) => head + utf8);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);

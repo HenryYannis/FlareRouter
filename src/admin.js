@@ -224,6 +224,10 @@ export async function handleAdminApi(request, env, ctx, path) {
   if (path === '/admin/api/import' && method === 'POST') {
     const b = await readJson(request);
     if (!b || !Array.isArray(b.providers)) return err('导入内容需包含 providers 数组');
+    for (const p of b.providers) {
+      const id = String((p && p.id) || '').trim();
+      if (!ID_RE.test(id)) return err(`服务商 ID「${id || '(空)'}」不合法：只能用字母、数字、下划线、点、短横线，1–40 位，且不能含「/」`);
+    }
     return json(publicConfig(await saveConfig(env, b)));
   }
 
