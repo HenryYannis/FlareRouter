@@ -33,6 +33,28 @@ export function safeToolId(id) {
   return s || `toolu_${randomHex(12)}`;
 }
 
+// 空 id 按出现顺序配对：同一次请求里第 n 个空的 tool call 与第 n 个空的 tool result 共用一个 id。
+function createToolIdAssigner() {
+  const calls = [];
+  let resultN = 0;
+  let seq = 0;
+  const sanitize = (id) => String(id || '').replace(/[^A-Za-z0-9_-]/g, '_');
+  return {
+    call(id) {
+      const s = sanitize(id);
+      if (s) return s;
+      const gen = `toolu_e${seq++}`;
+      calls.push(gen);
+      return gen;
+    },
+    result(id) {
+      const s = sanitize(id);
+      if (s) return s;
+      return calls[resultN++] || `toolu_e${seq++}`;
+    },
+  };
+}
+
 const newMsgId = () => `msg_${randomHex(12)}`;
 
 // ---------------------------------------------------------------- 错误格式
@@ -108,7 +130,7 @@ function partsToOpenAIContent(parts) {
   return parts;
 }
 
-function convertAnthUserMessage(m, out) {
+function convertAnthUserMessage(m, out, ids) {
   if (typeof m.content === 'string') { out.push({ role: 'user', content: m.content }); return; }
   const blocks = Array.isArray(m.content) ? m.content : [];
   const parts = [];
@@ -124,7 +146,7 @@ function convertAnthUserMessage(m, out) {
         for (const c of b.content) if (c && c.type === 'image') { const im = anthImageToOpenAI(c); if (im) extraImages.push(im); }
       } else content = '';
       if (b.is_error) content = `[工具执行出错] ${content}`;
-      out.push({ role: 'tool', tool_call_id: safeToolId(b.tool_use_id), content: content || '' });
+      out.push({ role: 'tool', tool_call_id: ids.result(b.tool_use_id), content: content || '' });
     } else if (b.type === 'text') parts.push({ type: 'text', text: b.text || '' });
     else if (b.type === 'image') { const im = anthImageToOpenAI(b); if (im) parts.push(im); }
     else if (b.type === 'document') { const d = anthDocToOpenAI(b); if (d) parts.push(d); }
@@ -134,7 +156,7 @@ function convertAnthUserMessage(m, out) {
   if (all.length) out.push({ role: 'user', content: partsToOpenAIContent(all) });
 }
 
-function convertAnthAssistantMessage(m, out) {
+function convertAnthAssistantMessage(m, out, ids) {
   if (typeof m.content === 'string') { out.push({ role: 'assistant', content: m.content }); return; }
   const blocks = Array.isArray(m.content) ? m.content : [];
   const texts = [];
@@ -143,7 +165,7 @@ function convertAnthAssistantMessage(m, out) {
     if (!b || typeof b !== 'object') continue;
     if (b.type === 'text' && b.text) texts.push(b.text);
     else if (b.type === 'tool_use' || b.type === 'server_tool_use') {
-      toolCalls.push({ id: safeToolId(b.id), type: 'function', function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } });
+      toolCalls.push({ id: ids.call(b.id), type: 'function', function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } });
     }
   }
   const msg = { role: 'assistant', content: texts.length ? texts.join('\n') : null };
@@ -154,12 +176,13 @@ function convertAnthAssistantMessage(m, out) {
 
 export function anthropicToOpenAIRequest(body, model, { stream, streamUsage } = {}) {
   const messages = [];
+  const ids = createToolIdAssigner();
   const sys = textOf(body.system);
   if (sys) messages.push({ role: 'system', content: sys });
   for (const m of Array.isArray(body.messages) ? body.messages : []) {
     if (!m) continue;
-    if (m.role === 'assistant') convertAnthAssistantMessage(m, messages);
-    else convertAnthUserMessage(m, messages);
+    if (m.role === 'assistant') convertAnthAssistantMessage(m, messages, ids);
+    else convertAnthUserMessage(m, messages, ids);
   }
 
   const out = { model, messages };
@@ -222,6 +245,7 @@ function oaContentToAnthBlocks(content) {
 export function openAIToAnthropicRequest(body, model, { stream } = {}) {
   const system = [];
   const msgs = [];
+  const ids = createToolIdAssigner();
   const push = (role, blocks) => {
     if (!blocks.length) return;
     const last = msgs[msgs.length - 1];
@@ -238,11 +262,11 @@ export function openAIToAnthropicRequest(body, model, { stream } = {}) {
       const blocks = oaContentToAnthBlocks(m.content).filter((b) => b.type === 'text');
       for (const tc of Array.isArray(m.tool_calls) ? m.tool_calls : []) {
         if (!tc || !tc.function) continue;
-        blocks.push({ type: 'tool_use', id: safeToolId(tc.id), name: tc.function.name, input: parseArgs(tc.function.arguments) });
+        blocks.push({ type: 'tool_use', id: ids.call(tc.id), name: tc.function.name, input: parseArgs(tc.function.arguments) });
       }
       push('assistant', blocks);
     } else if (m.role === 'tool' || m.role === 'function') {
-      push('user', [{ type: 'tool_result', tool_use_id: safeToolId(m.tool_call_id || m.name), content: textOf(m.content) }]);
+      push('user', [{ type: 'tool_result', tool_use_id: ids.result(m.tool_call_id || m.name), content: textOf(m.content) }]);
     } else {
       push('user', oaContentToAnthBlocks(m.content));
     }

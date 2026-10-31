@@ -475,6 +475,22 @@ try {
   r = await chat({ model: 'anth/claude-x', tools: [{ type: 'function', function: { name: 'get_weather', parameters: {} } }], messages: [{ role: 'user', content: 'weather?' }] });
   d = await j(r);
   ok(d.choices[0].finish_reason === 'tool_calls' && d.choices[0].message.content === '好的' && d.choices[0].message.tool_calls[0].id === 'toolu_n1' && JSON.parse(d.choices[0].message.tool_calls[0].function.arguments).city === '北京', 'Anthropic tool_use → OpenAI tool_calls', JSON.stringify(d));
+  r = await chat({
+    model: 'anth/claude-x',
+    messages: [
+      { role: 'assistant', content: null, tool_calls: [{ id: '', type: 'function', function: { name: 'get_weather', arguments: '{}' } }] },
+      { role: 'tool', tool_call_id: '', content: 'ok' },
+      { role: 'user', content: '然后呢' },
+    ],
+  });
+  up = seen.at(-1);
+  {
+    const asst = (up.body.messages || []).find((m) => m.role === 'assistant');
+    const user = (up.body.messages || []).find((m) => m.role === 'user');
+    const id1 = (asst?.content || []).find((b) => b.type === 'tool_use')?.id;
+    const id2 = (user?.content || []).find((b) => b.type === 'tool_result')?.tool_use_id;
+    ok(id1 && id1 === id2, '空 tool id 在同一次请求里配对成同一个 id', JSON.stringify({ id1, id2, messages: up.body.messages }));
+  }
 
   // /v1/chat/completions → Anthropic 上游（流式）
   r = await chat({ model: 'anth/claude-x', stream: true, stream_options: { include_usage: true }, messages: [{ role: 'user', content: 'hi' }] });
