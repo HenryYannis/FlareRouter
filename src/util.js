@@ -8,7 +8,7 @@ export const CORS_HEADERS = {
 };
 
 export function json(data, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(data, null, 2), {
+  return new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json; charset=utf-8', ...extraHeaders },
   });

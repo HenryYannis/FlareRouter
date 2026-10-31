@@ -26,10 +26,11 @@
         tipAnthropic: 'Base URL 写到域名即可（带不带 /v1 都行），请求发往 /v1/messages，模型列表取 /v1/models；也适用于提供 Anthropic 兼容接口的服务商。',
         tipOpenAI: 'Base URL 一般以 /v1 结尾，请求发往 /chat/completions，模型列表取 /models。',
         keyEmptyTag: '未填', clearKey: '清除已保存的 Key', keyCurrent: '当前：', keyPlaceholderEdit: '留空则不修改', keyPlaceholderNew: '必填（部分本地服务可留空）',
-        labelModels: '模型列表（逗号或换行分隔，第一个为默认；留空保存会自动拉取全部）', fetchModels: '从服务商拉取', fetching: '拉取中…',
+        labelModels: '模型列表（逗号或换行分隔，第一个为默认；留空可点「从服务商拉取」）', fetchModels: '从服务商拉取', fetching: '拉取中…',
         fetchPopulated: '已写入全部 {count} 个模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
         noMatchModels: '没有匹配的模型（共 {count} 个）', labelTimeout: '超时（毫秒，拿到响应头为止）', labelNote: '备注',
-        streamUsage: '流式请求自动加 stream_options.include_usage', enabled: '启用', cancel: '取消', save: '保存', saved: '已保存'
+        streamUsage: '流式请求自动加 stream_options.include_usage', enabled: '启用', cancel: '取消', save: '保存', saved: '已保存',
+        savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」'
       },
       fallback: {
         title: '容灾切换', switchLabel: '请求的模型失败时，继续按下面的容灾链尝试',
@@ -98,10 +99,11 @@
         tipAnthropic: 'Base URL 寫到網域即可（帶不帶 /v1 都行），請求發往 /v1/messages，模型列表取 /v1/models；也適用於提供 Anthropic 相容介面的服務商。',
         tipOpenAI: 'Base URL 一般以 /v1 結尾，請求發往 /chat/completions，模型列表取 /models。',
         keyEmptyTag: '未填', clearKey: '清除已儲存的 Key', keyCurrent: '當前：', keyPlaceholderEdit: '留空則不修改', keyPlaceholderNew: '必填（部分本地服務可留空）',
-        labelModels: '模型列表（逗號或換行分隔，第一個為預設；留空保存會自動拉取全部）', fetchModels: '從服務商拉取', fetching: '拉取中…',
+        labelModels: '模型列表（逗號或換行分隔，第一個為預設；留空可點「從服務商拉取」）', fetchModels: '從服務商拉取', fetching: '拉取中…',
         fetchPopulated: '已寫入全部 {count} 個模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
         noMatchModels: '沒有匹配的模型（共 {count} 個）', labelTimeout: '超時（毫秒，拿到回應頭為止）', labelNote: '備註',
-        streamUsage: '串流請求自動加 stream_options.include_usage', enabled: '啟用', cancel: '取消', save: '儲存', saved: '已儲存'
+        streamUsage: '串流請求自動加 stream_options.include_usage', enabled: '啟用', cancel: '取消', save: '儲存', saved: '已儲存',
+        savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」'
       },
       fallback: {
         title: '容災切換', switchLabel: '請求的模型失敗時，繼續按下面的容災鏈嘗試',
@@ -170,10 +172,11 @@
         tipAnthropic: 'Base URL can be just the domain (with or without /v1). Requests go to /v1/messages, models to /v1/models; also works with Anthropic-compatible proxies.',
         tipOpenAI: 'Base URL usually ends in /v1. Requests go to /chat/completions, models to /models.',
         keyEmptyTag: 'None', clearKey: 'Clear saved Key', keyCurrent: 'Current: ', keyPlaceholderEdit: 'Leave empty to keep unchanged', keyPlaceholderNew: 'Required (can be empty for local)',
-        labelModels: 'Models (comma or newline separated, 1st is default; leave empty on save to auto-fetch all)', fetchModels: 'Fetch from Provider', fetching: 'Fetching…',
+        labelModels: 'Models (comma or newline separated, 1st is default; leave empty and use Fetch from Provider)', fetchModels: 'Fetch from Provider', fetching: 'Fetching…',
         fetchPopulated: 'Populated all {count} models', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
         noMatchModels: 'No matching models ({count} total)', labelTimeout: 'Timeout (ms, until response headers)', labelNote: 'Note',
-        streamUsage: 'Auto add stream_options.include_usage to stream requests', enabled: 'Enabled', cancel: 'Cancel', save: 'Save', saved: 'Saved'
+        streamUsage: 'Auto add stream_options.include_usage to stream requests', enabled: 'Enabled', cancel: 'Cancel', save: 'Save', saved: 'Saved',
+        savedEmptyModels: 'Saved. Models empty — use Fetch from Provider'
       },
       fallback: {
         title: 'Failover Chain', switchLabel: 'On request failure, try the models in failover chain below',
@@ -492,7 +495,9 @@
     try {
       var res = await api('/admin/api/providers', { body: body });
       setCfg(res); $('#dlg-prov').close();
-      toast(res.modelsNotice ? t('providers.saved') + '，' + res.modelsNotice : t('providers.saved'));
+      var savedId = body.provider.id;
+      var ap = (res.providers || []).find(function (p) { return p.id === savedId; });
+      toast(ap && !ap.models.length ? t('providers.savedEmptyModels') : t('providers.saved'));
     }
     catch (err) { $('#prov-err').textContent = err.message; }
   });
@@ -613,27 +618,31 @@
   $('#stats-days').addEventListener('change', loadStats);
 
   // ---- 密钥 ----
+  function renderKeys(items) {
+    state.keys = items || [];
+    $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th>' + t('keys.thStatus') + '</th><th>' + t('keys.thActions') + '</th></tr>' +
+      (state.keys.length ? state.keys.map(function (k) {
+        var hasRaw = !!k.raw_key;
+        var isUnmasked = !!state.unmaskedKeys[k.id];
+        var displayKey = hasRaw ? (isUnmasked ? k.raw_key : '*'.repeat(k.raw_key.length)) : k.preview;
+        var keyHtml = '<span class="key-cell">' +
+          '<span class="mono small key-val' + (hasRaw ? ' click' : '') + '"' + (hasRaw ? ' data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '"' : '') + '>' + esc(displayKey) + '</span>' +
+          (hasRaw ? ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isUnmasked ? '🙈' : '👁') + '</button>' : ' <span class="muted small" title="' + t('keys.legacyNoRaw') + '">(' + t('keys.legacyNoRaw') + ')</span>') +
+          (hasRaw ? ' <button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button>' : '') +
+          '</span>';
+        return '<tr><td><b>' + esc(k.name) + '</b></td>' +
+          '<td>' + keyHtml + '</td>' +
+          '<td class="small">' + fmtTime(k.created_at) + '</td>' +
+          '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
+          '<td><span class="tag ' + (k.revoked ? 'bad' : 'ok') + '">' + (k.revoked ? t('keys.revoked') : t('keys.active')) + '</span></td>' +
+          '<td style="white-space:nowrap">' + (k.revoked ? '' : '<button class="btn sm" data-revoke="' + esc(k.id) + '">' + t('keys.revoke') + '</button> ') + '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
+      }).join('') : '<tr><td colspan="6" class="muted">' + t('keys.empty') + '</td></tr>');
+    $('#lf-key').innerHTML = '<option value="">' + t('logs.allKeys') + '</option><option value="admin">' + t('logs.adminTest') + '</option>' + state.keys.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join('');
+  }
   async function loadKeys() {
     try {
-      var r = await api('/admin/api/keys'); state.keys = r.items;
-      $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th>' + t('keys.thStatus') + '</th><th>' + t('keys.thActions') + '</th></tr>' +
-        (r.items.length ? r.items.map(function (k) {
-          var hasRaw = !!k.raw_key;
-          var isUnmasked = !!state.unmaskedKeys[k.id];
-          var displayKey = hasRaw ? (isUnmasked ? k.raw_key : '*'.repeat(k.raw_key.length)) : k.preview;
-          var keyHtml = '<span class="key-cell">' +
-            '<span class="mono small key-val' + (hasRaw ? ' click' : '') + '"' + (hasRaw ? ' data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '"' : '') + '>' + esc(displayKey) + '</span>' +
-            (hasRaw ? ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isUnmasked ? '🙈' : '👁') + '</button>' : ' <span class="muted small" title="' + t('keys.legacyNoRaw') + '">(' + t('keys.legacyNoRaw') + ')</span>') +
-            (hasRaw ? ' <button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button>' : '') +
-            '</span>';
-          return '<tr><td><b>' + esc(k.name) + '</b></td>' +
-            '<td>' + keyHtml + '</td>' +
-            '<td class="small">' + fmtTime(k.created_at) + '</td>' +
-            '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
-            '<td><span class="tag ' + (k.revoked ? 'bad' : 'ok') + '">' + (k.revoked ? t('keys.revoked') : t('keys.active')) + '</span></td>' +
-            '<td style="white-space:nowrap">' + (k.revoked ? '' : '<button class="btn sm" data-revoke="' + esc(k.id) + '">' + t('keys.revoke') + '</button> ') + '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
-        }).join('') : '<tr><td colspan="6" class="muted">' + t('keys.empty') + '</td></tr>');
-      $('#lf-key').innerHTML = '<option value="">' + t('logs.allKeys') + '</option><option value="admin">' + t('logs.adminTest') + '</option>' + r.items.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join('');
+      var r = await api('/admin/api/keys');
+      renderKeys(r.items);
     } catch (err) { $('#key-table').innerHTML = '<tr><td class="err">' + esc(err.message) + '</td></tr>'; }
   }
   function dismissNewKey() {
@@ -665,16 +674,34 @@
       if (b.dataset.ktoggle) {
         var id = b.dataset.ktoggle;
         state.unmaskedKeys[id] = !state.unmaskedKeys[id];
-        loadKeys();
+        renderKeys(state.keys);
         return;
       }
       if (b.dataset.kcopy) {
         navigator.clipboard.writeText(b.dataset.kcopy).then(function () { toast(t('header.copied')); });
         return;
       }
-      if (b.dataset.revoke) { if (!confirm(t('keys.revokeConfirm'))) return; await api('/admin/api/keys/revoke', { body: { id: b.dataset.revoke } }); }
-      if (b.dataset.kdel) { if (!confirm(t('keys.delConfirm'))) return; await api('/admin/api/keys/delete', { body: { id: b.dataset.kdel } }); }
-      loadKeys();
+      if (b.dataset.revoke) {
+        if (!confirm(t('keys.revokeConfirm'))) return;
+        var revId = b.dataset.revoke;
+        var prevRev = state.keys.slice();
+        renderKeys(state.keys.map(function (k) { return k.id === revId ? Object.assign({}, k, { revoked: 1 }) : k; }));
+        try {
+          var revRes = await api('/admin/api/keys/revoke', { body: { id: revId } });
+          if (revRes.items) renderKeys(revRes.items);
+        } catch (err) { renderKeys(prevRev); throw err; }
+        return;
+      }
+      if (b.dataset.kdel) {
+        if (!confirm(t('keys.delConfirm'))) return;
+        var delId = b.dataset.kdel;
+        var prevDel = state.keys.slice();
+        renderKeys(state.keys.filter(function (k) { return k.id !== delId; }));
+        try {
+          var delRes = await api('/admin/api/keys/delete', { body: { id: delId } });
+          if (delRes.items) renderKeys(delRes.items);
+        } catch (err) { renderKeys(prevDel); throw err; }
+      }
     } catch (err) { alert(err.message); }
   });
 
