@@ -450,8 +450,9 @@ function openAIToAnthropicStream({ clientModel }) {
   const stats = scan.stats;
   const id = newMsgId();
   let blockIndex = -1;
-  let current = null; // { kind: 'text' | 'tool', oaIndex }
-  const toolBlocks = new Map(); // OpenAI tool index → Anthropic 块序号
+  let current = null; // 只跟踪尚未关闭的文本块
+  // OpenAI 会交错推送多个 tool index。先按 index 攒齐，结束时再逐块输出，避免对已 stop 的块继续发 delta。
+  const toolAcc = new Map(); // index → { id, name, args }
   let stopReason = null;
   let usage = null;
   let finished = false;
@@ -460,6 +461,29 @@ function openAIToAnthropicStream({ clientModel }) {
     if (!current) return '';
     const s = sse('content_block_stop', { type: 'content_block_stop', index: current.index });
     current = null;
+    return s;
+  };
+
+  const emitBufferedTools = () => {
+    let s = '';
+    const indices = [...toolAcc.keys()].sort((a, b) => a - b);
+    for (const oi of indices) {
+      const acc = toolAcc.get(oi);
+      blockIndex += 1;
+      s += sse('content_block_start', {
+        type: 'content_block_start',
+        index: blockIndex,
+        content_block: { type: 'tool_use', id: safeToolId(acc.id), name: acc.name || '', input: {} },
+      });
+      if (acc.args) {
+        s += sse('content_block_delta', {
+          type: 'content_block_delta',
+          index: blockIndex,
+          delta: { type: 'input_json_delta', partial_json: acc.args },
+        });
+      }
+      s += sse('content_block_stop', { type: 'content_block_stop', index: blockIndex });
+    }
     return s;
   };
 
@@ -496,21 +520,14 @@ function openAIToAnthropicStream({ clientModel }) {
       }
       for (const tc of Array.isArray(d.tool_calls) ? d.tool_calls : []) {
         const oi = tc.index ?? 0;
-        let bi = toolBlocks.get(oi);
-        if (bi === undefined) {
-          out += closeCurrent();
-          blockIndex++;
-          bi = blockIndex;
-          toolBlocks.set(oi, bi);
-          current = { kind: 'tool', index: bi, oaIndex: oi };
-          out += sse('content_block_start', {
-            type: 'content_block_start',
-            index: bi,
-            content_block: { type: 'tool_use', id: safeToolId(tc.id), name: (tc.function && tc.function.name) || '', input: {} },
-          });
+        let acc = toolAcc.get(oi);
+        if (!acc) {
+          acc = { id: '', name: '', args: '' };
+          toolAcc.set(oi, acc);
         }
-        const args = tc.function && tc.function.arguments;
-        if (args) out += sse('content_block_delta', { type: 'content_block_delta', index: bi, delta: { type: 'input_json_delta', partial_json: args } });
+        if (tc.id) acc.id = tc.id;
+        if (tc.function && tc.function.name) acc.name = tc.function.name;
+        if (tc.function && typeof tc.function.arguments === 'string') acc.args += tc.function.arguments;
       }
       if (choice.finish_reason) stopReason = mapOpenAIStop(choice.finish_reason);
       return out;
@@ -523,8 +540,9 @@ function openAIToAnthropicStream({ clientModel }) {
         out += sse('error', { type: 'error', error: { type: 'api_error', message: errMsg } });
         return out;
       }
-      if (!stopReason) stopReason = toolBlocks.size ? 'tool_use' : 'end_turn';
-      if (stopReason === 'end_turn' && toolBlocks.size) stopReason = 'tool_use';
+      out += emitBufferedTools();
+      if (!stopReason) stopReason = toolAcc.size ? 'tool_use' : 'end_turn';
+      if (stopReason === 'end_turn' && toolAcc.size) stopReason = 'tool_use';
       const u = usage ? oaUsageToAnth(usage) : { output_tokens: estimateTokens(stats.outText) };
       out += sse('message_delta', { type: 'message_delta', delta: { stop_reason: stopReason, stop_sequence: null }, usage: u });
       out += sse('message_stop', { type: 'message_stop' });
