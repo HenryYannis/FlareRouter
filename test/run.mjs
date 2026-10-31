@@ -153,6 +153,8 @@ try {
     r.status === 200 &&
       t.includes('FlareRouter') &&
       t.includes('night-theme') &&
+      t.includes('theme-color') &&
+      t.includes('viewport-fit=cover') &&
       t.includes('data-theme-toggle') &&
       t.includes('data-lang-select') &&
       t.includes('data-i18n') &&
