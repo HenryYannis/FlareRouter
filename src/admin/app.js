@@ -73,7 +73,8 @@
         logPromptsLabel: '记录最后一条用户消息原文（默认关，只记元数据）', save: '保存', saved: '已保存',
         backupTitle: '备份', backupDesc: '导出文件包含上游 API Key 明文，请妥善保存。导入会整体覆盖当前服务商与设置。',
         exportBtn: '导出配置', importBtn: '导入配置', importConfirm: '导入将覆盖当前全部服务商与设置（共 {count} 个服务商），继续？', importSuccess: '导入完成'
-      }
+      },
+      footer: { brand: 'FlareRouter', github: 'GitHub' }
     },
     'zh-Hant': {
       title: 'FlareRouter · 管理',
@@ -143,7 +144,8 @@
         logPromptsLabel: '記錄最後一條使用者訊息原文（預設關，只記元數據）', save: '儲存', saved: '已儲存',
         backupTitle: '備份', backupDesc: '匯出檔案包含上游 API Key 明文，請妥善保存。匯入會整體覆蓋當前服務商與設定。',
         exportBtn: '匯出設定', importBtn: '匯入設定', importConfirm: '匯入將覆蓋當前全部服務商與設定（共 {count} 個服務商），繼續？', importSuccess: '匯入完成'
-      }
+      },
+      footer: { brand: 'FlareRouter', github: 'GitHub' }
     },
     en: {
       title: 'FlareRouter · Admin',
@@ -213,7 +215,8 @@
         logPromptsLabel: 'Log raw user prompt of the last message (default off)', save: 'Save', saved: 'Saved',
         backupTitle: 'Backup', backupDesc: 'Export file contains raw upstream API keys; store safely. Import overwrites existing providers and settings.',
         exportBtn: 'Export Config', importBtn: 'Import Config', importConfirm: 'Import will overwrite all existing providers and settings ({count} providers), continue?', importSuccess: 'Import completed'
-      }
+      },
+      footer: { brand: 'FlareRouter', github: 'GitHub' }
     }
   };
 
