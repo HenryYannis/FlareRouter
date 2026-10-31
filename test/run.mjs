@@ -141,6 +141,10 @@ const upstream = http.createServer(async (req, res) => {
       echo: { temperature: body.temperature, tools: body.tools, custom: body.custom_field },
     });
   }
+  if (req.url.startsWith('/html200/')) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end('<html>not json</html>');
+  }
   send(404, { error: { message: `mock: no route ${req.url}` } });
 });
 await new Promise((r) => upstream.listen(0, '127.0.0.1', r));
@@ -372,6 +376,16 @@ try {
 
   const XH = { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' };
   const msgs = (b, extra = {}) => req('/v1/messages', { method: 'POST', headers: { ...XH, ...extra }, body: JSON.stringify(b) });
+  await admin('/admin/api/providers', { provider: { id: 'html200', name: 'HTML200', protocol: 'openai', baseUrl: `${UP}/html200/v1`, apiKey: 'k', models: 'm' } });
+  await admin('/admin/api/settings', { fallbackEnabled: true, fallbackChain: ['good/m1'] });
+  {
+    const before = seen.length;
+    r = await msgs({ model: 'html200/m', max_tokens: 8, messages: [{ role: 'user', content: 'hi' }] });
+    d = await j(r);
+    const paths = seen.slice(before).map((s) => s.path);
+    ok(r.status === 502 && d.type === 'error' && /不是 JSON/.test(d.error.message) && paths.some((p) => String(p).includes('html200')) && !paths.some((p) => String(p).includes('/good/')), '跨协议 200 但不是 JSON 时停止切换，不再请求下一家', JSON.stringify({ status: r.status, d, paths }));
+  }
+  await admin('/admin/api/providers/delete', { id: 'html200' });
   const parseSSE = (s) => s.split('\n\n').filter((x) => x.trim()).map((blk) => {
     const ev = (blk.match(/^event: (.*)$/m) || [])[1];
     const da = (blk.match(/^data: (.*)$/m) || [])[1];

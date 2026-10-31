@@ -299,10 +299,20 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
     let contentType = res.headers.get('content-type') || 'application/json; charset=utf-8';
     if (up.upstreamProtocol !== clientProtocol && endpoint !== 'embeddings') {
       if (!parsed || typeof parsed !== 'object') {
-        // 还没向客户端写任何东西，可以继续容灾
-        fail1(502, `上游返回 200 但内容不是 JSON，无法转换协议：${text.slice(0, 1000)}`);
-        lastStatus = 502;
-        continue;
+        // 上游已经以 200 处理过这次请求，再打下一跳会重复计费。直接把转换失败返回给客户端。
+        const raw = `上游返回 200 但内容不是 JSON，无法转换协议：${text.slice(0, 1000)}`;
+        fail1(502, raw.slice(0, ERROR_TEXT_LIMIT));
+        const summary = trail.map((item, n) => `#${n + 1} ${item.providerName}/${item.model}：${item.error}`).join('\n');
+        const message = `上游返回 200 但内容不是 JSON，已停止切换，避免对下一家重复请求。\n${summary}`;
+        writeLog(env, ctx, {
+          ...logCommon,
+          status: 502,
+          latencyMs: Date.now() - t0,
+          ttfbMs: Date.now() - tA,
+          error: message,
+        });
+        if (clientProtocol === 'anthropic') return json(anthropicErrorBody(message, 502, { attempts: trail }), 502, CORS_HEADERS);
+        return json({ error: { message, type: 'upstream_error', attempts: trail } }, 502, CORS_HEADERS);
       }
       const converted = clientProtocol === 'anthropic' ? openAIToAnthropicResponse(parsed, body.model) : anthropicToOpenAIResponse(parsed, body.model);
       outText = JSON.stringify(converted);
