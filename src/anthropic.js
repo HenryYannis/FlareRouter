@@ -108,6 +108,34 @@ function partsToOpenAIContent(parts) {
   return parts;
 }
 
+const SERVER_TOOL_RESULTS = new Set([
+  'web_search_tool_result',
+  'code_execution_tool_result',
+  'mcp_tool_result',
+  'bash_code_execution_tool_result',
+  'text_editor_code_execution_tool_result',
+  'tool_search_tool_result',
+]);
+
+function looseBlockText(content) {
+  if (content == null) return '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map((c) => {
+      if (!c) return '';
+      if (typeof c === 'string') return c;
+      if (typeof c.text === 'string' && c.text) return c.text;
+      if (c.title || c.url) return [c.title, c.url].filter(Boolean).join(' ');
+      try { return JSON.stringify(c); } catch { return ''; }
+    }).filter(Boolean).join('\n');
+  }
+  if (typeof content === 'object') {
+    if (typeof content.text === 'string') return content.text;
+    try { return JSON.stringify(content); } catch { return ''; }
+  }
+  return String(content);
+}
+
 function convertAnthUserMessage(m, out) {
   if (typeof m.content === 'string') { out.push({ role: 'user', content: m.content }); return; }
   const blocks = Array.isArray(m.content) ? m.content : [];
@@ -115,10 +143,11 @@ function convertAnthUserMessage(m, out) {
   const extraImages = [];
   for (const b of blocks) {
     if (!b || typeof b !== 'object') continue;
-    if (b.type === 'tool_result') {
+    if (b.type === 'tool_result' || SERVER_TOOL_RESULTS.has(b.type)) {
       // tool 消息必须紧跟在 assistant 的 tool_calls 后面，所以先输出
       let content;
-      if (typeof b.content === 'string') content = b.content;
+      if (b.type !== 'tool_result') content = looseBlockText(b.content);
+      else if (typeof b.content === 'string') content = b.content;
       else if (Array.isArray(b.content)) {
         content = b.content.filter((c) => c && c.type === 'text').map((c) => c.text).join('\n');
         for (const c of b.content) if (c && c.type === 'image') { const im = anthImageToOpenAI(c); if (im) extraImages.push(im); }
