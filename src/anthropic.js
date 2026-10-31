@@ -170,16 +170,23 @@ function convertAnthAssistantMessage(m, out) {
   const blocks = Array.isArray(m.content) ? m.content : [];
   const texts = [];
   const toolCalls = [];
+  const thinkings = [];
+  const signatures = [];
   for (const b of blocks) {
     if (!b || typeof b !== 'object') continue;
     if (b.type === 'text' && b.text) texts.push(b.text);
-    else if (b.type === 'tool_use' || b.type === 'server_tool_use') {
+    else if (b.type === 'thinking') {
+      if (b.thinking) thinkings.push(b.thinking);
+      if (typeof b.signature === 'string' && b.signature) signatures.push(b.signature);
+    } else if (b.type === 'tool_use' || b.type === 'server_tool_use') {
       toolCalls.push({ id: safeToolId(b.id), type: 'function', function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } });
     }
   }
   const msg = { role: 'assistant', content: texts.length ? texts.join('\n') : null };
+  if (thinkings.length) msg.reasoning_content = thinkings.join('');
+  if (signatures.length) msg.reasoning_signature = signatures[0];
   if (toolCalls.length) msg.tool_calls = toolCalls;
-  if (msg.content == null && !toolCalls.length) return;
+  if (msg.content == null && !toolCalls.length && !thinkings.length) return;
   out.push(msg);
 }
 
@@ -290,6 +297,9 @@ export function openAIToAnthropicRequest(body, model, { stream } = {}) {
       skipMerge = true;
     } else if (m.role === 'assistant') {
       const blocks = oaContentToAnthBlocks(m.content).filter((b) => b.type === 'text');
+      if (typeof m.reasoning_content === 'string' && m.reasoning_content && typeof m.reasoning_signature === 'string' && m.reasoning_signature) {
+        blocks.unshift({ type: 'thinking', thinking: m.reasoning_content, signature: m.reasoning_signature });
+      }
       for (const tc of Array.isArray(m.tool_calls) ? m.tool_calls : []) {
         if (!tc || !tc.function) continue;
         blocks.push({ type: 'tool_use', id: safeToolId(tc.id), name: tc.function.name, input: parseArgs(tc.function.arguments) });
@@ -353,6 +363,12 @@ export function openAIToAnthropicResponse(oa, clientModel) {
   const choice = (oa && oa.choices && oa.choices[0]) || {};
   const msg = choice.message || {};
   const content = [];
+  const reasoning = typeof msg.reasoning_content === 'string' ? msg.reasoning_content : '';
+  if (reasoning || (typeof msg.reasoning_signature === 'string' && msg.reasoning_signature)) {
+    const block = { type: 'thinking', thinking: reasoning };
+    if (typeof msg.reasoning_signature === 'string' && msg.reasoning_signature) block.signature = msg.reasoning_signature;
+    content.push(block);
+  }
   const text = textOf(msg.content);
   if (text) content.push({ type: 'text', text });
   for (const tc of Array.isArray(msg.tool_calls) ? msg.tool_calls : []) {
@@ -385,12 +401,15 @@ function anthUsageToOA(u) {
 export function anthropicToOpenAIResponse(an, clientModel) {
   const blocks = Array.isArray(an && an.content) ? an.content : [];
   const text = blocks.filter((b) => b && b.type === 'text').map((b) => b.text).join('');
-  const thinking = blocks.filter((b) => b && b.type === 'thinking').map((b) => b.thinking).join('');
+  const thinkingBlocks = blocks.filter((b) => b && b.type === 'thinking');
+  const thinking = thinkingBlocks.map((b) => b.thinking || '').join('');
+  const signature = thinkingBlocks.map((b) => b.signature).find((s) => typeof s === 'string' && s) || '';
   const toolCalls = blocks
     .filter((b) => b && b.type === 'tool_use')
     .map((b) => ({ id: b.id, type: 'function', function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } }));
   const message = { role: 'assistant', content: text || (toolCalls.length ? null : '') };
   if (thinking) message.reasoning_content = thinking;
+  if (signature) message.reasoning_signature = signature;
   if (toolCalls.length) message.tool_calls = toolCalls;
   return {
     id: `chatcmpl-${(an && an.id) || randomHex(12)}`,
@@ -542,6 +561,24 @@ function openAIToAnthropicStream({ clientModel }) {
       const choice = o.choices && o.choices[0];
       if (!choice) return out;
       const d = choice.delta || {};
+      if (typeof d.reasoning_content === 'string' && d.reasoning_content) {
+        if (!current || current.kind !== 'thinking') {
+          out += closeCurrent();
+          blockIndex++;
+          current = { kind: 'thinking', index: blockIndex };
+          out += sse('content_block_start', { type: 'content_block_start', index: blockIndex, content_block: { type: 'thinking', thinking: '' } });
+        }
+        out += sse('content_block_delta', { type: 'content_block_delta', index: current.index, delta: { type: 'thinking_delta', thinking: d.reasoning_content } });
+      }
+      if (typeof d.reasoning_signature === 'string' && d.reasoning_signature) {
+        if (!current || current.kind !== 'thinking') {
+          out += closeCurrent();
+          blockIndex++;
+          current = { kind: 'thinking', index: blockIndex };
+          out += sse('content_block_start', { type: 'content_block_start', index: blockIndex, content_block: { type: 'thinking', thinking: '' } });
+        }
+        out += sse('content_block_delta', { type: 'content_block_delta', index: current.index, delta: { type: 'signature_delta', signature: d.reasoning_signature } });
+      }
       if (typeof d.content === 'string' && d.content) {
         if (!current || current.kind !== 'text') {
           out += closeCurrent();
@@ -631,6 +668,7 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
         const d = o.delta || {};
         if (d.type === 'text_delta') return chunk({ content: d.text || '' });
         if (d.type === 'thinking_delta') return chunk({ reasoning_content: d.thinking || '' });
+        if (d.type === 'signature_delta') return chunk({ reasoning_signature: d.signature || '' });
         if (d.type === 'input_json_delta') {
           const ti = blockToTool.get(o.index);
           if (ti === undefined) return '';
@@ -664,6 +702,26 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
       out += 'data: [DONE]\n\n';
       return out;
     },
+  };
+}
+
+// 没有 signature 的 thinking 发回 Anthropic 会被拒绝。转成普通文本，已签名的块原样保留。
+export function sanitizeAnthropicPayload(body) {
+  if (!body || typeof body !== 'object' || !Array.isArray(body.messages)) return body;
+  return {
+    ...body,
+    messages: body.messages.map((m) => {
+      if (!m || !Array.isArray(m.content)) return m;
+      const content = [];
+      for (const b of m.content) {
+        if (b && b.type === 'thinking' && !(typeof b.signature === 'string' && b.signature)) {
+          if (b.thinking) content.push({ type: 'text', text: b.thinking });
+          continue;
+        }
+        content.push(b);
+      }
+      return { ...m, content: content.length ? content : m.content };
+    }),
   };
 }
 
