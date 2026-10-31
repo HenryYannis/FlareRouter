@@ -104,6 +104,16 @@ const upstream = http.createServer(async (req, res) => {
   }
   if (req.url === '/bad/v1/images/generations') return send(500, { error: { message: 'image upstream down' } });
   if (req.url === '/bad/v1/audio/speech') return send(500, { error: { message: 'tts upstream down' } });
+  if (req.url === '/good/v1/chat/completions' && body && body.stream && /no-usage-tools/.test(lastText())) {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    const chunks = [
+      { choices: [{ delta: { tool_calls: [{ index: 0, id: 'call_nu', type: 'function', function: { name: 'get_weather', arguments: '' } }] } }] },
+      { choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: '{"city":"杭州杭州杭州"}' } }] } }] },
+      { choices: [{ delta: {}, finish_reason: 'tool_calls' }] },
+    ];
+    for (const c of chunks) res.write(`data: ${JSON.stringify(c)}\n\n`);
+    return res.end('data: [DONE]\n\n');
+  }
   if (req.url === '/good/v1/chat/completions' && wantTool()) {
     if (body.stream) {
       res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
@@ -512,6 +522,21 @@ try {
   const pj = evs.filter((e) => e.ev === 'content_block_delta' && e.data.delta.type === 'input_json_delta' && e.data.index === toolStart?.data.index).map((e) => e.data.delta.partial_json).join('');
   const md2 = evs.find((e) => e.ev === 'message_delta');
   ok(toolStart && toolStart.data.content_block.id === 'call_s1' && toolStart.data.content_block.name === 'get_weather' && JSON.parse(pj).city === '杭州' && md2.data.delta.stop_reason === 'tool_use' && evs.filter((e) => e.ev === 'content_block_start').length === 2, 'OpenAI 流式 tool_calls → Anthropic tool_use + input_json_delta', t.slice(0, 600));
+  r = await msgs({ model: 'good/m1', max_tokens: 40, stream: true, tools: [convBody.tools[0]], messages: [{ role: 'user', content: 'no-usage-tools' }] });
+  t = await r.text();
+  evs = parseSSE(t);
+  {
+    const mdU = evs.find((e) => e.ev === 'message_delta');
+    const startU = evs.find((e) => e.ev === 'message_start');
+    ok(
+      startU?.data?.message?.usage?.input_tokens === 0
+        && mdU?.data?.usage
+        && Object.prototype.hasOwnProperty.call(mdU.data.usage, 'input_tokens')
+        && mdU.data.usage.output_tokens > 0,
+      '上游不回 usage 时 message_delta 仍带 input/output，且工具参数计入 output',
+      JSON.stringify({ start: startU?.data?.message?.usage, delta: mdU?.data?.usage }),
+    );
+  }
 
   // /v1/chat/completions → Anthropic 上游（非流式）
   r = await chat({

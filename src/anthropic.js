@@ -628,7 +628,10 @@ function openAIToAnthropicStream({ clientModel }) {
           });
         }
         const args = tc.function && tc.function.arguments;
-        if (args) out += sse('content_block_delta', { type: 'content_block_delta', index: bi, delta: { type: 'input_json_delta', partial_json: args } });
+        if (args) {
+          stats.outText += args;
+          out += sse('content_block_delta', { type: 'content_block_delta', index: bi, delta: { type: 'input_json_delta', partial_json: args } });
+        }
       }
       if (choice.finish_reason) stopReason = mapOpenAIStop(choice.finish_reason);
       return out;
@@ -643,7 +646,7 @@ function openAIToAnthropicStream({ clientModel }) {
       }
       if (!stopReason) stopReason = toolBlocks.size ? 'tool_use' : 'end_turn';
       if (stopReason === 'end_turn' && toolBlocks.size) stopReason = 'tool_use';
-      const u = usage ? oaUsageToAnth(usage) : { output_tokens: estimateTokens(stats.outText) };
+      const u = usage ? oaUsageToAnth(usage) : { input_tokens: 0, output_tokens: estimateTokens(stats.outText) };
       out += sse('message_delta', { type: 'message_delta', delta: { stop_reason: stopReason, stop_sequence: null }, usage: u });
       out += sse('message_stop', { type: 'message_stop' });
       return out;
