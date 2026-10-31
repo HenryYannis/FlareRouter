@@ -267,8 +267,12 @@
       <div class="muted small" id="p-protocol-tip" style="margin-top:4px"></div>
       <label class="f" for="p-url">Base URL</label>
       <input type="text" id="p-url" placeholder="https://api.example.com/v1" spellcheck="false">
-      <label class="f" for="p-key">API Key <span id="p-key-preview" class="mono"></span></label>
-      <input type="password" id="p-key" placeholder="留空则不修改" spellcheck="false" autocomplete="new-password">
+      <label class="f" for="p-key">API Key</label>
+      <div class="row" style="gap:8px;align-items:center">
+        <input type="password" id="p-key" class="grow" placeholder="留空则不修改" spellcheck="false" autocomplete="new-password">
+        <button type="button" class="btn sm" id="p-key-toggle" title="显示 / 隐藏明文" data-i18n-title="keys.showHide">👁</button>
+        <button type="button" class="btn sm" id="p-key-copy" data-i18n="keys.copy">复制</button>
+      </div>
       <label class="row small" id="p-clear-wrap"><input type="checkbox" id="p-clear"> <span data-i18n="providers.clearKey">清除已保存的 Key</span></label>
       <div class="row" style="margin-top:10px">
         <label class="f grow" for="p-models" style="margin:0" data-i18n="providers.labelModels">模型列表（逗号或换行分隔，第一个为默认；留空可点「从服务商拉取」）</label>

@@ -271,7 +271,7 @@
     }
   };
 
-  var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, editing: null, fetched: [], lang: 'zh', unmaskedKeys: {} };
+  var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, editing: null, fetched: [], lang: 'zh', unmaskedKeys: {}, unmaskedProviders: {} };
 
   function t(path, params) {
     var lang = state.lang || 'zh';
@@ -574,7 +574,17 @@
         '<td class="mono"><button class="btn sm" data-up="' + i + '"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn sm" data-down="' + i + '"' + (i === ps.length - 1 ? ' disabled' : '') + '>↓</button></td>' +
         '<td><div>' + esc(p.name) + '</div><div class="muted mono small">' + esc(p.id) + '</div>' + (p.note ? '<div class="muted small">' + esc(p.note) + '</div>' : '') + '</td>' +
         '<td class="hide-sm mono small" style="word-break:break-all">' + esc(p.baseUrl) + (p.protocol === 'anthropic' ? ' <span class="tag">Anthropic</span>' : '') + '</td>' +
-        '<td class="mono small">' + (p.hasKey ? esc(p.apiKeyPreview) : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') + '</td>' +
+        '<td>' + (p.apiKey
+          ? (function () {
+              var shown = !!state.unmaskedProviders[p.id];
+              var display = shown ? p.apiKey : '*'.repeat(p.apiKey.length);
+              return '<span class="key-cell">' +
+                '<span class="mono small key-val click" data-ptoggle="' + esc(p.id) + '" title="' + t('keys.showHide') + '">' + esc(display) + '</span>' +
+                ' <button class="btn sm" data-ptoggle="' + esc(p.id) + '" title="' + t('keys.showHide') + '">' + (shown ? '🙈' : '👁') + '</button>' +
+                ' <button class="btn sm" data-pcopy="' + esc(p.apiKey) + '">' + t('keys.copy') + '</button>' +
+                '</span>';
+            })()
+          : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') + '</td>' +
         '<td class="small" title="' + esc(p.models.join(', ')) + '">' + p.models.length + '<div class="muted mono">' + esc(p.models[0] || '') + '</div></td>' +
         '<td><label class="switch"><input type="checkbox" data-toggle="' + esc(p.id) + '"' + (p.enabled ? ' checked' : '') + '><span></span></label></td>' +
         '<td class="col-actions" style="white-space:nowrap"><button class="btn sm" data-edit="' + i + '">' + t('providers.edit') + '</button> <button class="btn sm danger" data-del="' + esc(p.id) + '">' + t('providers.del') + '</button></td>' +
@@ -583,6 +593,18 @@
     $('#prov-table').innerHTML = h;
   }
   $('#prov-table').addEventListener('click', async function (e) {
+    var toggle = e.target.closest('[data-ptoggle]');
+    if (toggle) {
+      var tid = toggle.dataset.ptoggle;
+      state.unmaskedProviders[tid] = !state.unmaskedProviders[tid];
+      renderProviders();
+      return;
+    }
+    var copyBtn = e.target.closest('[data-pcopy]');
+    if (copyBtn) {
+      navigator.clipboard.writeText(copyBtn.dataset.pcopy).then(function () { toast(t('header.copied')); });
+      return;
+    }
     var b = e.target.closest('button'); if (!b) return;
     var ps = state.cfg.providers, ids = ps.map(function (p) { return p.id; });
     try {
@@ -613,9 +635,10 @@
     $('#p-protocol').value = p && p.protocol === 'anthropic' ? 'anthropic' : 'openai';
     syncProtocol();
     $('#p-url').value = p ? p.baseUrl : '';
-    $('#p-key').value = '';
+    $('#p-key').value = p && p.apiKey ? p.apiKey : '';
+    $('#p-key').type = 'password';
+    $('#p-key-toggle').textContent = '👁';
     $('#p-key').placeholder = p && p.hasKey ? t('providers.keyPlaceholderEdit') : t('providers.keyPlaceholderNew');
-    $('#p-key-preview').textContent = p && p.hasKey ? t('providers.keyCurrent') + p.apiKeyPreview : '';
     $('#p-clear').checked = false;
     $('#p-clear-wrap').classList.toggle('hidden', !(p && p.hasKey));
     $('#p-models').value = p ? p.models.join('\n') : '';
@@ -634,6 +657,18 @@
     $('#p-usage').closest('label').classList.toggle('hidden', a);
   }
   $('#p-protocol').addEventListener('change', syncProtocol);
+  $('#p-key-toggle').addEventListener('click', function () {
+    var inp = $('#p-key');
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    this.textContent = show ? '🙈' : '👁';
+    this.title = t('keys.showHide');
+  });
+  $('#p-key-copy').addEventListener('click', function () {
+    var v = $('#p-key').value;
+    if (!v) return;
+    navigator.clipboard.writeText(v).then(function () { toast(t('header.copied')); });
+  });
   $('#p-name').addEventListener('input', function () {
     if (state.editing) return;
     var slug = this.value.trim().toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-+|-+$/g, '');

@@ -223,7 +223,7 @@ try {
   r = await admin('/admin/api/config');
   t = await r.text();
   let cfg = JSON.parse(t);
-  ok(cfg.providers.length === 5 && !t.includes('sk-good-secret-1234567890') && cfg.providers[0].apiKeyPreview === 'sk-g****7890', '配置接口只返回脱敏 Key', t.slice(0, 300));
+  ok(cfg.providers.length === 5 && cfg.providers[0].apiKey === 'sk-good-secret-1234567890' && cfg.providers[0].apiKeyPreview === 'sk-g****7890' && cfg.providers[0].hasKey === true, '配置接口返回明文 Key（管理端查看/复制，与调用密钥一致）', t.slice(0, 300));
   ok(JSON.stringify(cfg.providers[0].models) === '["m1","m2","vendor/m3"]', '模型列表按逗号/换行解析');
   // 编辑时 Key 留空 -> 保留原 Key
   r = await admin('/admin/api/providers', { originalId: 'good', provider: { ...providers[0], apiKey: '', note: '备注' } });
