@@ -11,6 +11,12 @@ A personal AI gateway on a single Cloudflare Worker: it serves both an OpenAI-co
 
 Built for one person: no user accounts, billing or quotas, no build step. The admin UI is HTML/CSS/JS injected into one page and bundled into the Worker. Errors are always returned and shown verbatim, never hidden.
 
+![Overview](docs/screenshots/overview.webp)
+
+![Upstreams](docs/screenshots/providers.webp)
+
+![Settings](docs/screenshots/settings.webp)
+
 ## Features
 
 - **Providers**: name, ID, protocol (OpenAI-compatible or Anthropic), base URL, API key (shown masked), model list (can be pulled from the provider's `/models` and ticked), enabled, order, timeout
