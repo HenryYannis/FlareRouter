@@ -86,6 +86,8 @@
         backupTitle: '备份', backupDesc: '导出文件包含上游 API Key 明文，请妥善保存。导入会整体覆盖当前服务商与设置。',
         exportBtn: '导出配置', importBtn: '导入配置', importConfirm: '导入将覆盖当前全部服务商与设置（共 {count} 个服务商），继续？', importSuccess: '导入完成'
       },
+      common: { confirm: '确认', cancel: '取消' },
+      dialog: { confirmTitle: '操作确认', alertTitle: '提示', alertOk: '我知道了', promptTitle: '请输入' },
       footer: { brand: 'FlareRouter', github: 'GitHub' }
     },
     'zh-Hant': {
@@ -169,6 +171,8 @@
         backupTitle: '備份', backupDesc: '匯出檔案包含上游 API Key 明文，請妥善保存。匯入會整體覆蓋當前服務商與設定。',
         exportBtn: '匯出設定', importBtn: '匯入設定', importConfirm: '匯入將覆蓋當前全部服務商與設定（共 {count} 個服務商），繼續？', importSuccess: '匯入完成'
       },
+      common: { confirm: '確認', cancel: '取消' },
+      dialog: { confirmTitle: '操作確認', alertTitle: '提示', alertOk: '我知道了', promptTitle: '請輸入' },
       footer: { brand: 'FlareRouter', github: 'GitHub' }
     },
     en: {
@@ -252,6 +256,8 @@
         backupTitle: 'Backup', backupDesc: 'Export file contains raw upstream API keys; store safely. Import overwrites existing providers and settings.',
         exportBtn: 'Export Config', importBtn: 'Import Config', importConfirm: 'Import will overwrite all existing providers and settings ({count} providers), continue?', importSuccess: 'Import completed'
       },
+      common: { confirm: 'Confirm', cancel: 'Cancel' },
+      dialog: { confirmTitle: 'Please confirm', alertTitle: 'Notice', alertOk: 'OK', promptTitle: 'Input' },
       footer: { brand: 'FlareRouter', github: 'GitHub' }
     }
   };
@@ -331,8 +337,120 @@
   }
 
   function toast(msg) {
-    var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
-    document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600);
+    var el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+    document.body.appendChild(el); setTimeout(function () { el.remove(); }, 2600);
+  }
+
+  // ---- 自有弹窗（统一入口，文案走 i18n）----
+  var DIALOG_ICONS = {
+    danger: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    warning: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    info: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+  };
+  var dialogOverlay = null;
+  var dialogResolve = null;
+  function ensureDialogOverlay() {
+    if (dialogOverlay && document.body.contains(dialogOverlay)) return;
+    dialogOverlay = document.createElement('div');
+    dialogOverlay.className = 'custom-dialog-overlay';
+    dialogOverlay.addEventListener('click', function (e) {
+      if (e.target === dialogOverlay) closeDialog(null);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (!dialogOverlay || !dialogOverlay.classList.contains('active')) return;
+      if (e.key === 'Escape') { e.preventDefault(); closeDialog(null); }
+      else if (e.key === 'Enter') {
+        var active = document.activeElement;
+        if (active && active.tagName === 'TEXTAREA') return;
+        if (active && active.classList && active.classList.contains('custom-dialog-input')) return;
+        var btn = dialogOverlay.querySelector('.custom-dialog-btn-confirm');
+        if (btn) { e.preventDefault(); btn.click(); }
+      }
+    });
+    document.body.appendChild(dialogOverlay);
+  }
+  function closeDialog(result) {
+    if (!dialogOverlay) return;
+    dialogOverlay.classList.remove('active');
+    var res = dialogResolve;
+    dialogResolve = null;
+    if (res) setTimeout(function () { res(result); }, 100);
+  }
+  function showConfirm(options) {
+    var opts = typeof options === 'string' ? { message: options } : (options || {});
+    var isDanger = opts.danger !== false;
+    var iconType = opts.icon || (isDanger ? 'danger' : 'warning');
+    ensureDialogOverlay();
+    if (dialogResolve) closeDialog(null);
+    return new Promise(function (resolve) {
+      dialogResolve = function (val) { resolve(val === true); };
+      dialogOverlay.innerHTML =
+        '<div class="custom-dialog-box" role="dialog" aria-modal="true">' +
+        '<div class="custom-dialog-header"><div class="custom-dialog-icon ' + iconType + '">' + (DIALOG_ICONS[iconType] || DIALOG_ICONS.warning) + '</div>' +
+        '<h3 class="custom-dialog-title">' + esc(opts.title || t('dialog.confirmTitle')) + '</h3></div>' +
+        '<div class="custom-dialog-message">' + esc(opts.message || '') + '</div>' +
+        '<div class="custom-dialog-actions">' +
+        '<button type="button" class="custom-dialog-btn custom-dialog-btn-cancel">' + esc(opts.cancelText || t('common.cancel')) + '</button>' +
+        '<button type="button" class="custom-dialog-btn custom-dialog-btn-confirm' + (isDanger ? ' danger' : '') + '">' + esc(opts.confirmText || t('common.confirm')) + '</button>' +
+        '</div></div>';
+      dialogOverlay.querySelector('.custom-dialog-btn-cancel').onclick = function () { closeDialog(false); };
+      dialogOverlay.querySelector('.custom-dialog-btn-confirm').onclick = function () { closeDialog(true); };
+      requestAnimationFrame(function () {
+        dialogOverlay.classList.add('active');
+        dialogOverlay.querySelector('.custom-dialog-btn-confirm').focus();
+      });
+    });
+  }
+  function showAlert(options) {
+    var opts = typeof options === 'string' ? { message: options } : (options || {});
+    var type = opts.type || 'info';
+    ensureDialogOverlay();
+    if (dialogResolve) closeDialog(null);
+    return new Promise(function (resolve) {
+      dialogResolve = function () { resolve(); };
+      dialogOverlay.innerHTML =
+        '<div class="custom-dialog-box" role="dialog" aria-modal="true">' +
+        '<div class="custom-dialog-header"><div class="custom-dialog-icon ' + type + '">' + (DIALOG_ICONS[type] || DIALOG_ICONS.info) + '</div>' +
+        '<h3 class="custom-dialog-title">' + esc(opts.title || t('dialog.alertTitle')) + '</h3></div>' +
+        '<div class="custom-dialog-message">' + esc(opts.message || '') + '</div>' +
+        '<div class="custom-dialog-actions">' +
+        '<button type="button" class="custom-dialog-btn custom-dialog-btn-confirm">' + esc(opts.buttonText || t('dialog.alertOk')) + '</button>' +
+        '</div></div>';
+      dialogOverlay.querySelector('.custom-dialog-btn-confirm').onclick = function () { closeDialog(true); };
+      requestAnimationFrame(function () {
+        dialogOverlay.classList.add('active');
+        dialogOverlay.querySelector('.custom-dialog-btn-confirm').focus();
+      });
+    });
+  }
+  function showPrompt(options) {
+    var opts = typeof options === 'string' ? { message: options } : (options || {});
+    ensureDialogOverlay();
+    if (dialogResolve) closeDialog(null);
+    return new Promise(function (resolve) {
+      dialogResolve = resolve;
+      dialogOverlay.innerHTML =
+        '<div class="custom-dialog-box" role="dialog" aria-modal="true">' +
+        '<div class="custom-dialog-header"><div class="custom-dialog-icon info">' + DIALOG_ICONS.info + '</div>' +
+        '<h3 class="custom-dialog-title">' + esc(opts.title || t('dialog.promptTitle')) + '</h3></div>' +
+        (opts.message ? '<div class="custom-dialog-message">' + esc(opts.message) + '</div>' : '') +
+        '<div class="custom-dialog-prompt-wrap"><input type="text" class="custom-dialog-input" value="' + esc(opts.defaultValue || '') + '"></div>' +
+        '<div class="custom-dialog-actions">' +
+        '<button type="button" class="custom-dialog-btn custom-dialog-btn-cancel">' + esc(opts.cancelText || t('common.cancel')) + '</button>' +
+        '<button type="button" class="custom-dialog-btn custom-dialog-btn-confirm">' + esc(opts.confirmText || t('common.confirm')) + '</button>' +
+        '</div></div>';
+      var input = dialogOverlay.querySelector('.custom-dialog-input');
+      dialogOverlay.querySelector('.custom-dialog-btn-cancel').onclick = function () { closeDialog(null); };
+      dialogOverlay.querySelector('.custom-dialog-btn-confirm').onclick = function () { closeDialog(input.value); };
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); closeDialog(input.value); }
+      });
+      requestAnimationFrame(function () {
+        dialogOverlay.classList.add('active');
+        input.focus();
+        input.select();
+      });
+    });
   }
   function fmtTime(ts) {
     if (!ts) return '—';
@@ -465,15 +583,15 @@
         setCfg(await api('/admin/api/providers/reorder', { body: { ids: ids } }));
       } else if (b.dataset.edit) openProv(ps[+b.dataset.edit]);
       else if (b.dataset.del) {
-        if (!confirm(t('providers.delConfirm', { name: b.dataset.del }))) return;
+        if (!(await showConfirm({ message: t('providers.delConfirm', { name: b.dataset.del }), danger: true }))) return;
         setCfg(await api('/admin/api/providers/delete', { body: { id: b.dataset.del } })); toast(t('providers.deleted'));
       }
-    } catch (err) { alert(err.message); }
+    } catch (err) { await showAlert({ message: err.message }); }
   });
   $('#prov-table').addEventListener('change', async function (e) {
     var id = e.target.dataset.toggle; if (!id) return;
     try { setCfg(await api('/admin/api/providers/toggle', { body: { id: id, enabled: e.target.checked } })); }
-    catch (err) { alert(err.message); e.target.checked = !e.target.checked; }
+    catch (err) { await showAlert({ message: err.message }); e.target.checked = !e.target.checked; }
   });
 
   // ---- 服务商弹窗 ----
@@ -595,7 +713,7 @@
   });
   $('#chain-save').addEventListener('click', async function () {
     try { setCfg(await api('/admin/api/settings', { body: { fallbackEnabled: $('#fb-on').checked, fallbackChain: chainDraft } })); toast(t('fallback.saved')); }
-    catch (err) { alert(err.message); }
+    catch (err) { await showAlert({ message: err.message }); }
   });
 
   function renderModelSelects() {
@@ -617,16 +735,16 @@
   }
   $('#s-save').addEventListener('click', async function () {
     try { setCfg(await api('/admin/api/settings', { body: { logRetentionDays: +$('#s-ret').value, logPrompts: $('#s-prompts').checked } })); toast(t('settings.saved')); }
-    catch (err) { alert(err.message); }
+    catch (err) { await showAlert({ message: err.message }); }
   });
   $('#s-export').addEventListener('click', function () { location.href = '/admin/api/export'; });
   $('#s-import').addEventListener('change', async function () {
     var f = this.files[0]; if (!f) return;
     try {
       var data = JSON.parse(await f.text());
-      if (!confirm(t('settings.importConfirm', { count: (data.providers || []).length }))) return;
+      if (!(await showConfirm({ message: t('settings.importConfirm', { count: (data.providers || []).length }), danger: true }))) return;
       setCfg(await api('/admin/api/import', { body: data })); toast(t('settings.importSuccess'));
-    } catch (err) { alert(err.message); }
+    } catch (err) { await showAlert({ message: err.message }); }
     this.value = '';
   });
 
@@ -695,7 +813,7 @@
       $('#key-new-val').textContent = k.key;
       $('#key-new').classList.remove('hidden');
       loadKeys();
-    } catch (err) { alert(err.message); }
+    } catch (err) { await showAlert({ message: err.message }); }
   });
   $('#key-copy').addEventListener('click', function () { navigator.clipboard.writeText($('#key-new-val').textContent).then(function () { toast(t('header.copied')); }); });
   $('#key-new-dismiss').addEventListener('click', dismissNewKey);
@@ -716,7 +834,7 @@
         var renId = b.dataset.rename;
         var curName = '';
         state.keys.forEach(function (k) { if (k.id === renId) curName = k.name || ''; });
-        var nextName = window.prompt(t('keys.renamePrompt'), curName);
+        var nextName = await showPrompt({ title: t('keys.renamePrompt'), defaultValue: curName });
         if (nextName === null) return;
         nextName = String(nextName).trim();
         if (!nextName) { toast(t('keys.nameRequired')); return; }
@@ -729,7 +847,7 @@
         return;
       }
       if (b.dataset.revoke) {
-        if (!confirm(t('keys.revokeConfirm'))) return;
+        if (!(await showConfirm({ message: t('keys.revokeConfirm'), danger: true }))) return;
         var revId = b.dataset.revoke;
         var prevRev = state.keys.slice();
         renderKeys(state.keys.map(function (k) { return k.id === revId ? Object.assign({}, k, { revoked: 1 }) : k; }));
@@ -740,7 +858,7 @@
         return;
       }
       if (b.dataset.kdel) {
-        if (!confirm(t('keys.delConfirm'))) return;
+        if (!(await showConfirm({ message: t('keys.delConfirm'), danger: true }))) return;
         var delId = b.dataset.kdel;
         var prevDel = state.keys.slice();
         renderKeys(state.keys.filter(function (k) { return k.id !== delId; }));
@@ -749,7 +867,7 @@
           if (delRes.items) renderKeys(delRes.items);
         } catch (err) { renderKeys(prevDel); throw err; }
       }
-    } catch (err) { alert(err.message); }
+    } catch (err) { await showAlert({ message: err.message }); }
   });
 
   // ---- 日志 ----
@@ -793,9 +911,9 @@
   $('#log-prev').addEventListener('click', function () { state.logOffset = Math.max(0, state.logOffset - state.logLimit); loadLogs(); });
   $('#log-next').addEventListener('click', function () { state.logOffset += state.logLimit; loadLogs(); });
   $('#lf-clear').addEventListener('click', async function () {
-    if (!confirm(t('logs.clearConfirm'))) return;
+    if (!(await showConfirm({ message: t('logs.clearConfirm'), danger: true }))) return;
     try { var r = await api('/admin/api/logs/clear', { body: {} }); toast(t('logs.deletedCount', { count: r.deleted == null ? '' : r.deleted })); state.logOffset = 0; loadLogs(); }
-    catch (err) { alert(err.message); }
+    catch (err) { await showAlert({ message: err.message }); }
   });
   $('#log-table').addEventListener('click', function (e) {
     var tr = e.target.closest('tr[data-log]'); if (!tr) return;
@@ -942,9 +1060,9 @@
   }
   $('#c-model').addEventListener('change', function () { chatState.model = this.value; saveChatState(); });
   $('#c-nofb').addEventListener('change', function () { chatState.noFallback = this.checked; saveChatState(); });
-  $('#c-clear').addEventListener('click', function () {
+  $('#c-clear').addEventListener('click', async function () {
     if (!chatState.messages.length) return;
-    if (!confirm(t('chat.clearConfirm'))) return;
+    if (!(await showConfirm({ message: t('chat.clearConfirm'), danger: true }))) return;
     if (chatAbort) try { chatAbort.abort(); } catch (e) {}
     chatState.messages = [];
     saveChatState();
@@ -1051,7 +1169,7 @@
   async function boot() {
     try { await api('/admin/api/me'); } catch (e) { show('login'); if (!/未登录/.test(e.message)) $('#login-err').textContent = e.message; return; }
     show('main');
-    try { await loadConfig(); } catch (e) { alert(e.message); }
+    try { await loadConfig(); } catch (e) { await showAlert({ message: e.message }); }
     initChatUi();
     loadStats(); loadKeys();
   }

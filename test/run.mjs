@@ -577,6 +577,9 @@ try {
   t = await (await req('/admin')).text();
   ok(t.includes('data-pane="chat"') && t.includes('id="c-messages"') && !t.includes('data-pane="test"'), '管理页对话栏目已合并测试');
   ok(t.includes('data-pane="settings"') && t.includes('id="fb-on"') && t.includes('id="chain"') && !t.includes('data-pane="fallback"') && !t.includes('data-tab="fallback"'), '容灾已并入设置栏目');
+  ok(t.includes('custom-dialog-overlay') || t.includes('function showConfirm'), '管理页含自有弹窗入口');
+  // app.js 内嵌于页面脚本；断言不再调用系统弹窗
+  ok(!/\balert\s*\(/.test(t) && !/\bconfirm\s*\(/.test(t) && !/window\.prompt\s*\(/.test(t), '管理页不再使用系统 alert/confirm/prompt');
 
   // ---- 日志 ----
   await sleep(500);
