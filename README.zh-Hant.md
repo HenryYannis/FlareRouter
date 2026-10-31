@@ -14,7 +14,7 @@
 ## 功能
 
 - **服務商管理**：名稱、ID、協定類型（OpenAI 相容 / Anthropic）、Base URL、API Key（頁面只顯示遮罩後的預覽）、模型清單（可從服務商的 `/models` 拉取後勾選）、啟用、順序、逾時
-- **OpenAI 相容介面**：`/v1/chat/completions`（串流 SSE 原樣轉送）、`/v1/embeddings`、`/v1/models`
+- **OpenAI 相容介面**：`/v1/chat/completions`（串流 SSE 原樣轉送）、`/v1/embeddings`、`/v1/models`；圖片與語音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`（對齊控制台閘道，依模型找到服務商後原樣轉送）
 - **Anthropic 介面**：`/v1/messages`（含串流）、`/v1/messages/count_tokens`，Claude Code 可直接接入
 - **協定互轉**：兩種入口都能呼叫兩種協定的服務商，請求、回應、串流事件、工具呼叫自動轉換
 - **模型定址**：`服務商ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只寫模型名稱（在已啟用服務商的模型清單中尋找，不分大小寫）；寫 `auto` 則依容災鏈從頭嘗試
@@ -224,7 +224,7 @@ GitHub Actions（`.github/workflows/check.yml`）會在每次 PR 和推送到 `m
 - 服務商設定在每個 Worker 執行個體中快取 30 秒；呼叫密鑰驗證快取 30 秒（撤銷後，其他執行個體最多 30 秒後生效）。
 - 管理員登入：連續 10 次密碼錯誤會依 IP 鎖定 15 分鐘；工作階段 7 天，Cookie 為 HttpOnly + Secure + SameSite=Strict。
 - 日誌預設保留 30 天，每天 UTC 19:00 由 Cron 清理；預設不記錄訊息原文。
-- 目前只轉送 chat/completions、embeddings、messages，不含圖片生成、語音辨識等媒體介面，也不支援 Cloudflare Workers AI 綁定。Anthropic 協定的服務商不處理 embeddings（容災時自動略過）。
+- 圖片生成 / 編輯、語音辨識與 chat、embeddings、messages 一樣走呼叫密鑰驗證，依模型解析服務商後原樣轉送（支援容災）；Anthropic 協定的服務商不接 embeddings 與媒體介面（容災時自動略過）。請求體預設上限 25MB，媒體逾時預設 120 秒（可用環境變數 `MAX_MEDIA_BYTES`、`MEDIA_TIMEOUT_MS` 調整）。不支援 Cloudflare Workers AI 綁定。
 - 協定互轉的限制：
   - Anthropic → OpenAI：`thinking`（延伸思考）、`cache_control`、`top_k`、伺服器端工具（web_search 等）、引用（citations）會被捨棄；OpenAI 上游回傳的 `reasoning_content` 不轉成 thinking 區塊（避免下一輪帶著沒有簽章的 thinking 傳回 Anthropic 而出錯）；PDF 文件轉成 OpenAI `file` 片段，上游不支援時會報錯。
   - OpenAI → Anthropic：未傳 `max_tokens`（或 `max_completion_tokens`）時預設 8192；`temperature` 限制在 0–1；`n`、`logprobs`、`response_format`、`seed` 等 Anthropic 沒有的參數不轉送；thinking 區塊轉成 `reasoning_content`。

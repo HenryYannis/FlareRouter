@@ -14,7 +14,7 @@
 ## 功能
 
 - **服务商管理**：名称、ID、协议类型（OpenAI 兼容 / Anthropic）、Base URL、API Key（页面只显示脱敏预览）、模型列表（可从服务商 `/models` 拉取勾选）、启用、顺序、超时
-- **OpenAI 兼容接口**：`/v1/chat/completions`（流式 SSE 原样透传）、`/v1/embeddings`、`/v1/models`
+- **OpenAI 兼容接口**：`/v1/chat/completions`（流式 SSE 原样透传）、`/v1/embeddings`、`/v1/models`；图片与语音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`（对齐控制台网关，按模型找到服务商后原样转发）
 - **Anthropic 接口**：`/v1/messages`（含流式）、`/v1/messages/count_tokens`，Claude Code 可直接接入
 - **协议互转**：两种入口都能调两种协议的服务商，请求、响应、流式事件、工具调用自动转换
 - **模型寻址**：`服务商ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只写模型名（在已启用服务商的模型列表里找，不区分大小写）；写 `auto` 按容灾链从头尝试
@@ -222,7 +222,7 @@ GitHub Actions（`.github/workflows/check.yml`）在每次 PR 和推送到 `main
 - 服务商配置在每个 Worker 实例里缓存 30 秒；调用密钥鉴权缓存 30 秒（吊销在别的实例最多 30 秒后生效）。
 - 管理员登录：连续 10 次密码错误按 IP 锁定 15 分钟；会话 7 天，Cookie 为 HttpOnly + Secure + SameSite=Strict。
 - 日志默认保留 30 天，每天 UTC 19:00 由 Cron 清理；默认不记录消息原文。
-- 目前只转发 chat/completions、embeddings、messages，不含图片生成、语音识别等媒体接口，也不支持 Cloudflare Workers AI 绑定。Anthropic 协议的服务商不接 embeddings（容灾时自动跳过）。
+- 图片生成 / 编辑、语音识别与 chat、embeddings、messages 一样走调用密钥鉴权，按模型解析服务商后原样转发（支持容灾）；Anthropic 协议的服务商不接 embeddings 与媒体接口（容灾时自动跳过）。请求体默认上限 25MB，媒体超时默认 120 秒（可用环境变量 `MAX_MEDIA_BYTES`、`MEDIA_TIMEOUT_MS` 调整）。不支持 Cloudflare Workers AI 绑定。
 - 协议互转的限制：
   - Anthropic → OpenAI：`thinking`（扩展思考）、`cache_control`、`top_k`、服务端工具（web_search 等）、引用（citations）会被丢弃；OpenAI 上游返回的 `reasoning_content` 不转成 thinking 块（避免下一轮带着无签名的 thinking 发回 Anthropic 报错）；PDF 文档转成 OpenAI `file` 片段，上游不支持时会报错。
   - OpenAI → Anthropic：没传 `max_tokens`（或 `max_completion_tokens`）时默认 8192；`temperature` 截到 0–1；`n`、`logprobs`、`response_format`、`seed` 等 Anthropic 没有的参数不转发；thinking 块转成 `reasoning_content`。
