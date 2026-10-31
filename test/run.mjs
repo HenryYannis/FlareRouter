@@ -40,6 +40,10 @@ const upstream = http.createServer(async (req, res) => {
     const sse = (ev, o) => res.write(`event: ${ev}\ndata: ${JSON.stringify(o)}\n\n`);
     if (body.stream) {
       res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      if (JSON.stringify(body).includes('stream-error')) {
+        sse('error', { type: 'error', error: { type: 'api_error', message: 'boom-anth' } });
+        return res.end();
+      }
       sse('message_start', { type: 'message_start', message: { id: 'msg_up1', type: 'message', role: 'assistant', model: body.model, content: [], stop_reason: null, usage: { input_tokens: 21, output_tokens: 1 } } });
       sse('ping', { type: 'ping' });
       if (wantTool()) {
@@ -140,6 +144,12 @@ const upstream = http.createServer(async (req, res) => {
       usage: { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13, prompt_tokens_details: { cached_tokens: 4 } },
       echo: { temperature: body.temperature, tools: body.tools, custom: body.custom_field },
     });
+  }
+  if (req.url.startsWith('/errin/')) {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    res.write('data: {"choices":[{"delta":{"content":"半"}}]}\n\n');
+    res.write('data: {"error":{"message":"boom","type":"server_error"}}\n\n');
+    return res.end();
   }
   send(404, { error: { message: `mock: no route ${req.url}` } });
 });
@@ -401,6 +411,22 @@ try {
   t = await r.text();
   let evs = parseSSE(t);
   ok(r.status === 200 && evs[0].ev === 'message_start' && evs.at(-1).ev === 'message_stop' && evs.filter((e) => e.ev === 'content_block_delta').map((e) => e.data.delta.text).join('') === '克劳德' && t.includes('event: ping'), 'Anthropic 流式原样透传', t.slice(0, 200));
+  await admin('/admin/api/providers', { provider: { id: 'errin', name: '流内错误', baseUrl: `${UP}/errin/v1`, apiKey: 'k', models: 'm' } });
+  r = await msgs({ model: 'errin/m', max_tokens: 8, stream: true, messages: [{ role: 'user', content: 'hi' }] }, { 'x-gateway-fallback': 'off' });
+  t = await r.text();
+  evs = parseSSE(t);
+  {
+    const errAt = evs.findIndex((e) => e.ev === 'error');
+    ok(errAt >= 0 && !evs.slice(errAt + 1).some((e) => e.ev === 'message_delta' || e.ev === 'message_stop'), 'OpenAI 流内 error 之后不再补 message_delta/message_stop', evs.map((e) => e.ev).join(','));
+  }
+  r = await chat({ model: 'anth/claude-x', stream: true, messages: [{ role: 'user', content: 'stream-error' }] }, { 'x-gateway-fallback': 'off' });
+  t = await r.text();
+  ok(t.includes('boom-anth') && !t.includes('[DONE]') && !/"finish_reason":"stop"/.test(t), 'Anthropic 流内 error 之后不再补成功 chunk 和 [DONE]', t.slice(0, 300));
+  await sleep(400);
+  r = await admin('/admin/api/logs?limit=20');
+  d = await j(r);
+  ok(d.items.some((l) => l.provider_id === 'errin' && l.status === 502 && /boom/.test(l.error || '')), '流内错误的日志状态记为失败', JSON.stringify(d.items.find((l) => l.provider_id === 'errin')));
+  await admin('/admin/api/providers/delete', { id: 'errin' });
 
   // /v1/messages → OpenAI 上游（非流式）
   const img = 'iVBORw0KGgo=';
