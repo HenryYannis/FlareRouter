@@ -494,6 +494,14 @@ try {
   r = await req('/v1/messages/count_tokens', { method: 'POST', headers: XH, body: JSON.stringify({ model: 'good/m1', system: '系统', messages: [{ role: 'user', content: '你好你好你好' }] }) });
   d = await j(r);
   ok(r.status === 200 && d.input_tokens > 0 && r.headers.get('x-gateway-estimated') === '1', 'count_tokens：openai 上游返回估算', JSON.stringify(d));
+  await admin('/admin/api/settings', { fallbackEnabled: true, fallbackChain: ['good/m1', 'anth/claude-x'] });
+  {
+    const before = seen.length;
+    r = await req('/v1/messages/count_tokens', { method: 'POST', headers: XH, body: JSON.stringify({ model: 'anthbad/claude-z', messages: [{ role: 'user', content: 'hi' }] }) });
+    d = await j(r);
+    const paths = seen.slice(before).map((s) => s.path);
+    ok(r.status === 200 && d.input_tokens === 42 && r.headers.get('x-gateway-estimated') !== '1' && r.headers.get('x-gateway-provider') === 'anth' && paths.some((p) => String(p).includes('/anth/v1/messages/count_tokens')) && !paths.some((p) => String(p).includes('/good/')), 'count_tokens：Anthropic 失败后跳过 OpenAI 估算，继续问下一家 Anthropic', JSON.stringify({ d, h: r.headers.get('x-gateway-provider'), paths }));
+  }
 
   // 跨协议容灾
   await admin('/admin/api/settings', { fallbackEnabled: true, fallbackChain: ['anthbad/claude-z', 'good/m1', 'anth/claude-x'] });
