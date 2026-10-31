@@ -1,30 +1,31 @@
-/* FlareRouter 管理页：日夜色板与 FlarePanel 对齐（晴空 / 星空底 + 玻璃；无星空粒子） */
+/* FlareRouter 管理页：色板对齐小宝科技站 / Apple（纯色底 + 玻璃；无星空粒子） */
 :root {
-  --bg: #f0f9ff;
+  --bg: #f5f5f7;
   --card: rgba(255, 255, 255, 0.72);
-  --text: #1e293b;
-  --muted: #475569;
-  --border: rgba(0, 157, 184, 0.16);
-  --primary: #009db8;
-  --primary-rgb: 0, 157, 184;
-  --primary-hover: #00879e;
-  --primary-active: #007084;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --link: #0066cc;
+  --border: rgba(0, 0, 0, 0.08);
+  --primary: #0071e3;
+  --primary-rgb: 0, 113, 227;
+  --primary-hover: #0077ed;
+  --primary-active: #0066cc;
   --primary-text: #ffffff;
-  --danger: #ff3c3c;
-  --danger-rgb: 255, 60, 60;
-  --danger-hover: #e02828;
-  --danger-active: #c41818;
+  --danger: #ef4444;
+  --danger-rgb: 239, 68, 68;
+  --danger-hover: #dc2626;
+  --danger-active: #b91c1c;
   --ok: #10b981;
-  --warn: #9a6700;
-  --soft: #f1f5f9;
+  --warn: #f59e0b;
+  --soft: #e8e8ed;
   --code: rgba(255, 255, 255, 0.85);
-  --focus: rgba(0, 157, 184, 0.2);
+  --focus: rgba(0, 113, 227, 0.2);
   --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(0, 157, 184, 0.2);
+  --glass-border: transparent;
   --background-blur: blur(20px);
   --radius: 14px;
   --radius-sm: 8px;
-  --shadow: 0 8px 32px 0 rgba(0, 157, 184, 0.08);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   /* 动画曲线与字体栈对齐小宝科技站 */
   --ease-liquid: cubic-bezier(.4, 0, .2, 1);
   --ease-bounce: cubic-bezier(.68, -.55, .265, 1.55);
@@ -34,57 +35,59 @@
 }
 
 html.day-theme {
-  background-color: #f0f9ff;
+  background-color: #f5f5f7;
   color-scheme: light;
-  --bg: #f0f9ff;
+  --bg: #f5f5f7;
   --card: rgba(255, 255, 255, 0.72);
-  --text: #1e293b;
-  --muted: #475569;
-  --border: rgba(0, 157, 184, 0.16);
-  --primary: #009db8;
-  --primary-rgb: 0, 157, 184;
-  --primary-hover: #00879e;
-  --primary-active: #007084;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --link: #0066cc;
+  --border: rgba(0, 0, 0, 0.08);
+  --primary: #0071e3;
+  --primary-rgb: 0, 113, 227;
+  --primary-hover: #0077ed;
+  --primary-active: #0066cc;
   --primary-text: #ffffff;
-  --danger: #ff3c3c;
-  --danger-rgb: 255, 60, 60;
-  --danger-hover: #e02828;
-  --danger-active: #c41818;
+  --danger: #ef4444;
+  --danger-rgb: 239, 68, 68;
+  --danger-hover: #dc2626;
+  --danger-active: #b91c1c;
   --ok: #10b981;
-  --warn: #9a6700;
-  --soft: #f1f5f9;
+  --warn: #f59e0b;
+  --soft: #e8e8ed;
   --code: rgba(255, 255, 255, 0.85);
-  --focus: rgba(0, 157, 184, 0.2);
+  --focus: rgba(0, 113, 227, 0.2);
   --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(0, 157, 184, 0.2);
-  --shadow: 0 8px 32px 0 rgba(0, 157, 184, 0.08);
+  --glass-border: transparent;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 html.night-theme {
-  background-color: #090a0f;
+  background-color: #000000;
   color-scheme: dark;
-  --bg: #090a0f;
-  --card: rgba(15, 23, 42, 0.75);
-  --text: #f8fafc;
-  --muted: #cbd5e1;
+  --bg: #000000;
+  --card: rgba(255, 255, 255, 0.12);
+  --text: #f5f5f7;
+  --muted: #86868b;
+  --link: #2997ff;
   --border: rgba(255, 255, 255, 0.12);
-  --primary: #00c3e3;
-  --primary-rgb: 0, 195, 227;
-  --primary-hover: #2ad5f2;
-  --primary-active: #00a8c4;
+  --primary: #0071e3;
+  --primary-rgb: 0, 113, 227;
+  --primary-hover: #2997ff;
+  --primary-active: #0071e3;
   --primary-text: #ffffff;
-  --danger: #ff3c3c;
-  --danger-rgb: 255, 60, 60;
-  --danger-hover: #ff5c5c;
-  --danger-active: #e02828;
+  --danger: #ef4444;
+  --danger-rgb: 239, 68, 68;
+  --danger-hover: #f87171;
+  --danger-active: #dc2626;
   --ok: #34d399;
-  --warn: #d29922;
+  --warn: #f59e0b;
   --soft: rgba(255, 255, 255, 0.06);
-  --code: rgba(15, 23, 42, 0.9);
-  --focus: rgba(0, 195, 227, 0.3);
-  --glass-bg: rgba(15, 23, 42, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.09);
-  --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --code: rgba(18, 20, 29, 0.9);
+  --focus: rgba(0, 113, 227, 0.3);
+  --glass-bg: rgba(255, 255, 255, 0.12);
+  --glass-border: transparent;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 * { box-sizing: border-box; }
@@ -106,7 +109,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-a { color: var(--primary); }
+a { color: var(--link); }
 code, pre, .mono { font-family: var(--font-mono); font-size: 12.5px; }
 pre {
   background: var(--code);

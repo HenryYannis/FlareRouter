@@ -332,7 +332,7 @@
     document.documentElement.classList.add(isDark ? 'night-theme' : 'day-theme');
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-    var col = isDark ? '#090a0f' : '#f0f9ff';
+    var col = isDark ? '#000000' : '#f5f5f7';
     $$('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', col); });
     updateThemeButtons(isDark);
   }
