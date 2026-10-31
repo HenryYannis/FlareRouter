@@ -86,7 +86,7 @@
       <button data-tab="fallback" data-i18n="tabs.fallback">容灾</button>
       <button data-tab="keys" data-i18n="tabs.keys">调用密钥</button>
       <button data-tab="logs" data-i18n="tabs.logs">日志</button>
-      <button data-tab="chat" data-i18n="tabs.chat">对话</button>
+      <button data-tab="chat" data-i18n="tabs.chat">测试</button>
       <button data-tab="settings" data-i18n="tabs.settings">设置</button>
     </nav>
 
@@ -190,10 +190,10 @@
       </div>
     </section>
 
-    <!-- 对话（含原测试调用：真实转发 / 容灾 / 日志） -->
+    <!-- 测试（多轮对话：真实转发 / 容灾 / 日志） -->
     <section data-pane="chat" class="hidden">
       <div class="card chat-card">
-        <p class="muted small" style="margin:0 0 10px" data-i18n="chat.desc">走真实的转发、容灾与日志链路（日志里密钥显示为「管理页测试」）。会话仅保存在本机浏览器。</p>
+        <p class="muted small" style="margin:0 0 10px" data-i18n="chat.desc">走真实的转发、容灾与日志链路。会话仅保存在本机浏览器。</p>
         <div class="row chat-toolbar">
           <label class="f" for="c-model" style="margin:0" data-i18n="chat.labelModel">模型</label>
           <select id="c-model" class="grow"></select>
