@@ -601,6 +601,10 @@ try {
   ok(t.includes('custom-dialog-overlay') || t.includes('function showConfirm'), '管理页含自有弹窗入口');
   // app.js 内嵌于页面脚本；断言不再调用系统弹窗
   ok(!/\balert\s*\(/.test(t) && !/\bconfirm\s*\(/.test(t) && !/window\.prompt\s*\(/.test(t), '管理页不再使用系统 alert/confirm/prompt');
+  {
+    const appJs = readFileSync('src/admin/app.js', 'utf8');
+    ok(/Array\.isArray\(dl\.tool_calls\)/.test(appJs) && /out\.reasoning_content = m\.reasoning/.test(appJs) && /if \(o\.error\)/.test(appJs), '管理页对话会拼接工具调用、显示流内错误，并把思考带回下一轮');
+  }
 
   // ---- 日志 ----
   await sleep(500);
