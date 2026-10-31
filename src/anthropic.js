@@ -5,7 +5,9 @@ import { estimateTokens, randomHex } from './util.js';
 
 export const DEFAULT_ANTHROPIC_VERSION = '2023-06-01';
 // chat/completions → anthropic 上游时，调用方没给 max_tokens 的默认值（Anthropic 要求必填）
-export const DEFAULT_MAX_TOKENS = 8192;
+// 不少模型的输出上限是 4096。默认再高会直接 400，然后被容灾换到别的模型。
+// 需要更长输出的调用方自己传 max_tokens / max_completion_tokens。
+export const DEFAULT_MAX_TOKENS = 4096;
 
 // ---------------------------------------------------------------- 地址与请求头
 
@@ -31,6 +33,28 @@ export function anthropicHeaders(apiKey, { version, beta, stream } = {}) {
 export function safeToolId(id) {
   const s = String(id || '').replace(/[^A-Za-z0-9_-]/g, '_');
   return s || `toolu_${randomHex(12)}`;
+}
+
+// 空 id 按出现顺序配对：同一次请求里第 n 个空的 tool call 与第 n 个空的 tool result 共用一个 id。
+function createToolIdAssigner() {
+  const calls = [];
+  let resultN = 0;
+  let seq = 0;
+  const sanitize = (id) => String(id || '').replace(/[^A-Za-z0-9_-]/g, '_');
+  return {
+    call(id) {
+      const s = sanitize(id);
+      if (s) return s;
+      const gen = `toolu_e${seq++}`;
+      calls.push(gen);
+      return gen;
+    },
+    result(id) {
+      const s = sanitize(id);
+      if (s) return s;
+      return calls[resultN++] || `toolu_e${seq++}`;
+    },
+  };
 }
 
 const newMsgId = () => `msg_${randomHex(12)}`;
@@ -108,23 +132,52 @@ function partsToOpenAIContent(parts) {
   return parts;
 }
 
-function convertAnthUserMessage(m, out) {
+const SERVER_TOOL_RESULTS = new Set([
+  'web_search_tool_result',
+  'code_execution_tool_result',
+  'mcp_tool_result',
+  'bash_code_execution_tool_result',
+  'text_editor_code_execution_tool_result',
+  'tool_search_tool_result',
+]);
+
+function looseBlockText(content) {
+  if (content == null) return '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map((c) => {
+      if (!c) return '';
+      if (typeof c === 'string') return c;
+      if (typeof c.text === 'string' && c.text) return c.text;
+      if (c.title || c.url) return [c.title, c.url].filter(Boolean).join(' ');
+      try { return JSON.stringify(c); } catch { return ''; }
+    }).filter(Boolean).join('\n');
+  }
+  if (typeof content === 'object') {
+    if (typeof content.text === 'string') return content.text;
+    try { return JSON.stringify(content); } catch { return ''; }
+  }
+  return String(content);
+}
+
+function convertAnthUserMessage(m, out, ids) {
   if (typeof m.content === 'string') { out.push({ role: 'user', content: m.content }); return; }
   const blocks = Array.isArray(m.content) ? m.content : [];
   const parts = [];
   const extraImages = [];
   for (const b of blocks) {
     if (!b || typeof b !== 'object') continue;
-    if (b.type === 'tool_result') {
+    if (b.type === 'tool_result' || SERVER_TOOL_RESULTS.has(b.type)) {
       // tool 消息必须紧跟在 assistant 的 tool_calls 后面，所以先输出
       let content;
-      if (typeof b.content === 'string') content = b.content;
+      if (b.type !== 'tool_result') content = looseBlockText(b.content);
+      else if (typeof b.content === 'string') content = b.content;
       else if (Array.isArray(b.content)) {
         content = b.content.filter((c) => c && c.type === 'text').map((c) => c.text).join('\n');
         for (const c of b.content) if (c && c.type === 'image') { const im = anthImageToOpenAI(c); if (im) extraImages.push(im); }
       } else content = '';
       if (b.is_error) content = `[工具执行出错] ${content}`;
-      out.push({ role: 'tool', tool_call_id: safeToolId(b.tool_use_id), content: content || '' });
+      out.push({ role: 'tool', tool_call_id: ids.result(b.tool_use_id), content: content || '' });
     } else if (b.type === 'text') parts.push({ type: 'text', text: b.text || '' });
     else if (b.type === 'image') { const im = anthImageToOpenAI(b); if (im) parts.push(im); }
     else if (b.type === 'document') { const d = anthDocToOpenAI(b); if (d) parts.push(d); }
@@ -134,36 +187,52 @@ function convertAnthUserMessage(m, out) {
   if (all.length) out.push({ role: 'user', content: partsToOpenAIContent(all) });
 }
 
-function convertAnthAssistantMessage(m, out) {
+function convertAnthAssistantMessage(m, out, ids) {
   if (typeof m.content === 'string') { out.push({ role: 'assistant', content: m.content }); return; }
   const blocks = Array.isArray(m.content) ? m.content : [];
   const texts = [];
   const toolCalls = [];
+  const thinkings = [];
+  const signatures = [];
   for (const b of blocks) {
     if (!b || typeof b !== 'object') continue;
     if (b.type === 'text' && b.text) texts.push(b.text);
-    else if (b.type === 'tool_use' || b.type === 'server_tool_use') {
-      toolCalls.push({ id: safeToolId(b.id), type: 'function', function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } });
+    else if (b.type === 'thinking') {
+      if (b.thinking) thinkings.push(b.thinking);
+      if (typeof b.signature === 'string' && b.signature) signatures.push(b.signature);
+    } else if (b.type === 'tool_use' || b.type === 'server_tool_use') {
+      toolCalls.push({ id: ids.call(b.id), type: 'function', function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } });
     }
   }
   const msg = { role: 'assistant', content: texts.length ? texts.join('\n') : null };
+  if (thinkings.length) msg.reasoning_content = thinkings.join('');
+  if (signatures.length) msg.reasoning_signature = signatures[0];
   if (toolCalls.length) msg.tool_calls = toolCalls;
-  if (msg.content == null && !toolCalls.length) return;
+  if (msg.content == null && !toolCalls.length && !thinkings.length) return;
   out.push(msg);
+}
+
+function useMaxCompletionTokens(model) {
+  const name = String(model || '').split('/').pop().toLowerCase();
+  return /^o\d/.test(name);
 }
 
 export function anthropicToOpenAIRequest(body, model, { stream, streamUsage } = {}) {
   const messages = [];
+  const ids = createToolIdAssigner();
   const sys = textOf(body.system);
   if (sys) messages.push({ role: 'system', content: sys });
   for (const m of Array.isArray(body.messages) ? body.messages : []) {
     if (!m) continue;
-    if (m.role === 'assistant') convertAnthAssistantMessage(m, messages);
-    else convertAnthUserMessage(m, messages);
+    if (m.role === 'assistant') convertAnthAssistantMessage(m, messages, ids);
+    else convertAnthUserMessage(m, messages, ids);
   }
 
   const out = { model, messages };
-  if (body.max_tokens != null) out.max_tokens = body.max_tokens;
+  if (body.max_tokens != null) {
+    if (useMaxCompletionTokens(model)) out.max_completion_tokens = body.max_tokens;
+    else out.max_tokens = body.max_tokens;
+  }
   if (body.temperature != null) out.temperature = body.temperature;
   if (body.top_p != null) out.top_p = body.top_p;
   if (Array.isArray(body.stop_sequences) && body.stop_sequences.length) out.stop = body.stop_sequences;
@@ -212,6 +281,17 @@ function oaPartToAnth(p) {
   return null;
 }
 
+function jsonFormatHint(fmt) {
+  if (!fmt || typeof fmt !== 'object') return '';
+  if (fmt.type === 'json_object') return '请只输出一个 JSON 对象，不要输出其它文字。';
+  if (fmt.type === 'json_schema') {
+    let extra = '';
+    try { extra = fmt.json_schema ? `\n${JSON.stringify(fmt.json_schema)}` : ''; } catch { extra = ''; }
+    return `请只输出符合下列 JSON Schema 的 JSON。${extra}`;
+  }
+  return '';
+}
+
 function oaContentToAnthBlocks(content) {
   if (content == null) return [];
   if (typeof content === 'string') return content ? [{ type: 'text', text: content }] : [];
@@ -222,11 +302,15 @@ function oaContentToAnthBlocks(content) {
 export function openAIToAnthropicRequest(body, model, { stream } = {}) {
   const system = [];
   const msgs = [];
+  const ids = createToolIdAssigner();
+  let skipMerge = false;
   const push = (role, blocks) => {
     if (!blocks.length) return;
     const last = msgs[msgs.length - 1];
-    if (last && last.role === role) last.content.push(...blocks); // 相邻同角色合并
+    // 抽走中间的 system 之后，原来不相邻的消息不要粘在一起。tool 结果和紧随的 user 仍合并。
+    if (!skipMerge && last && last.role === role) last.content.push(...blocks);
     else msgs.push({ role, content: [...blocks] });
+    skipMerge = false;
   };
 
   for (const m of Array.isArray(body.messages) ? body.messages : []) {
@@ -234,21 +318,28 @@ export function openAIToAnthropicRequest(body, model, { stream } = {}) {
     if (m.role === 'system' || m.role === 'developer') {
       const t = textOf(m.content);
       if (t) system.push(t);
+      skipMerge = true;
     } else if (m.role === 'assistant') {
       const blocks = oaContentToAnthBlocks(m.content).filter((b) => b.type === 'text');
+      if (typeof m.reasoning_content === 'string' && m.reasoning_content && typeof m.reasoning_signature === 'string' && m.reasoning_signature) {
+        blocks.unshift({ type: 'thinking', thinking: m.reasoning_content, signature: m.reasoning_signature });
+      }
       for (const tc of Array.isArray(m.tool_calls) ? m.tool_calls : []) {
         if (!tc || !tc.function) continue;
-        blocks.push({ type: 'tool_use', id: safeToolId(tc.id), name: tc.function.name, input: parseArgs(tc.function.arguments) });
+        blocks.push({ type: 'tool_use', id: ids.call(tc.id), name: tc.function.name, input: parseArgs(tc.function.arguments) });
       }
       push('assistant', blocks);
     } else if (m.role === 'tool' || m.role === 'function') {
-      push('user', [{ type: 'tool_result', tool_use_id: safeToolId(m.tool_call_id || m.name), content: textOf(m.content) }]);
+      push('user', [{ type: 'tool_result', tool_use_id: ids.result(m.tool_call_id || m.name), content: textOf(m.content) }]);
     } else {
       push('user', oaContentToAnthBlocks(m.content));
     }
   }
 
-  const out = { model, max_tokens: body.max_tokens || body.max_completion_tokens || DEFAULT_MAX_TOKENS, messages: msgs };
+  const formatHint = jsonFormatHint(body.response_format);
+  if (formatHint) system.push(formatHint);
+  const requestedMax = body.max_tokens ?? body.max_completion_tokens;
+  const out = { model, max_tokens: requestedMax ?? DEFAULT_MAX_TOKENS, messages: msgs };
   if (system.length) out.system = system.join('\n\n');
   if (body.temperature != null) out.temperature = Math.min(1, Math.max(0, Number(body.temperature)));
   if (body.top_p != null) out.top_p = body.top_p;
@@ -296,6 +387,12 @@ export function openAIToAnthropicResponse(oa, clientModel) {
   const choice = (oa && oa.choices && oa.choices[0]) || {};
   const msg = choice.message || {};
   const content = [];
+  const reasoning = typeof msg.reasoning_content === 'string' ? msg.reasoning_content : '';
+  if (reasoning || (typeof msg.reasoning_signature === 'string' && msg.reasoning_signature)) {
+    const block = { type: 'thinking', thinking: reasoning };
+    if (typeof msg.reasoning_signature === 'string' && msg.reasoning_signature) block.signature = msg.reasoning_signature;
+    content.push(block);
+  }
   const text = textOf(msg.content);
   if (text) content.push({ type: 'text', text });
   for (const tc of Array.isArray(msg.tool_calls) ? msg.tool_calls : []) {
@@ -328,12 +425,15 @@ function anthUsageToOA(u) {
 export function anthropicToOpenAIResponse(an, clientModel) {
   const blocks = Array.isArray(an && an.content) ? an.content : [];
   const text = blocks.filter((b) => b && b.type === 'text').map((b) => b.text).join('');
-  const thinking = blocks.filter((b) => b && b.type === 'thinking').map((b) => b.thinking).join('');
+  const thinkingBlocks = blocks.filter((b) => b && b.type === 'thinking');
+  const thinking = thinkingBlocks.map((b) => b.thinking || '').join('');
+  const signature = thinkingBlocks.map((b) => b.signature).find((s) => typeof s === 'string' && s) || '';
   const toolCalls = blocks
     .filter((b) => b && b.type === 'tool_use')
     .map((b) => ({ id: b.id, type: 'function', function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } }));
   const message = { role: 'assistant', content: text || (toolCalls.length ? null : '') };
   if (thinking) message.reasoning_content = thinking;
+  if (signature) message.reasoning_signature = signature;
   if (toolCalls.length) message.tool_calls = toolCalls;
   return {
     id: `chatcmpl-${(an && an.id) || randomHex(12)}`,
@@ -450,16 +550,41 @@ function openAIToAnthropicStream({ clientModel }) {
   const stats = scan.stats;
   const id = newMsgId();
   let blockIndex = -1;
-  let current = null; // { kind: 'text' | 'tool', oaIndex }
-  const toolBlocks = new Map(); // OpenAI tool index → Anthropic 块序号
+  let current = null; // 只跟踪尚未关闭的文本块
+  // OpenAI 会交错推送多个 tool index。先按 index 攒齐，结束时再逐块输出，避免对已 stop 的块继续发 delta。
+  const toolAcc = new Map(); // index → { id, name, args }
   let stopReason = null;
   let usage = null;
   let finished = false;
+  let inbandError = false;
 
   const closeCurrent = () => {
     if (!current) return '';
     const s = sse('content_block_stop', { type: 'content_block_stop', index: current.index });
     current = null;
+    return s;
+  };
+
+  const emitBufferedTools = () => {
+    let s = '';
+    const indices = [...toolAcc.keys()].sort((a, b) => a - b);
+    for (const oi of indices) {
+      const acc = toolAcc.get(oi);
+      blockIndex += 1;
+      s += sse('content_block_start', {
+        type: 'content_block_start',
+        index: blockIndex,
+        content_block: { type: 'tool_use', id: safeToolId(acc.id), name: acc.name || '', input: {} },
+      });
+      if (acc.args) {
+        s += sse('content_block_delta', {
+          type: 'content_block_delta',
+          index: blockIndex,
+          delta: { type: 'input_json_delta', partial_json: acc.args },
+        });
+      }
+      s += sse('content_block_stop', { type: 'content_block_stop', index: blockIndex });
+    }
     return s;
   };
 
@@ -477,6 +602,7 @@ function openAIToAnthropicStream({ clientModel }) {
       if (!o) return '';
       let out = '';
       if (o.error) {
+        inbandError = true;
         out += closeCurrent();
         out += sse('error', { type: 'error', error: { type: 'api_error', message: `上游在流中返回错误：${JSON.stringify(o.error)}` } });
         return out;
@@ -485,6 +611,24 @@ function openAIToAnthropicStream({ clientModel }) {
       const choice = o.choices && o.choices[0];
       if (!choice) return out;
       const d = choice.delta || {};
+      if (typeof d.reasoning_content === 'string' && d.reasoning_content) {
+        if (!current || current.kind !== 'thinking') {
+          out += closeCurrent();
+          blockIndex++;
+          current = { kind: 'thinking', index: blockIndex };
+          out += sse('content_block_start', { type: 'content_block_start', index: blockIndex, content_block: { type: 'thinking', thinking: '' } });
+        }
+        out += sse('content_block_delta', { type: 'content_block_delta', index: current.index, delta: { type: 'thinking_delta', thinking: d.reasoning_content } });
+      }
+      if (typeof d.reasoning_signature === 'string' && d.reasoning_signature) {
+        if (!current || current.kind !== 'thinking') {
+          out += closeCurrent();
+          blockIndex++;
+          current = { kind: 'thinking', index: blockIndex };
+          out += sse('content_block_start', { type: 'content_block_start', index: blockIndex, content_block: { type: 'thinking', thinking: '' } });
+        }
+        out += sse('content_block_delta', { type: 'content_block_delta', index: current.index, delta: { type: 'signature_delta', signature: d.reasoning_signature } });
+      }
       if (typeof d.content === 'string' && d.content) {
         if (!current || current.kind !== 'text') {
           out += closeCurrent();
@@ -496,21 +640,17 @@ function openAIToAnthropicStream({ clientModel }) {
       }
       for (const tc of Array.isArray(d.tool_calls) ? d.tool_calls : []) {
         const oi = tc.index ?? 0;
-        let bi = toolBlocks.get(oi);
-        if (bi === undefined) {
-          out += closeCurrent();
-          blockIndex++;
-          bi = blockIndex;
-          toolBlocks.set(oi, bi);
-          current = { kind: 'tool', index: bi, oaIndex: oi };
-          out += sse('content_block_start', {
-            type: 'content_block_start',
-            index: bi,
-            content_block: { type: 'tool_use', id: safeToolId(tc.id), name: (tc.function && tc.function.name) || '', input: {} },
-          });
+        let acc = toolAcc.get(oi);
+        if (!acc) {
+          acc = { id: '', name: '', args: '' };
+          toolAcc.set(oi, acc);
         }
-        const args = tc.function && tc.function.arguments;
-        if (args) out += sse('content_block_delta', { type: 'content_block_delta', index: bi, delta: { type: 'input_json_delta', partial_json: args } });
+        if (tc.id) acc.id = tc.id;
+        if (tc.function && tc.function.name) acc.name = tc.function.name;
+        if (tc.function && typeof tc.function.arguments === 'string' && tc.function.arguments) {
+          acc.args += tc.function.arguments;
+          stats.outText += tc.function.arguments;
+        }
       }
       if (choice.finish_reason) stopReason = mapOpenAIStop(choice.finish_reason);
       return out;
@@ -518,14 +658,16 @@ function openAIToAnthropicStream({ clientModel }) {
     finish(errMsg) {
       if (finished) return '';
       finished = true;
+      if (inbandError && !errMsg) return '';
       let out = closeCurrent();
       if (errMsg) {
         out += sse('error', { type: 'error', error: { type: 'api_error', message: errMsg } });
         return out;
       }
-      if (!stopReason) stopReason = toolBlocks.size ? 'tool_use' : 'end_turn';
-      if (stopReason === 'end_turn' && toolBlocks.size) stopReason = 'tool_use';
-      const u = usage ? oaUsageToAnth(usage) : { output_tokens: estimateTokens(stats.outText) };
+      out += emitBufferedTools();
+      if (!stopReason) stopReason = toolAcc.size ? 'tool_use' : 'end_turn';
+      if (stopReason === 'end_turn' && toolAcc.size) stopReason = 'tool_use';
+      const u = usage ? oaUsageToAnth(usage) : { input_tokens: 0, output_tokens: estimateTokens(stats.outText) };
       out += sse('message_delta', { type: 'message_delta', delta: { stop_reason: stopReason, stop_sequence: null }, usage: u });
       out += sse('message_stop', { type: 'message_stop' });
       return out;
@@ -544,6 +686,7 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
   let usage = {};
   let finishReason = null;
   let finished = false;
+  let inbandError = false;
   const chunk = (delta, finish = null, extra = {}) => dataLine({ id, object: 'chat.completion.chunk', created, model: clientModel, choices: [{ index: 0, delta, finish_reason: finish }], ...extra });
 
   return {
@@ -574,6 +717,7 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
         const d = o.delta || {};
         if (d.type === 'text_delta') return chunk({ content: d.text || '' });
         if (d.type === 'thinking_delta') return chunk({ reasoning_content: d.thinking || '' });
+        if (d.type === 'signature_delta') return chunk({ reasoning_signature: d.signature || '' });
         if (d.type === 'input_json_delta') {
           const ti = blockToTool.get(o.index);
           if (ti === undefined) return '';
@@ -590,6 +734,7 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
         return '';
       }
       if (type === 'error') {
+        inbandError = true;
         return dataLine({ error: { message: `上游在流中返回错误：${JSON.stringify(o.error || o)}`, type: (o.error && o.error.type) || 'upstream_error' } });
       }
       return ''; // ping / content_block_stop / message_stop
@@ -597,6 +742,7 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
     finish(errMsg) {
       if (finished) return '';
       finished = true;
+      if (inbandError && !errMsg) return '';
       let out = '';
       if (errMsg) out += dataLine({ error: { message: errMsg, type: 'upstream_error' } });
       else if (!finishReason) out += chunk({}, toolCount ? 'tool_calls' : 'stop');
@@ -607,6 +753,26 @@ function anthropicToOpenAIStream({ clientModel, includeUsage }) {
       out += 'data: [DONE]\n\n';
       return out;
     },
+  };
+}
+
+// 没有 signature 的 thinking 发回 Anthropic 会被拒绝。转成普通文本，已签名的块原样保留。
+export function sanitizeAnthropicPayload(body) {
+  if (!body || typeof body !== 'object' || !Array.isArray(body.messages)) return body;
+  return {
+    ...body,
+    messages: body.messages.map((m) => {
+      if (!m || !Array.isArray(m.content)) return m;
+      const content = [];
+      for (const b of m.content) {
+        if (b && b.type === 'thinking' && !(typeof b.signature === 'string' && b.signature)) {
+          if (b.thinking) content.push({ type: 'text', text: b.thinking });
+          continue;
+        }
+        content.push(b);
+      }
+      return { ...m, content: content.length ? content : m.content };
+    }),
   };
 }
 
