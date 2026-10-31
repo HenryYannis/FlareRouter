@@ -1,5 +1,5 @@
-// 图片 / 语音透传：对齐 FlarePanel 控制台网关的
-// POST /v1/images/generations、/v1/images/edits、/v1/audio/transcriptions
+// 图片 / 语音透传：对齐 FlarePanel 控制台网关，并补充 TTS
+// POST /v1/images/generations、/v1/images/edits、/v1/audio/transcriptions、/v1/audio/speech
 // 仅 OpenAI 兼容上游；按模型解析服务商后原样转发（支持容灾）
 
 import { getConfig } from './config.js';
@@ -15,6 +15,8 @@ export const MEDIA_ENDPOINTS = {
   'images/generations': { multipart: false },
   'images/edits': { multipart: true },
   'audio/transcriptions': { multipart: true },
+  // TTS：JSON 入、音频字节出
+  'audio/speech': { multipart: false, binary: true },
 };
 
 function mediaTimeoutMs(env, provider) {
@@ -163,15 +165,16 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
       continue;
     }
 
-    const text = await res.text();
-    let usage = null;
-    try { usage = JSON.parse(text).usage || null; } catch { /* 非 JSON 也原样返回 */ }
-    const pt = usage?.prompt_tokens || usage?.input_tokens || null;
-    const cpt = usage?.completion_tokens || usage?.output_tokens || null;
-    const total = usage?.total_tokens ?? (typeof pt === 'number' && typeof cpt === 'number' ? pt + cpt : null);
-
     const isFallback = i > 0;
-    writeLog(env, ctx, {
+    const gwHeaders = {
+      'Cache-Control': 'no-store',
+      ...CORS_HEADERS,
+      'x-gateway-provider': provider.id,
+      'x-gateway-model': model,
+      'x-gateway-fallback': isFallback ? '1' : '0',
+      'x-gateway-attempts': String(i + 1),
+    };
+    const logOk = (extra = {}) => writeLog(env, ctx, {
       ...baseLog,
       upstreamProtocol: 'openai',
       providerId: provider.id,
@@ -180,24 +183,39 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
       status: res.status,
       latencyMs: Date.now() - t0,
       ttfbMs: Date.now() - tA,
-      promptTokens: pt,
-      completionTokens: cpt,
-      totalTokens: total,
       fallback: isFallback,
       attempts: i + 1,
       trail,
+      ...extra,
     });
+
+    const upCt = res.headers.get('Content-Type') || '';
+    const wantBinary = spec.binary || /^audio\//i.test(upCt) || /^application\/octet-stream/i.test(upCt);
+    if (wantBinary) {
+      const buf = await res.arrayBuffer();
+      logOk();
+      return new Response(buf, {
+        status: res.status,
+        headers: {
+          'Content-Type': upCt || 'audio/mpeg',
+          ...gwHeaders,
+        },
+      });
+    }
+
+    const text = await res.text();
+    let usage = null;
+    try { usage = JSON.parse(text).usage || null; } catch { /* 非 JSON 也原样返回 */ }
+    const pt = usage?.prompt_tokens || usage?.input_tokens || null;
+    const cpt = usage?.completion_tokens || usage?.output_tokens || null;
+    const total = usage?.total_tokens ?? (typeof pt === 'number' && typeof cpt === 'number' ? pt + cpt : null);
+    logOk({ promptTokens: pt, completionTokens: cpt, totalTokens: total });
 
     return new Response(text, {
       status: res.status,
       headers: {
-        'Content-Type': res.headers.get('Content-Type') || 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store',
-        ...CORS_HEADERS,
-        'x-gateway-provider': provider.id,
-        'x-gateway-model': model,
-        'x-gateway-fallback': isFallback ? '1' : '0',
-        'x-gateway-attempts': String(i + 1),
+        'Content-Type': upCt || 'application/json; charset=utf-8',
+        ...gwHeaders,
       },
     });
   }

@@ -14,7 +14,7 @@ Built for one person: no user accounts, billing or quotas, no build step. The ad
 ## Features
 
 - **Providers**: name, ID, protocol (OpenAI-compatible or Anthropic), base URL, API key (shown masked), model list (can be pulled from the provider's `/models` and ticked), enabled, order, timeout
-- **OpenAI-compatible API**: `/v1/chat/completions` (SSE streaming passed through), `/v1/embeddings`, `/v1/models`; images and audio: `/v1/images/generations`, `/v1/images/edits`, `/v1/audio/transcriptions` (aligned with the FlarePanel console gateway; forwarded as-is to the provider that lists the model)
+- **OpenAI-compatible API**: `/v1/chat/completions` (SSE streaming passed through), `/v1/embeddings`, `/v1/models`; images and audio: `/v1/images/generations`, `/v1/images/edits`, `/v1/audio/transcriptions`, `/v1/audio/speech` (TTS; aligned with the FlarePanel console gateway plus speech synthesis; forwarded as-is to the provider that lists the model)
 - **Anthropic API**: `/v1/messages` (with streaming) and `/v1/messages/count_tokens`; works with Claude Code
 - **Protocol conversion**: either entry point can call either kind of provider; requests, responses, stream events and tool calls are converted
 - **Model addressing**: `providerId/model` (e.g. `openrouter/google/gemini-2.5-pro`); a bare model name (looked up, case-insensitively, in the model lists of enabled providers); or `auto` to walk the failover chain from the top
@@ -224,7 +224,7 @@ GitHub Actions (`.github/workflows/check.yml`) runs on every pull request and ev
 - Provider config is cached for 30 seconds per Worker instance, and gateway-key checks for 30 seconds (a revoked key may keep working on other instances for up to 30 seconds).
 - Admin sign-in: 10 wrong passwords in a row lock that IP out for 15 minutes; sessions last 7 days, with an HttpOnly + Secure + SameSite=Strict cookie.
 - Logs are kept for 30 days by default and cleaned up daily at 19:00 UTC by the cron trigger; message text is not logged by default.
-- Image generation / edits and speech transcription use the same gateway keys as chat; they are forwarded as-is after resolving the provider by model (failover supported). Anthropic providers skip embeddings and media endpoints. Default body limit 25 MB and media timeout 120 s (override with `MAX_MEDIA_BYTES`, `MEDIA_TIMEOUT_MS`). No Cloudflare Workers AI binding.
+- Image generation / edits, speech transcription and TTS use the same gateway keys as chat; they are forwarded as-is after resolving the provider by model (failover supported). Anthropic providers skip embeddings and media endpoints. Default body limit 25 MB and media timeout 120 s (override with `MAX_MEDIA_BYTES`, `MEDIA_TIMEOUT_MS`). No Cloudflare Workers AI binding.
 - Protocol conversion limits:
   - Anthropic → OpenAI: `thinking` (extended thinking), `cache_control`, `top_k`, server tools (web_search etc.) and citations are dropped; `reasoning_content` from an OpenAI upstream is not turned into thinking blocks (so the next turn doesn't send unsigned thinking back to Anthropic and fail); PDF documents become OpenAI `file` parts, which fail on upstreams that don't support them.
   - OpenAI → Anthropic: `max_tokens` defaults to 8192 when neither `max_tokens` nor `max_completion_tokens` is sent; `temperature` is clamped to 0–1; parameters Anthropic lacks, such as `n`, `logprobs`, `response_format` and `seed`, are not forwarded; thinking blocks become `reasoning_content`.

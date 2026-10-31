@@ -91,7 +91,12 @@ const upstream = http.createServer(async (req, res) => {
     const m = rawBody.match(/name="model"\r\n\r\n([^\r\n]*)/);
     return send(200, { text: '你好世界', model: m ? m[1] : 'unknown' });
   }
+  if (req.url === '/good/v1/audio/speech') {
+    res.writeHead(200, { 'Content-Type': 'audio/mpeg' });
+    return res.end(Buffer.from('ID3fake-mp3-' + (body && body.model || '') + '-' + (body && body.voice || '')));
+  }
   if (req.url === '/bad/v1/images/generations') return send(500, { error: { message: 'image upstream down' } });
+  if (req.url === '/bad/v1/audio/speech') return send(500, { error: { message: 'tts upstream down' } });
   if (req.url === '/good/v1/chat/completions' && wantTool()) {
     if (body.stream) {
       res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
@@ -349,6 +354,14 @@ try {
   ok(r.status === 200 && d.text === '你好世界' && seen.at(-1).path === '/good/v1/audio/transcriptions', '/v1/audio/transcriptions 转发', JSON.stringify(d));
   r = await req('/v1/images/generations', { method: 'POST', headers: H, body: JSON.stringify({ prompt: 'no model' }) });
   ok(r.status === 400, '/v1/images/generations 缺 model -> 400');
+
+  r = await req('/v1/audio/speech', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', input: '你好', voice: 'alloy' }) });
+  t = await r.text();
+  ok(r.status === 200 && (r.headers.get('content-type') || '').includes('audio/mpeg') && t.includes('ID3fake-mp3-m1-alloy') && seen.at(-1).path === '/good/v1/audio/speech' && seen.at(-1).body.model === 'm1', '/v1/audio/speech TTS 二进制转发', t.slice(0, 80));
+  await admin('/admin/api/settings', { fallbackChain: ['bad/x', 'good/m1'], fallbackEnabled: true });
+  r = await req('/v1/audio/speech', { method: 'POST', headers: H, body: JSON.stringify({ model: 'auto', input: 'failover', voice: 'nova' }) });
+  t = await r.text();
+  ok(r.status === 200 && r.headers.get('x-gateway-provider') === 'good' && Number(r.headers.get('x-gateway-attempts')) >= 2 && t.includes('ID3fake-mp3-m1-nova'), '/v1/audio/speech 容灾', t.slice(0, 80));
 
   // ================= Anthropic 协议 =================
   r = await admin('/admin/api/providers', { provider: { id: 'anth', name: 'Claude 官方', protocol: 'anthropic', baseUrl: `${UP}/anth`, apiKey: 'sk-ant-secret-1234567890', models: 'claude-x\nclaude-y' } });
