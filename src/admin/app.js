@@ -8,7 +8,7 @@
     zh: {
       title: 'FlareRouter 网关',
       header: { copyEndpoint: '复制地址', copied: '已复制', logout: '退出', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
-      tabs: { overview: '概览', providers: '服务商', fallback: '容灾', keys: '调用密钥', logs: '日志', test: '测试', settings: '设置' },
+      tabs: { overview: '概览', providers: '服务商', fallback: '容灾', keys: '调用密钥', logs: '日志', chat: '对话', test: '测试', settings: '设置' },
       login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', unauth: '未登录' },
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
@@ -70,6 +70,12 @@
         metaInfo: 'HTTP {status} · 服务商 {provider} · 模型 {model} · 尝试 {attempts} 次',
         ttfbTotal: '首包 {ttfb} ms · 总 {total} ms', totalOnly: '{total} ms'
       },
+      chat: {
+        labelModel: '模型', noFallback: '关闭容灾', clear: '清空对话', clearConfirm: '清空当前对话？此操作不可恢复。',
+        placeholder: '输入消息，Enter 发送，Shift+Enter 换行', send: '发送', stop: '停止',
+        empty: '还没有消息。选一个模型，开始对话。', thinking: '生成中…',
+        errAborted: '已停止', localOnly: '对话仅保存在本机浏览器'
+      },
       settings: {
         logsTitle: '日志', retentionLabel: '日志保留', daysUnit: '天（0 = 永久，每日 Cron 清理）',
         logPromptsLabel: '记录最后一条用户消息原文（默认关，只记元数据）', save: '保存', saved: '已保存',
@@ -81,7 +87,7 @@
     'zh-Hant': {
       title: 'FlareRouter 網關',
       header: { copyEndpoint: '複製地址', copied: '已複製', logout: '退出', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
-      tabs: { overview: '概覽', providers: '服務商', fallback: '容災', keys: '調用密鑰', logs: '日誌', test: '測試', settings: '設定' },
+      tabs: { overview: '概覽', providers: '服務商', fallback: '容災', keys: '調用密鑰', logs: '日誌', chat: '對話', test: '測試', settings: '設定' },
       login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', unauth: '未登入' },
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
@@ -143,6 +149,12 @@
         metaInfo: 'HTTP {status} · 服務商 {provider} · 模型 {model} · 嘗試 {attempts} 次',
         ttfbTotal: '首包 {ttfb} ms · 總 {total} ms', totalOnly: '{total} ms'
       },
+      chat: {
+        labelModel: '模型', noFallback: '關閉容災', clear: '清空對話', clearConfirm: '清空當前對話？此操作不可恢復。',
+        placeholder: '輸入訊息，Enter 發送，Shift+Enter 換行', send: '發送', stop: '停止',
+        empty: '還沒有訊息。選一個模型，開始對話。', thinking: '生成中…',
+        errAborted: '已停止', localOnly: '對話僅保存在本機瀏覽器'
+      },
       settings: {
         logsTitle: '日誌', retentionLabel: '日誌保留', daysUnit: '天（0 = 永久，每日 Cron 清理）',
         logPromptsLabel: '記錄最後一條使用者訊息原文（預設關，只記元數據）', save: '儲存', saved: '已儲存',
@@ -154,7 +166,7 @@
     en: {
       title: 'FlareRouter Gateway',
       header: { copyEndpoint: 'Copy URL', copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
-      tabs: { overview: 'Overview', providers: 'Providers', fallback: 'Failover', keys: 'API Keys', logs: 'Logs', test: 'Test', settings: 'Settings' },
+      tabs: { overview: 'Overview', providers: 'Providers', fallback: 'Failover', keys: 'API Keys', logs: 'Logs', chat: 'Chat', test: 'Test', settings: 'Settings' },
       login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', unauth: 'Not signed in' },
       overview: {
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh',
@@ -216,6 +228,12 @@
         metaInfo: 'HTTP {status} · Provider {provider} · Model {model} · Attempts {attempts}',
         ttfbTotal: 'TTFB {ttfb} ms · Total {total} ms', totalOnly: '{total} ms'
       },
+      chat: {
+        labelModel: 'Model', noFallback: 'Disable Failover', clear: 'Clear Chat', clearConfirm: 'Clear this chat? This cannot be undone.',
+        placeholder: 'Type a message. Enter to send, Shift+Enter for newline', send: 'Send', stop: 'Stop',
+        empty: 'No messages yet. Pick a model and start chatting.', thinking: 'Generating…',
+        errAborted: 'Stopped', localOnly: 'Chat is stored only in this browser'
+      },
       settings: {
         logsTitle: 'Logs', retentionLabel: 'Log retention', daysUnit: 'days (0 = forever, daily cron cleanup)',
         logPromptsLabel: 'Log raw user prompt of the last message (default off)', save: 'Save', saved: 'Saved',
@@ -268,6 +286,7 @@
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     updateThemeButtons(isDark);
     syncProtocol();
+    if ($('#c-messages') && chatState && Array.isArray(chatState.messages)) renderChatMessages();
   }
 
   function initLang() {
@@ -571,8 +590,10 @@
     var ms = state.cfg.models || modelsFrom(state.cfg.providers);
     state.cfg.models = ms;
     var opts = ms.map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
-    var keep = $('#t-model').value;
-    $('#t-model').innerHTML = opts; if (keep) $('#t-model').value = keep;
+    var keepT = $('#t-model').value;
+    $('#t-model').innerHTML = opts; if (keepT) $('#t-model').value = keepT;
+    var keepC = $('#c-model').value || (chatState && chatState.model) || '';
+    $('#c-model').innerHTML = opts; if (keepC) $('#c-model').value = keepC;
     $('#chain-add').innerHTML = ms.filter(function (m) { return m !== 'auto'; }).map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
     $('#lf-provider').innerHTML = '<option value="">' + t('logs.allProviders') + '</option>' + state.cfg.providers.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('');
     var ex = ms[1] || 'auto';
@@ -770,6 +791,193 @@
     $('#log-detail').innerHTML = h; $('#dlg-log').showModal();
   });
 
+  // ---- 对话（多轮 + 流式 + Markdown，会话存本机）----
+  var CHAT_LS_KEY = 'gw_chat_v1';
+  var chatState = { model: 'auto', noFallback: false, messages: [] };
+  var chatAbort = null;
+  var chatBusy = false;
+
+  function loadChatState() {
+    try {
+      var raw = localStorage.getItem(CHAT_LS_KEY);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (!o || typeof o !== 'object') return;
+      chatState.model = typeof o.model === 'string' ? o.model : 'auto';
+      chatState.noFallback = !!o.noFallback;
+      chatState.messages = Array.isArray(o.messages) ? o.messages.filter(function (m) {
+        return m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string';
+      }).slice(-40) : [];
+    } catch (e) {}
+  }
+  function saveChatState() {
+    try {
+      localStorage.setItem(CHAT_LS_KEY, JSON.stringify({
+        model: $('#c-model').value || chatState.model || 'auto',
+        noFallback: $('#c-nofb').checked,
+        messages: chatState.messages
+      }));
+    } catch (e) {}
+  }
+  function renderMd(src) {
+    var s = String(src == null ? '' : src);
+    s = s.replace(/\r\n/g, '\n');
+    var blocks = [];
+    s = s.replace(/```([\w-]*)\n?([\s\S]*?)```/g, function (_, lang, code) {
+      var i = blocks.length;
+      blocks.push('<pre class="md-code"><code' + (lang ? ' data-lang="' + esc(lang) + '"' : '') + '>' + esc(code.replace(/\n$/, '')) + '</code></pre>');
+      return '\u0000B' + i + '\u0000';
+    });
+    function inline(t) {
+      t = esc(t);
+      t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+      t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      t = t.replace(/(^|[^\*])\*([^*]+)\*(?!\*)/g, '$1<em>$2</em>');
+      t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      return t;
+    }
+    var lines = s.split('\n');
+    var html = [];
+    var listType = null;
+    function closeList() {
+      if (listType) { html.push(listType === 'ol' ? '</ol>' : '</ul>'); listType = null; }
+    }
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var bm = line.match(/^\u0000B(\d+)\u0000$/);
+      if (bm) { closeList(); html.push(blocks[+bm[1]]); continue; }
+      var hm = line.match(/^(#{1,3})\s+(.+)$/);
+      if (hm) { closeList(); html.push('<h' + hm[1].length + '>' + inline(hm[2]) + '</h' + hm[1].length + '>'); continue; }
+      var ul = line.match(/^[-*]\s+(.+)$/);
+      if (ul) {
+        if (listType !== 'ul') { closeList(); html.push('<ul>'); listType = 'ul'; }
+        html.push('<li>' + inline(ul[1]) + '</li>');
+        continue;
+      }
+      var ol = line.match(/^\d+\.\s+(.+)$/);
+      if (ol) {
+        if (listType !== 'ol') { closeList(); html.push('<ol>'); listType = 'ol'; }
+        html.push('<li>' + inline(ol[1]) + '</li>');
+        continue;
+      }
+      closeList();
+      if (!line.trim()) { html.push(''); continue; }
+      html.push('<p>' + inline(line) + '</p>');
+    }
+    closeList();
+    return html.join('\n');
+  }
+  function renderChatMessages() {
+    var box = $('#c-messages');
+    if (!chatState.messages.length) {
+      box.innerHTML = '<div class="chat-empty muted">' + esc(t('chat.empty')) + '<div class="small" style="margin-top:6px">' + esc(t('chat.localOnly')) + '</div></div>';
+      return;
+    }
+    box.innerHTML = chatState.messages.map(function (m, idx) {
+      var role = m.role === 'assistant' ? 'assistant' : 'user';
+      var body = role === 'assistant' ? renderMd(m.content) : esc(m.content).replace(/\n/g, '<br>');
+      return '<div class="chat-bubble ' + role + '" data-idx="' + idx + '"><div class="chat-role">' + (role === 'assistant' ? 'AI' : 'You') + '</div><div class="chat-body">' + body + '</div></div>';
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  }
+  function setChatBusy(on) {
+    chatBusy = !!on;
+    $('#c-send').disabled = chatBusy;
+    $('#c-input').disabled = chatBusy;
+    $('#c-clear').disabled = chatBusy;
+    $('#c-model').disabled = chatBusy;
+    $('#c-nofb').disabled = chatBusy;
+    $('#c-stop').classList.toggle('hidden', !chatBusy);
+    $('#c-status').textContent = chatBusy ? t('chat.thinking') : '';
+  }
+  function initChatUi() {
+    loadChatState();
+    $('#c-nofb').checked = !!chatState.noFallback;
+    if (chatState.model) $('#c-model').value = chatState.model;
+    renderChatMessages();
+  }
+  $('#c-model').addEventListener('change', function () { chatState.model = this.value; saveChatState(); });
+  $('#c-nofb').addEventListener('change', function () { chatState.noFallback = this.checked; saveChatState(); });
+  $('#c-clear').addEventListener('click', function () {
+    if (!chatState.messages.length) return;
+    if (!confirm(t('chat.clearConfirm'))) return;
+    if (chatAbort) try { chatAbort.abort(); } catch (e) {}
+    chatState.messages = [];
+    saveChatState();
+    renderChatMessages();
+    setChatBusy(false);
+  });
+  $('#c-stop').addEventListener('click', function () {
+    if (chatAbort) try { chatAbort.abort(); } catch (e) {}
+  });
+  async function sendChat() {
+    if (chatBusy) return;
+    var text = $('#c-input').value.trim();
+    if (!text) return;
+    $('#c-input').value = '';
+    chatState.messages.push({ role: 'user', content: text });
+    chatState.messages.push({ role: 'assistant', content: '' });
+    renderChatMessages();
+    saveChatState();
+    setChatBusy(true);
+    chatAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var assistantIdx = chatState.messages.length - 1;
+    try {
+      var res = await fetch('/admin/api/test', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-Admin': '1' },
+        signal: chatAbort ? chatAbort.signal : undefined,
+        body: JSON.stringify({
+          model: $('#c-model').value || 'auto',
+          stream: true,
+          noFallback: $('#c-nofb').checked,
+          messages: chatState.messages.slice(0, -1)
+        })
+      });
+      if (!res.ok) {
+        var errText = await res.text();
+        try { var ej = JSON.parse(errText); errText = (ej.error && ej.error.message) || ej.error || errText; } catch (e) {}
+        if (res.status === 401) show('login');
+        chatState.messages[assistantIdx].content = String(errText || ('HTTP ' + res.status));
+      } else if (res.body) {
+        var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', textOut = '';
+        for (;;) {
+          var r = await reader.read(); if (r.done) break;
+          buf += dec.decode(r.value, { stream: true });
+          var lines = buf.split('\n'); buf = lines.pop();
+          lines.forEach(function (ln) {
+            ln = ln.trim(); if (ln.indexOf('data:') !== 0) return;
+            var d = ln.slice(5).trim(); if (!d || d === '[DONE]') return;
+            try {
+              var o = JSON.parse(d), dl = o.choices && o.choices[0] && o.choices[0].delta;
+              if (dl) textOut += (dl.reasoning_content || '') + (dl.content || '');
+            } catch (e) { textOut += '\n' + d; }
+          });
+          chatState.messages[assistantIdx].content = textOut;
+          renderChatMessages();
+        }
+        if (!textOut) chatState.messages[assistantIdx].content = '(empty)';
+      } else {
+        chatState.messages[assistantIdx].content = '(empty)';
+      }
+    } catch (err) {
+      var msg = (err && err.name === 'AbortError') ? t('chat.errAborted') : String(err && err.message || err);
+      if (!chatState.messages[assistantIdx].content) chatState.messages[assistantIdx].content = msg;
+      else if (err && err.name === 'AbortError') chatState.messages[assistantIdx].content += '\n\n(' + t('chat.errAborted') + ')';
+    }
+    saveChatState();
+    renderChatMessages();
+    setChatBusy(false);
+    chatAbort = null;
+  }
+  $('#c-send').addEventListener('click', function () { sendChat(); });
+  $('#c-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChat();
+    }
+  });
+
   // ---- 测试 ----
   $('#t-go').addEventListener('click', async function () {
     var btn = this; btn.disabled = true;
@@ -819,6 +1027,7 @@
     try { await api('/admin/api/me'); } catch (e) { show('login'); if (!/未登录/.test(e.message)) $('#login-err').textContent = e.message; return; }
     show('main');
     try { await loadConfig(); } catch (e) { alert(e.message); }
+    initChatUi();
     loadStats(); loadKeys();
   }
   boot();

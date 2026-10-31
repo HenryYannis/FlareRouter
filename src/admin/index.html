@@ -86,6 +86,7 @@
       <button data-tab="fallback" data-i18n="tabs.fallback">容灾</button>
       <button data-tab="keys" data-i18n="tabs.keys">调用密钥</button>
       <button data-tab="logs" data-i18n="tabs.logs">日志</button>
+      <button data-tab="chat" data-i18n="tabs.chat">对话</button>
       <button data-tab="test" data-i18n="tabs.test">测试</button>
       <button data-tab="settings" data-i18n="tabs.settings">设置</button>
     </nav>
@@ -186,6 +187,28 @@
         <div class="row" style="margin-top:10px">
           <span class="muted small" id="log-info"></span><span class="grow"></span>
           <button class="btn sm" id="log-prev" data-i18n="logs.prevPage">上一页</button><button class="btn sm" id="log-next" data-i18n="logs.nextPage">下一页</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 对话 -->
+    <section data-pane="chat" class="hidden">
+      <div class="card chat-card">
+        <div class="row chat-toolbar">
+          <label class="f" for="c-model" style="margin:0" data-i18n="chat.labelModel">模型</label>
+          <select id="c-model" class="grow"></select>
+          <label class="row small"><input type="checkbox" id="c-nofb"> <span data-i18n="chat.noFallback">关闭容灾</span></label>
+          <button class="btn sm" type="button" id="c-clear" data-i18n="chat.clear">清空对话</button>
+        </div>
+        <div id="c-messages" class="chat-messages" aria-live="polite"></div>
+        <div class="chat-compose">
+          <textarea id="c-input" rows="3" data-i18n-placeholder="chat.placeholder" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
+          <div class="row" style="margin-top:8px">
+            <span class="muted small" id="c-status"></span>
+            <span class="grow"></span>
+            <button class="btn sm hidden" type="button" id="c-stop" data-i18n="chat.stop">停止</button>
+            <button class="btn primary" type="button" id="c-send" data-i18n="chat.send">发送</button>
+          </div>
         </div>
       </div>
     </section>

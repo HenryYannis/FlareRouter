@@ -220,13 +220,29 @@ export async function handleAdminApi(request, env, ctx, path) {
     return json(publicConfig(await saveConfig(env, b)));
   }
 
-  // ---- 测试调用（走同一条转发/容灾/日志链路）----
+  // ---- 测试 / 对话调用（走同一条转发/容灾/日志链路）----
   if (path === '/admin/api/test' && method === 'POST') {
     const b = await readJson(request);
+    const MAX_MESSAGES = 40;
+    const MAX_CONTENT = 32000;
+    let messages;
+    if (Array.isArray(b.messages) && b.messages.length) {
+      messages = [];
+      for (const m of b.messages.slice(0, MAX_MESSAGES)) {
+        if (!m || typeof m !== 'object') continue;
+        const role = String(m.role || '').trim();
+        if (!/^(system|user|assistant)$/.test(role)) continue;
+        const content = String(m.content == null ? '' : m.content).slice(0, MAX_CONTENT);
+        messages.push({ role, content });
+      }
+      if (!messages.length) return err('messages 无效：需要至少一条合法的 system/user/assistant 消息');
+    } else {
+      messages = [{ role: 'user', content: String(b.prompt || '你好，用一句话介绍你自己。').slice(0, MAX_CONTENT) }];
+    }
     const payload = {
       model: b.model || 'auto',
       stream: !!b.stream,
-      messages: [{ role: 'user', content: String(b.prompt || '你好，用一句话介绍你自己。') }],
+      messages,
     };
     const headers = { 'Content-Type': 'application/json' };
     if (b.noFallback) headers['x-gateway-fallback'] = 'off';
