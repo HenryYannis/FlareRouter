@@ -46,6 +46,8 @@
   --fw-brand: 700;
   --fw-ui: 600;
   --fw-dialog: 700;
+  /* 内容区输入/下拉/按钮同高（顶栏 sm 仍 26px） */
+  --control-h: 32px;
 }
 
 html.day-theme {
@@ -235,7 +237,9 @@ nav button.on:hover {
   border: 1px solid var(--border);
   background: var(--glass-bg);
   color: var(--text);
-  padding: 6px 12px;
+  height: var(--control-h);
+  box-sizing: border-box;
+  padding: 0 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: var(--fs-btn);
@@ -289,7 +293,12 @@ nav button.on:hover {
   border-color: var(--danger-active) !important;
   transform: scale(0.97);
 }
-.btn.sm { padding: 3px 8px; font-size: var(--fs-btn-sm); font-weight: var(--fw-ui); }
+.btn.sm {
+  height: var(--control-h);
+  padding: 0 8px;
+  font-size: var(--fs-btn-sm);
+  font-weight: var(--fw-ui);
+}
 .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
 /* 顶栏 / 登录页 sm 控件同高，主题钮为正方形 */
@@ -327,6 +336,11 @@ input[type=text], input[type=password], input[type=number], select, textarea {
   font-size: var(--fs-btn);
   font-family: inherit;
   transition: border-color 0.2s var(--ease-liquid), box-shadow 0.2s var(--ease-liquid);
+}
+input[type=text], input[type=password], input[type=number], select {
+  height: var(--control-h);
+  box-sizing: border-box;
+  padding: 0 9px;
 }
 textarea { width: 100%; resize: vertical; min-height: 70px; }
 input:focus, select:focus, textarea:focus {
@@ -802,7 +816,7 @@ html.night-theme .chat-messages { background: rgba(255, 255, 255, 0.04); }
   font-size: 20px;
   font-weight: 500;
   line-height: 1;
-  height: 36px;
+  height: var(--control-h);
 }
 .chat-compose-actions .btn.primary,
 .chat-compose-actions #c-stop {
