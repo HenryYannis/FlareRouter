@@ -88,7 +88,7 @@
       },
       common: { confirm: '确认', cancel: '取消' },
       dialog: { confirmTitle: '操作确认', alertTitle: '提示', alertOk: '我知道了', promptTitle: '请输入' },
-      footer: { brand: 'FlareRouter', github: 'GitHub' }
+      footer: { brand: 'FlareRouter', tagline: '基于 Cloudflare Workers 的轻量 AI 网关', github: 'GitHub' }
     },
     'zh-Hant': {
       title: 'FlareRouter 網關',
@@ -173,7 +173,7 @@
       },
       common: { confirm: '確認', cancel: '取消' },
       dialog: { confirmTitle: '操作確認', alertTitle: '提示', alertOk: '我知道了', promptTitle: '請輸入' },
-      footer: { brand: 'FlareRouter', github: 'GitHub' }
+      footer: { brand: 'FlareRouter', tagline: '基於 Cloudflare Workers 的輕量 AI 網關', github: 'GitHub' }
     },
     en: {
       title: 'FlareRouter Gateway',
@@ -258,7 +258,7 @@
       },
       common: { confirm: 'Confirm', cancel: 'Cancel' },
       dialog: { confirmTitle: 'Please confirm', alertTitle: 'Notice', alertOk: 'OK', promptTitle: 'Input' },
-      footer: { brand: 'FlareRouter', github: 'GitHub' }
+      footer: { brand: 'FlareRouter', tagline: 'Lightweight AI gateway on Cloudflare Workers', github: 'GitHub' }
     }
   };
 
