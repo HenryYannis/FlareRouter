@@ -12,6 +12,7 @@ import {
   estimateAnthropicInputTokens,
   openAIToAnthropicRequest,
   openAIToAnthropicResponse,
+  sanitizeAnthropicPayload,
   usageForLog,
 } from './anthropic.js';
 import { CORS_HEADERS, apiError, errText, estimateMessagesTokens, estimateTokens, json } from './util.js';
@@ -170,7 +171,7 @@ function buildUpstream({ clientProtocol, endpoint, provider, model, body, reques
       upstreamProtocol,
       url: anthropicUrl(provider.baseUrl, 'messages'),
       headers: anthropicHeaders(provider.apiKey, { version, beta, stream }),
-      payload: { ...body, model },
+      payload: sanitizeAnthropicPayload({ ...body, model }),
     };
   }
   if (clientProtocol === 'anthropic' && upstreamProtocol === 'openai') {
@@ -192,6 +193,22 @@ function buildUpstream({ clientProtocol, endpoint, provider, model, body, reques
 
 function estimatePrompt(clientProtocol, body) {
   return clientProtocol === 'anthropic' ? estimateAnthropicInputTokens(body) : estimateMessagesTokens(body.messages);
+}
+
+function formatUpstreamErrorValue(error) {
+  if (error == null) return '';
+  if (typeof error === 'string') return error;
+  if (typeof error.message === 'string' && error.message) return error.message;
+  try { return JSON.stringify(error); } catch { return String(error); }
+}
+
+// HTTP 200 但没有 choices/content/data、只有 error 时，视为失败（部分聚合上游会这样返回）
+function upstreamErrorMessage(parsed) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  if (parsed.choices || parsed.content || parsed.data) return null;
+  if (parsed.type === 'error' && parsed.error) return formatUpstreamErrorValue(parsed.error);
+  if (parsed.error) return formatUpstreamErrorValue(parsed.error);
+  return null;
 }
 
 /**
@@ -287,22 +304,55 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       trail,
     };
 
+    let prefetchedText = null;
     if (stream) {
-      const handler = createStreamHandler(clientProtocol, up.upstreamProtocol, { clientModel: body.model, includeUsage });
-      return pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate: () => estimatePrompt(clientProtocol, body) });
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      const jsonNotSse = ct.includes('application/json') && !ct.includes('text/event-stream');
+      if (!jsonNotSse) {
+        const handler = createStreamHandler(clientProtocol, up.upstreamProtocol, { clientModel: body.model, includeUsage });
+        return pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate: () => estimatePrompt(clientProtocol, body) });
+      }
+      prefetchedText = await res.text();
+      let peeked = null;
+      try { peeked = JSON.parse(prefetchedText); } catch { /* 非 JSON 在下面当错误切换 */ }
+      const streamErr = upstreamErrorMessage(peeked);
+      if (streamErr || !peeked || typeof peeked !== 'object' || Array.isArray(peeked)) {
+        const msg = streamErr
+          ? `上游返回 HTTP 200 但正文是错误：${streamErr}`
+          : `上游返回 200 但不是 SSE：${String(prefetchedText).slice(0, 1000)}`;
+        fail1(502, msg.slice(0, ERROR_TEXT_LIMIT));
+        lastStatus = 502;
+        continue;
+      }
     }
 
-    const text = await res.text();
+    const text = prefetchedText != null ? prefetchedText : await res.text();
     let parsed = null;
     try { parsed = JSON.parse(text); } catch { /* 同协议时原样返回 */ }
+    const bodyErr = upstreamErrorMessage(parsed);
+    if (bodyErr) {
+      fail1(502, `上游返回 HTTP 200 但正文是错误：${bodyErr}`.slice(0, ERROR_TEXT_LIMIT));
+      lastStatus = 502;
+      continue;
+    }
     let outText = text;
     let contentType = res.headers.get('content-type') || 'application/json; charset=utf-8';
     if (up.upstreamProtocol !== clientProtocol && endpoint !== 'embeddings') {
       if (!parsed || typeof parsed !== 'object') {
-        // 还没向客户端写任何东西，可以继续容灾
-        fail1(502, `上游返回 200 但内容不是 JSON，无法转换协议：${text.slice(0, 1000)}`);
-        lastStatus = 502;
-        continue;
+        // 上游已经以 200 处理过这次请求，再打下一跳会重复计费。直接把转换失败返回给客户端。
+        const raw = `上游返回 200 但内容不是 JSON，无法转换协议：${text.slice(0, 1000)}`;
+        fail1(502, raw.slice(0, ERROR_TEXT_LIMIT));
+        const summary = trail.map((item, n) => `#${n + 1} ${item.providerName}/${item.model}：${item.error}`).join('\n');
+        const message = `上游返回 200 但内容不是 JSON，已停止切换，避免对下一家重复请求。\n${summary}`;
+        writeLog(env, ctx, {
+          ...logCommon,
+          status: 502,
+          latencyMs: Date.now() - t0,
+          ttfbMs: Date.now() - tA,
+          error: message,
+        });
+        if (clientProtocol === 'anthropic') return json(anthropicErrorBody(message, 502, { attempts: trail }), 502, CORS_HEADERS);
+        return json({ error: { message, type: 'upstream_error', attempts: trail } }, 502, CORS_HEADERS);
       }
       const converted = clientProtocol === 'anthropic' ? openAIToAnthropicResponse(parsed, body.model) : anthropicToOpenAIResponse(parsed, body.model);
       outText = JSON.stringify(converted);
@@ -464,7 +514,7 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
     if (typeof completionTokens !== 'number') completionTokens = estimateTokens(st.outText);
     await writeLog(env, ctx, {
       ...logCommon,
-      status: res.status,
+      status: st.error ? 502 : res.status,
       latencyMs: Date.now() - t0,
       ttfbMs: ttfb,
       promptTokens,
