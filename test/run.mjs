@@ -108,6 +108,19 @@ const upstream = http.createServer(async (req, res) => {
   }
   if (req.url === '/bad/v1/images/generations') return send(500, { error: { message: 'image upstream down' } });
   if (req.url === '/bad/v1/audio/speech') return send(500, { error: { message: 'tts upstream down' } });
+  const wantParallel = () => body && /parallel-tools/.test(lastText());
+  if (req.url === '/good/v1/chat/completions' && wantParallel() && body.stream) {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    const chunks = [
+      { choices: [{ delta: { tool_calls: [{ index: 0, id: 'call_p0', type: 'function', function: { name: 'get_weather', arguments: '' } }] } }] },
+      { choices: [{ delta: { tool_calls: [{ index: 1, id: 'call_p1', type: 'function', function: { name: 'get_time', arguments: '' } }] } }] },
+      { choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: '{"city":"Paris"}' } }] } }] },
+      { choices: [{ delta: { tool_calls: [{ index: 1, function: { arguments: '{"tz":"UTC"}' } }] } }] },
+      { choices: [{ delta: {}, finish_reason: 'tool_calls' }] },
+    ];
+    for (const c of chunks) res.write(`data: ${JSON.stringify(c)}\n\n`);
+    return res.end('data: [DONE]\n\n');
+  }
   if (req.url === '/good/v1/chat/completions' && body && body.stream && /no-usage-tools/.test(lastText())) {
     res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
     const chunks = [
@@ -561,6 +574,39 @@ try {
         && mdU.data.usage.output_tokens > 0,
       '上游不回 usage 时 message_delta 仍带 input/output，且工具参数计入 output',
       JSON.stringify({ start: startU?.data?.message?.usage, delta: mdU?.data?.usage }),
+    );
+  }
+
+  // 并行工具：OpenAI 会交错推送多个 index，必须等一块参数收齐再关闭
+  r = await msgs({
+    model: 'good/m1', max_tokens: 80, stream: true,
+    tools: [
+      { name: 'get_weather', input_schema: { type: 'object', properties: {} } },
+      { name: 'get_time', input_schema: { type: 'object', properties: {} } },
+    ],
+    messages: [{ role: 'user', content: 'parallel-tools' }],
+  });
+  t = await r.text();
+  evs = parseSSE(t);
+  {
+    const toolStarts = evs.filter((e) => e.ev === 'content_block_start' && e.data?.content_block?.type === 'tool_use');
+    const argsOf = (index) => evs.filter((e) => e.ev === 'content_block_delta' && e.data?.index === index && e.data?.delta?.type === 'input_json_delta').map((e) => e.data.delta.partial_json).join('');
+    const pos = (pred) => evs.findIndex(pred);
+    const i0 = toolStarts[0]?.data.index;
+    const i1 = toolStarts[1]?.data.index;
+    const stop0 = pos((e) => e.ev === 'content_block_stop' && e.data?.index === i0);
+    const stop1 = pos((e) => e.ev === 'content_block_stop' && e.data?.index === i1);
+    const delta0 = pos((e) => e.ev === 'content_block_delta' && e.data?.index === i0 && e.data?.delta?.type === 'input_json_delta');
+    const start1 = pos((e) => e.ev === 'content_block_start' && e.data?.index === i1);
+    let city = null; let tz = null; let parseOk = false;
+    try { city = JSON.parse(argsOf(i0)).city; tz = JSON.parse(argsOf(i1)).tz; parseOk = true; } catch { /* 参数被串块时 JSON 非法 */ }
+    ok(
+      r.status === 200 && toolStarts.length === 2 && toolStarts[0].data.content_block.name === 'get_weather' && toolStarts[1].data.content_block.name === 'get_time'
+        && parseOk && city === 'Paris' && tz === 'UTC'
+        && delta0 >= 0 && delta0 < stop0 && stop0 < start1 && start1 < stop1
+        && evs.find((e) => e.ev === 'message_delta')?.data?.delta?.stop_reason === 'tool_use',
+      '并行 tool_calls 按块收齐参数后再 content_block_stop，两段 JSON 不串',
+      t.slice(0, 900),
     );
   }
 
