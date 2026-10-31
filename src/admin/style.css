@@ -354,6 +354,7 @@ label.f + input, label.f + textarea, label.f + select { width: 100%; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
 th { font-size: var(--fs-meta); color: var(--muted); font-weight: var(--fw-ui); }
+th.col-actions, td.col-actions { text-align: center; }
 html.night-theme th { background: rgba(255, 255, 255, 0.02); }
 tr.click { cursor: pointer; }
 tr.click:hover td { background: var(--soft); }
@@ -799,29 +800,32 @@ html.night-theme .chat-messages { background: rgba(255, 255, 255, 0.04); }
   width: auto;
   min-width: 0;
   resize: vertical;
-  min-height: 72px;
+  /* 与右侧三钮（高 + 两档间距）同高 */
+  height: calc(var(--control-h) * 3 + 12px);
+  min-height: calc(var(--control-h) * 3 + 12px);
+  box-sizing: border-box;
   font: inherit;
 }
 .chat-compose-actions {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 6px;
   flex-shrink: 0;
 }
-.chat-attach-btn {
-  width: 40px;
-  min-width: 40px;
+.chat-compose-actions .chat-side-btn {
+  width: 64px;
+  min-width: 64px;
+  height: var(--control-h);
   padding: 0;
+  box-sizing: border-box;
+  font-size: var(--fs-btn-sm);
+  white-space: nowrap;
+}
+.chat-compose-actions .chat-attach-btn {
   font-size: 20px;
   font-weight: 500;
   line-height: 1;
-  height: var(--control-h);
-}
-.chat-compose-actions .btn.primary,
-.chat-compose-actions #c-stop {
-  min-width: 64px;
-  white-space: nowrap;
 }
 .chat-compose-status {
   display: flex;

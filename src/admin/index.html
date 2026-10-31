@@ -179,7 +179,6 @@
           <label class="f" for="c-model" style="margin:0" data-i18n="chat.labelModel">模型</label>
           <select id="c-model" class="grow"></select>
           <label class="row small"><input type="checkbox" id="c-nofb"> <span data-i18n="chat.noFallback">关闭容灾</span></label>
-          <button class="btn sm" type="button" id="c-clear" data-i18n="chat.clear">清空对话</button>
         </div>
         <div id="c-messages" class="chat-messages" aria-live="polite"></div>
         <div class="chat-compose" id="c-compose">
@@ -187,10 +186,11 @@
           <div class="chat-compose-row">
             <textarea id="c-input" rows="3" data-i18n-placeholder="chat.placeholder" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
             <div class="chat-compose-actions">
-              <button class="btn chat-attach-btn" type="button" id="c-attach" data-i18n-aria-label="chat.attach" aria-label="上传文件">+</button>
+              <button class="btn danger chat-side-btn" type="button" id="c-clear" data-i18n="chat.clear">清空</button>
+              <button class="btn chat-side-btn chat-attach-btn" type="button" id="c-attach" data-i18n-aria-label="chat.attach" aria-label="上传文件">+</button>
               <input type="file" id="c-file" class="hidden" multiple>
-              <button class="btn sm hidden" type="button" id="c-stop" data-i18n="chat.stop">停止</button>
-              <button class="btn primary" type="button" id="c-send" data-i18n="chat.send">发送</button>
+              <button class="btn primary chat-side-btn hidden" type="button" id="c-stop" data-i18n="chat.stop">停止</button>
+              <button class="btn primary chat-side-btn" type="button" id="c-send" data-i18n="chat.send">发送</button>
             </div>
           </div>
           <div class="chat-compose-status">
