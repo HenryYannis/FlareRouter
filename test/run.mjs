@@ -559,6 +559,7 @@ try {
   // 管理页带协议选项
   t = await (await req('/admin')).text();
   ok(t.includes('id="p-protocol"') && t.includes('Anthropic Messages'), '管理页服务商表单有协议类型选项');
+  ok(t.includes('id="usage-docs"') && t.includes('id="p-key-toggle"') && t.includes('id="p-key-copy"'), '管理页含调用方式文档与编辑弹窗 Key 眼睛');
 
   // ---- 管理页测试调用 ----
   r = await admin('/admin/api/test', { model: 'good/m1', prompt: 'ping' });
