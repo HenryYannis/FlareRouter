@@ -683,7 +683,7 @@
   // ---- 服务商弹窗 ----
   $('#add-prov').addEventListener('click', function () { openProv(null); });
   function openProv(p) {
-    state.editing = p ? p.id : null; state.fetched = [];
+    state.editing = p ? p.id : null; state.fetched = []; state.fetchedLimits = {};
     $('#prov-title').textContent = p ? t('providers.dialogEdit') : t('providers.dialogAdd');
     $('#p-name').value = p ? p.name : '';
     $('#p-id').value = p ? p.id : '';
@@ -741,6 +741,7 @@
         enabled: prev ? !!prev.enabled : true
       }
     };
+    if (state.fetchedLimits && Object.keys(state.fetchedLimits).length) body.provider.modelLimits = Object.assign({}, prev && prev.modelLimits, state.fetchedLimits);
     try {
       var res = await api('/admin/api/providers', { body: body });
       setCfg(res); $('#dlg-prov').close();
@@ -754,7 +755,7 @@
     $('#p-fetch-err').textContent = t('providers.fetching');
     try {
       var r = await api('/admin/api/providers/fetch-models', { body: { id: state.editing, protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(), apiKey: $('#p-key').value.trim() } });
-      state.fetched = r.models; $('#p-fetch-err').textContent = '';
+      state.fetched = r.models; state.fetchedLimits = r.limits || {}; $('#p-fetch-err').textContent = '';
       if (!currentModels().length && r.models.length) { $('#p-models').value = r.models.join('\n'); toast(t('providers.fetchPopulated', { count: r.models.length })); }
       $('#p-fetch-box').classList.remove('hidden'); renderFetched();
     } catch (err) { $('#p-fetch-err').textContent = err.message; }

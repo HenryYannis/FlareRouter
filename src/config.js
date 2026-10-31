@@ -57,7 +57,19 @@ export function normalizeProvider(p) {
     // 流式请求时自动加 stream_options.include_usage（个别服务商不认可以关掉）
     streamUsage: p.streamUsage !== false,
     note: String(p.note || ''),
+    // 各模型的输出上限（从上游模型列表拉取时记下），OpenAI 入口转 Anthropic 上游且没传 max_tokens 时用
+    modelLimits: parseModelLimits(p.modelLimits),
   };
+}
+
+export function parseModelLimits(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [k, v] of Object.entries(raw)) {
+    const n = Math.floor(Number(v));
+    if (k && Number.isFinite(n) && n > 0) out[String(k)] = n;
+  }
+  return out;
 }
 
 export async function getConfig(env, { fresh = false } = {}) {

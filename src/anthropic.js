@@ -7,6 +7,7 @@ export const DEFAULT_ANTHROPIC_VERSION = '2023-06-01';
 // chat/completions → anthropic 上游时，调用方没给 max_tokens 的默认值（Anthropic 要求必填）
 // 不少模型的输出上限是 4096。默认再高会直接 400，然后被容灾换到别的模型。
 // 需要更长输出的调用方自己传 max_tokens / max_completion_tokens。
+// 上游模型列表给了该模型的上限（存在服务商 modelLimits 里）时，优先用那个值。
 export const DEFAULT_MAX_TOKENS = 4096;
 
 // ---------------------------------------------------------------- 地址与请求头
@@ -299,7 +300,7 @@ function oaContentToAnthBlocks(content) {
   return [];
 }
 
-export function openAIToAnthropicRequest(body, model, { stream } = {}) {
+export function openAIToAnthropicRequest(body, model, { stream, maxTokens } = {}) {
   const system = [];
   const msgs = [];
   const ids = createToolIdAssigner();
@@ -339,7 +340,7 @@ export function openAIToAnthropicRequest(body, model, { stream } = {}) {
   const formatHint = jsonFormatHint(body.response_format);
   if (formatHint) system.push(formatHint);
   const requestedMax = body.max_tokens ?? body.max_completion_tokens;
-  const out = { model, max_tokens: requestedMax ?? DEFAULT_MAX_TOKENS, messages: msgs };
+  const out = { model, max_tokens: requestedMax ?? (maxTokens > 0 ? maxTokens : DEFAULT_MAX_TOKENS), messages: msgs };
   if (system.length) out.system = system.join('\n\n');
   if (body.temperature != null) out.temperature = Math.min(1, Math.max(0, Number(body.temperature)));
   if (body.top_p != null) out.top_p = body.top_p;

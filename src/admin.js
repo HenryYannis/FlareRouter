@@ -85,6 +85,20 @@ async function readJson(request) {
   try { return await request.json(); } catch { return {}; }
 }
 
+// 上游模型列表里的输出上限：Anthropic 官方给 max_tokens；OpenRouter 等给 top_provider.max_completion_tokens。
+// OpenAI 官方和大多数中转站不给，就留空，转换时退回默认值。
+export function extractModelLimits(arr) {
+  const out = {};
+  for (const m of arr) {
+    if (!m || typeof m !== 'object') continue;
+    const id = m.id || m.name;
+    const v = m.max_tokens ?? m.max_output_tokens ?? m.max_completion_tokens ?? m.top_provider?.max_completion_tokens;
+    const n = Math.floor(Number(v));
+    if (id && Number.isFinite(n) && n > 0) out[id] = n;
+  }
+  return out;
+}
+
 async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
   const isAnth = protocol === 'anthropic';
   const url = isAnth
@@ -103,7 +117,7 @@ async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
     const j = JSON.parse(text);
     const arr = Array.isArray(j) ? j : Array.isArray(j.data) ? j.data : Array.isArray(j.models) ? j.models : [];
     const models = arr.map((m) => (typeof m === 'string' ? m : m.id || m.name)).filter(Boolean);
-    return { models: [...new Set(models)].sort() };
+    return { models: [...new Set(models)].sort(), limits: extractModelLimits(arr) };
   } catch (e) {
     return { error: `返回内容不是 JSON：${text.slice(0, 1000)}` };
   }
@@ -199,7 +213,17 @@ export async function handleAdminApi(request, env, ctx, path) {
     }
     if (!baseUrl) return err('缺少 Base URL');
     const r = await fetchUpstreamModels(baseUrl, apiKey || '', protocol);
-    return r.error ? err(r.error, 502) : json(r);
+    if (r.error) return err(r.error, 502);
+    // 已存在的服务商：顺手把拉到的输出上限存进去（新服务商由保存时带上）
+    if (b.id && Object.keys(r.limits).length) {
+      const cfg = await getConfig(env, { fresh: true });
+      const p = cfg.providers.find((x) => x.id === b.id);
+      if (p) {
+        p.modelLimits = { ...(p.modelLimits || {}), ...r.limits };
+        await saveConfig(env, cfg);
+      }
+    }
+    return json(r);
   }
 
   if (path === '/admin/api/settings' && method === 'POST') {

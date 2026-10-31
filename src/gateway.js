@@ -187,7 +187,7 @@ function buildUpstream({ clientProtocol, endpoint, provider, model, body, reques
     upstreamProtocol,
     url: anthropicUrl(provider.baseUrl, 'messages'),
     headers: anthropicHeaders(provider.apiKey, { stream }),
-    payload: openAIToAnthropicRequest(body, model, { stream }),
+    payload: openAIToAnthropicRequest(body, model, { stream, maxTokens: provider.modelLimits?.[model] }),
   };
 }
 

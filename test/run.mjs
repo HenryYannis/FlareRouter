@@ -33,7 +33,7 @@ const upstream = http.createServer(async (req, res) => {
   const wantTool = () => body && Array.isArray(body.tools) && body.tools.length && /weather/.test(lastText());
 
   // ---- 假 Anthropic 上游 ----
-  if (req.url === '/anth/v1/models?limit=1000') return send(200, { data: [{ id: 'claude-x', type: 'model', display_name: 'Claude X' }, { id: 'claude-y', type: 'model' }], has_more: false });
+  if (req.url === '/anth/v1/models?limit=1000') return send(200, { data: [{ id: 'claude-x', type: 'model', display_name: 'Claude X' }, { id: 'claude-y', type: 'model', max_tokens: 64000 }], has_more: false });
   if (req.url.startsWith('/anthbad/')) return send(529, { type: 'error', error: { type: 'overloaded_error', message: 'Overloaded upstream anth 原文' } });
   if (req.url === '/anth/v1/messages/count_tokens') return send(200, { input_tokens: 42 });
   if (req.url === '/anth/v1/messages') {
@@ -472,7 +472,7 @@ try {
   r = await admin('/admin/api/providers/fetch-models', { id: 'anth' });
   d = await j(r);
   up = seen.at(-1);
-  ok(r.status === 200 && JSON.stringify(d.models) === '["claude-x","claude-y"]' && up.path === '/anth/v1/models?limit=1000' && up.xkey === 'sk-ant-secret-1234567890' && up.ver === '2023-06-01' && !up.auth, 'anthropic 拉取模型：/v1/models + x-api-key + anthropic-version', JSON.stringify({ d, up }));
+  ok(r.status === 200 && JSON.stringify(d.models) === '["claude-x","claude-y"]' && d.limits && d.limits['claude-y'] === 64000 && d.limits['claude-x'] == null && up.path === '/anth/v1/models?limit=1000' && up.xkey === 'sk-ant-secret-1234567890' && up.ver === '2023-06-01' && !up.auth, 'anthropic 拉取模型：/v1/models + x-api-key + anthropic-version', JSON.stringify({ d, up }));
 
   const XH = { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' };
   const msgs = (b, extra = {}) => req('/v1/messages', { method: 'POST', headers: { ...XH, ...extra }, body: JSON.stringify(b) });
@@ -685,6 +685,10 @@ try {
   ok(String(seen.at(-1).body.system || '').includes('JSON'), 'response_format=json_object 折进 Anthropic system', JSON.stringify(seen.at(-1).body.system));
   r = await msgs({ model: 'good/o3-mini', max_tokens: 32, messages: [{ role: 'user', content: 'hi' }] });
   ok(seen.at(-1).body.max_completion_tokens === 32 && seen.at(-1).body.max_tokens == null, 'o 系列上游使用 max_completion_tokens', JSON.stringify({ max_tokens: seen.at(-1).body.max_tokens, max_completion_tokens: seen.at(-1).body.max_completion_tokens }));
+  r = await chat({ model: 'anth/claude-y', messages: [{ role: 'user', content: 'hi' }] });
+  ok(seen.at(-1).body.max_tokens === 64000, '上游模型列表给了输出上限时，缺省 max_tokens 用该上限', JSON.stringify(seen.at(-1).body.max_tokens));
+  r = await chat({ model: 'anth/claude-y', max_tokens: 100, messages: [{ role: 'user', content: 'hi' }] });
+  ok(seen.at(-1).body.max_tokens === 100, '调用方显式 max_tokens 优先于上游上限', JSON.stringify(seen.at(-1).body.max_tokens));
   r = await chat({ model: 'anth/claude-x', max_tokens: 0, messages: [{ role: 'user', content: 'hi' }] });
   ok(seen.at(-1).body.max_tokens === 0, '显式 max_tokens: 0 不会被默认值替换', JSON.stringify(seen.at(-1).body.max_tokens));
   r = await chat({ model: 'anth/claude-x', max_completion_tokens: 123, messages: [{ role: 'user', content: 'hi' }] });
