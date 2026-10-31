@@ -859,17 +859,18 @@
       } else if (s.cache_read_tokens != null) {
         cacheVal = num(s.cache_read_tokens);
       }
-      // 失败并入成功率；Tokens 副行：平均耗时 + 缓存命中 → 4 格
-      var successHtml = (total ? (ok * 100 / total).toFixed(1) + '%' : '—') +
+      // 调用(+失败) · 成功率(+容灾) · Tokens(+缓存) · 平均耗时 → 4 格
+      var callsHtml = num(total) +
         '<span class="stat-sub">' + t('overview.failedCalls') + ' ' + num(total - ok) + '</span>';
+      var successHtml = (total ? (ok * 100 / total).toFixed(1) + '%' : '—') +
+        '<span class="stat-sub">' + t('overview.fallbackTriggered') + ' ' + num(s.fallback || 0) + '</span>';
       var tokensHtml = num(s.tokens || 0) +
-        '<span class="stat-sub">' + t('overview.avgLatency') + ' ' + (s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—') + '</span>' +
         '<span class="stat-sub">' + t('overview.cacheHit') + ' ' + cacheVal + '</span>';
       $('#stats').innerHTML = [
-        [t('overview.totalCalls'), num(total)],
+        [t('overview.totalCalls'), callsHtml],
         [t('overview.successRate'), successHtml],
-        [t('overview.fallbackTriggered'), num(s.fallback || 0)],
-        [t('overview.totalTokens'), tokensHtml]
+        [t('overview.totalTokens'), tokensHtml],
+        [t('overview.avgLatency'), s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—']
       ].map(function (x) { return '<div class="stat"><span class="muted small">' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
       var rows = s.byProvider || [];
       $('#stats-prov').innerHTML = '<tr><th>' + t('overview.thProvider') + '</th><th>' + t('overview.thCalls') + '</th><th>' + t('overview.thSuccess') + '</th><th>' + t('overview.thTokens') + '</th></tr>' +
