@@ -83,12 +83,12 @@ const upstream = http.createServer(async (req, res) => {
   }
   if (req.url === '/good/v1/images/edits') {
     const rawBody = typeof body === 'string' ? body : '';
-    const m = rawBody.match(/name="model"\r\n\r\n([^\r\n]*)/);
+    const m = rawBody.match(/name="model"\r?\n\r?\n([^\r\n]*)/);
     return send(200, { created: 1, data: [{ b64_json: 'aaa' }], model: m ? m[1] : 'unknown' });
   }
   if (req.url === '/good/v1/audio/transcriptions') {
     const rawBody = typeof body === 'string' ? body : '';
-    const m = rawBody.match(/name="model"\r\n\r\n([^\r\n]*)/);
+    const m = rawBody.match(/name="model"\r?\n\r?\n([^\r\n]*)/);
     return send(200, { text: '你好世界', model: m ? m[1] : 'unknown' });
   }
   if (req.url === '/good/v1/audio/speech') {
@@ -341,6 +341,21 @@ try {
   });
   d = await j(r);
   ok(r.status === 200 && d.data[0].b64_json === 'aaa' && seen.at(-1).path === '/good/v1/images/edits' && d.model === 'm2', '/v1/images/edits multipart 转发', JSON.stringify(d));
+  const lf = (fields) => {
+    let s = '';
+    for (const [name, val] of Object.entries(fields)) {
+      s += `--${boundary}\nContent-Disposition: form-data; name="${name}"\n\n${val}\n`;
+    }
+    s += `--${boundary}--\n`;
+    return s;
+  };
+  r = await req('/v1/images/edits', {
+    method: 'POST',
+    headers: { ...H, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    body: lf({ model: 'good/m2', prompt: 'lf edit' }),
+  });
+  d = await j(r);
+  ok(r.status === 200 && d.model === 'm2', 'multipart 使用 LF 时也会把模型名换成上游模型', JSON.stringify(d));
   r = await req('/v1/audio/transcriptions', {
     method: 'POST',
     headers: { ...H, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
