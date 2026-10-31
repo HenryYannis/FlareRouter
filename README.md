@@ -224,8 +224,8 @@ GitHub Actions（`.github/workflows/check.yml`）在每次 PR 和推送到 `main
 - 日志默认保留 30 天，每天 UTC 19:00 由 Cron 清理；默认不记录消息原文。
 - 图片生成 / 编辑、语音识别 / TTS 与 chat、embeddings、messages 一样走调用密钥鉴权，按模型解析服务商后原样转发（支持容灾）；Anthropic 协议的服务商不接 embeddings 与媒体接口（容灾时自动跳过）。请求体默认上限 25MB，媒体超时默认 120 秒（可用环境变量 `MAX_MEDIA_BYTES`、`MEDIA_TIMEOUT_MS` 调整）。不支持 Cloudflare Workers AI 绑定。
 - 协议互转的限制：
-  - Anthropic → OpenAI：`thinking`（扩展思考）、`cache_control`、`top_k`、服务端工具（web_search 等）、引用（citations）会被丢弃；OpenAI 上游返回的 `reasoning_content` 不转成 thinking 块（避免下一轮带着无签名的 thinking 发回 Anthropic 报错）；PDF 文档转成 OpenAI `file` 片段，上游不支持时会报错。
-  - OpenAI → Anthropic：没传 `max_tokens`（或 `max_completion_tokens`）时默认 8192；`temperature` 截到 0–1；`n`、`logprobs`、`response_format`、`seed` 等 Anthropic 没有的参数不转发；thinking 块转成 `reasoning_content`。
+  - Anthropic → OpenAI：`cache_control`、`top_k`、服务端工具（web_search 等）、引用（citations）会被丢弃；`thinking` 转成 `reasoning_content`，签名放在 `reasoning_signature`。OpenAI 上游的 `reasoning_content` 会转成 thinking 块；没有签名的 thinking 在发回 Anthropic 前改成普通文本，避免无签名块被拒绝。PDF 文档转成 OpenAI `file` 片段，上游不支持时会报错。
+  - OpenAI → Anthropic：没传 `max_tokens`（或 `max_completion_tokens`）时默认 8192；`temperature` 截到 0–1；`n`、`logprobs`、`response_format`、`seed` 等 Anthropic 没有的参数不转发；带 `reasoning_signature` 的思考按 thinking 块送回。
   - 跨协议时 `stop_sequence` 命中会报成普通结束（OpenAI 不区分）。
   - 工具的 JSON Schema 原样转发；个别 OpenAI 兼容服务商对 Schema 较挑剔（如不认 `$schema`、`format`），用 Claude Code 调这类上游时可能报 400，报错原文会直接显示。
 - `/v1/messages/count_tokens` 不写调用日志；OpenAI 上游时是粗略估算。

@@ -226,8 +226,8 @@ GitHub Actions（`.github/workflows/check.yml`）會在每次 PR 和推送到 `m
 - 日誌預設保留 30 天，每天 UTC 19:00 由 Cron 清理；預設不記錄訊息原文。
 - 圖片生成 / 編輯、語音辨識 / TTS 與 chat、embeddings、messages 一樣走呼叫密鑰驗證，依模型解析服務商後原樣轉送（支援容災）；Anthropic 協定的服務商不接 embeddings 與媒體介面（容災時自動略過）。請求體預設上限 25MB，媒體逾時預設 120 秒（可用環境變數 `MAX_MEDIA_BYTES`、`MEDIA_TIMEOUT_MS` 調整）。不支援 Cloudflare Workers AI 綁定。
 - 協定互轉的限制：
-  - Anthropic → OpenAI：`thinking`（延伸思考）、`cache_control`、`top_k`、伺服器端工具（web_search 等）、引用（citations）會被捨棄；OpenAI 上游回傳的 `reasoning_content` 不轉成 thinking 區塊（避免下一輪帶著沒有簽章的 thinking 傳回 Anthropic 而出錯）；PDF 文件轉成 OpenAI `file` 片段，上游不支援時會報錯。
-  - OpenAI → Anthropic：未傳 `max_tokens`（或 `max_completion_tokens`）時預設 8192；`temperature` 限制在 0–1；`n`、`logprobs`、`response_format`、`seed` 等 Anthropic 沒有的參數不轉送；thinking 區塊轉成 `reasoning_content`。
+  - Anthropic → OpenAI：`cache_control`、`top_k`、伺服器端工具（web_search 等）、引用（citations）會被捨棄。`thinking` 轉成 `reasoning_content`，簽章放在 `reasoning_signature`。沒有簽章的 thinking 在送回 Anthropic 前改成普通文字。PDF 文件轉成 OpenAI `file` 片段，上游不支援時會報錯。
+  - OpenAI → Anthropic：未傳 `max_tokens`（或 `max_completion_tokens`）時預設 8192；`temperature` 限制在 0–1；`n`、`logprobs`、`response_format`、`seed` 等 Anthropic 沒有的參數不轉送。`reasoning_content` 會轉成 thinking 區塊；沒有簽名的 thinking 在送回 Anthropic 前改成普通文字。簽名放在 `reasoning_signature`，可以往返。
   - 跨協定時命中 `stop_sequence` 會回報為一般結束（OpenAI 不區分）。
   - 工具的 JSON Schema 原樣轉送；部分 OpenAI 相容服務商對 Schema 較挑剔（如不接受 `$schema`、`format`），用 Claude Code 呼叫這類上游時可能回傳 400，錯誤原文會直接顯示。
 - `/v1/messages/count_tokens` 不寫入呼叫日誌；上游為 OpenAI 時是粗略估算。

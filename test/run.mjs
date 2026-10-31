@@ -65,6 +65,13 @@ const upstream = http.createServer(async (req, res) => {
     if (wantTool()) {
       return send(200, { id: 'msg_up2', type: 'message', role: 'assistant', model: body.model, content: [{ type: 'text', text: '好的' }, { type: 'tool_use', id: 'toolu_n1', name: 'get_weather', input: { city: '北京' } }], stop_reason: 'tool_use', stop_sequence: null, usage: { input_tokens: 30, output_tokens: 12 } });
     }
+    if (JSON.stringify(body).includes('need-signature')) {
+      return send(200, {
+        id: 'msg_th', type: 'message', role: 'assistant', model: body.model,
+        content: [{ type: 'thinking', thinking: '先想一下', signature: 'sig_abc' }, { type: 'text', text: '答案' }],
+        stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 3, output_tokens: 2 },
+      });
+    }
     return send(200, { id: 'msg_up3', type: 'message', role: 'assistant', model: body.model, content: [{ type: 'text', text: `claude pong from ${body.model}` }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 11, output_tokens: 4, cache_read_input_tokens: 5 }, echo_beta: req.headers['anthropic-beta'] || null });
   }
 
@@ -115,6 +122,20 @@ const upstream = http.createServer(async (req, res) => {
       id: 'tc1', object: 'chat.completion', model: body.model,
       choices: [{ index: 0, message: { role: 'assistant', content: null, tool_calls: [{ id: 'call.n1', type: 'function', function: { name: 'get_weather', arguments: '{"city":"广州"}' } }] }, finish_reason: 'tool_calls' }],
       usage: { prompt_tokens: 20, completion_tokens: 6, total_tokens: 26 },
+    });
+  }
+  if (req.url === '/good/v1/chat/completions' && JSON.stringify(body || {}).includes('show-reasoning')) {
+    if (body.stream) {
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: '先想一下' } }] })}\n\n`);
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '答案' } }] })}\n\n`);
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop' }] })}\n\n`);
+      return res.end('data: [DONE]\n\n');
+    }
+    return send(200, {
+      id: 'rsn', object: 'chat.completion', model: body.model,
+      choices: [{ index: 0, message: { role: 'assistant', content: '答案', reasoning_content: '先想一下', reasoning_signature: 'sig_from_oa' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 4, completion_tokens: 2, total_tokens: 6 },
     });
   }
   if (req.url === '/good/v1/chat/completions') {
@@ -475,6 +496,50 @@ try {
   r = await chat({ model: 'anth/claude-x', tools: [{ type: 'function', function: { name: 'get_weather', parameters: {} } }], messages: [{ role: 'user', content: 'weather?' }] });
   d = await j(r);
   ok(d.choices[0].finish_reason === 'tool_calls' && d.choices[0].message.content === '好的' && d.choices[0].message.tool_calls[0].id === 'toolu_n1' && JSON.parse(d.choices[0].message.tool_calls[0].function.arguments).city === '北京', 'Anthropic tool_use → OpenAI tool_calls', JSON.stringify(d));
+
+  r = await msgs({ model: 'good/m1', max_tokens: 20, messages: [{ role: 'user', content: 'show-reasoning' }] });
+  d = await j(r);
+  ok(d.content?.[0]?.type === 'thinking' && d.content[0].thinking === '先想一下' && d.content[0].signature === 'sig_from_oa' && d.content[1]?.text === '答案', 'OpenAI reasoning_content 转成 Anthropic thinking 块', JSON.stringify(d.content));
+  r = await msgs({ model: 'good/m1', max_tokens: 20, stream: true, messages: [{ role: 'user', content: 'show-reasoning' }] });
+  t = await r.text();
+  evs = parseSSE(t);
+  ok(evs.some((e) => e.ev === 'content_block_delta' && e.data?.delta?.type === 'thinking_delta' && e.data.delta.thinking === '先想一下') && evs.filter((e) => e.data?.delta?.type === 'text_delta').map((e) => e.data.delta.text).join('') === '答案', 'OpenAI 流式 reasoning_content 转成 thinking_delta', t.slice(0, 400));
+  r = await chat({ model: 'anth/claude-x', messages: [{ role: 'user', content: 'need-signature' }] });
+  d = await j(r);
+  ok(d.choices?.[0]?.message?.reasoning_content === '先想一下' && d.choices[0].message.reasoning_signature === 'sig_abc' && d.choices[0].message.content === '答案', 'Anthropic thinking 签名写入 reasoning_signature', JSON.stringify(d.choices?.[0]?.message));
+  r = await chat({
+    model: 'anth/claude-x',
+    messages: [
+      { role: 'assistant', content: '答案', reasoning_content: '先想一下', reasoning_signature: 'sig_ok' },
+      { role: 'user', content: '继续' },
+    ],
+  });
+  up = seen.at(-1);
+  {
+    const th = (up.body.messages.find((m) => m.role === 'assistant')?.content || []).find((b) => b.type === 'thinking');
+    ok(th && th.thinking === '先想一下' && th.signature === 'sig_ok', '带签名的 reasoning 送回 Anthropic thinking 块', JSON.stringify(up.body.messages));
+  }
+  r = await chat({
+    model: 'anth/claude-x',
+    messages: [
+      { role: 'assistant', content: '答案', reasoning_content: '没有签名' },
+      { role: 'user', content: '继续' },
+    ],
+  });
+  up = seen.at(-1);
+  ok(!(up.body.messages.find((m) => m.role === 'assistant')?.content || []).some((b) => b.type === 'thinking'), '没有签名的 reasoning 不会变成 thinking 块', JSON.stringify(up.body.messages));
+  r = await msgs({
+    model: 'anth/claude-x', max_tokens: 8,
+    messages: [
+      { role: 'assistant', content: [{ type: 'thinking', thinking: '未签名思路' }, { type: 'text', text: '好' }] },
+      { role: 'user', content: '继续 need-plain' },
+    ],
+  });
+  up = seen.at(-1);
+  {
+    const blocks = up.body.messages.find((m) => m.role === 'assistant')?.content || [];
+    ok(!blocks.some((b) => b.type === 'thinking') && blocks.some((b) => b.type === 'text' && b.text === '未签名思路'), '透传前把无签名 thinking 改成文本', JSON.stringify(blocks));
+  }
 
   // /v1/chat/completions → Anthropic 上游（流式）
   r = await chat({ model: 'anth/claude-x', stream: true, stream_options: { include_usage: true }, messages: [{ role: 'user', content: 'hi' }] });
