@@ -19,6 +19,32 @@ export function apiError(message, status = 400, type = 'gateway_error', extra = 
   return json({ error: { message, type, ...extra } }, status, CORS_HEADERS);
 }
 
+// 与媒体接口同一口径：默认 25MB。可用 MAX_MEDIA_BYTES 调大或调小。
+export const DEFAULT_MAX_BODY_BYTES = 25 * 1024 * 1024;
+
+export function maxBodyBytes(env) {
+  const fromEnv = parseInt((env && env.MAX_MEDIA_BYTES) || '', 10);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_MAX_BODY_BYTES;
+}
+
+// 先看 Content-Length，再看实际字节。缺这个头时不会被当成 0 而放行。
+export async function readBodyLimited(request, env) {
+  const max = maxBodyBytes(env);
+  const lenHdr = request.headers.get('content-length');
+  if (lenHdr != null && lenHdr !== '') {
+    const n = parseInt(lenHdr, 10);
+    if (Number.isFinite(n) && n > max) return { tooLarge: max };
+  }
+  let bytes;
+  try {
+    bytes = await request.arrayBuffer();
+  } catch (e) {
+    return { readError: e };
+  }
+  if (bytes.byteLength > max) return { tooLarge: max };
+  return { bytes, max };
+}
+
 export function errText(e) {
   if (!e) return '未知错误';
   if (e.name === 'AbortError') return '请求超时（AbortError）';

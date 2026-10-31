@@ -5,7 +5,7 @@ import { createKey, deleteKey, listKeys, renameKey, revokeKey } from './keys.js'
 import { clearLogs, queryLogs, statsSummary } from './logs.js';
 import { handleProxy, listModels } from './gateway.js';
 import { anthropicHeaders, anthropicUrl } from './anthropic.js';
-import { errText, json, maskKey, timingSafeEqualStr } from './util.js';
+import { errText, json, maskKey, readBodyLimited, timingSafeEqualStr } from './util.js';
 
 const COOKIE = 'gw_admin';
 const SESSION_TTL_S = 7 * 24 * 3600;
@@ -55,8 +55,15 @@ async function handleLogin(request, env) {
   const failKey = `login_fail:${ip}`;
   const fails = parseInt((await env.CONFIG.get(failKey)) || '0', 10);
   if (fails >= LOGIN_MAX_FAILS) return err(`密码连续错误 ${fails} 次，已锁定 15 分钟（按 IP ${ip}）`, 429);
+  const limited = await readBodyLimited(request, env);
+  if (limited.tooLarge) return err(`请求体过大（上限 ${limited.tooLarge} 字节）`, 413);
   let body = {};
-  try { body = await request.json(); } catch { /* 空 */ }
+  if (!limited.readError) {
+    try {
+      const parsed = JSON.parse(new TextDecoder().decode(limited.bytes));
+      if (parsed && typeof parsed === 'object') body = parsed;
+    } catch { /* 空 */ }
+  }
   if (!timingSafeEqualStr(String(body.password || ''), env.ADMIN_PASSWORD)) {
     await env.CONFIG.put(failKey, String(fails + 1), { expirationTtl: LOGIN_LOCK_S });
     return err(`密码错误（剩余 ${LOGIN_MAX_FAILS - fails - 1} 次）`, 401);

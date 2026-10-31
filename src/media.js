@@ -5,11 +5,10 @@
 import { getConfig } from './config.js';
 import { resolveTargets, protocolError } from './gateway.js';
 import { writeLog } from './logs.js';
-import { CORS_HEADERS, errText } from './util.js';
+import { CORS_HEADERS, errText, maxBodyBytes } from './util.js';
 
 const ERROR_TEXT_LIMIT = 2000;
 const DEFAULT_MEDIA_TIMEOUT_MS = 120000;
-const DEFAULT_MAX_MEDIA_BYTES = 25 * 1024 * 1024;
 
 export const MEDIA_ENDPOINTS = {
   'images/generations': { multipart: false },
@@ -26,8 +25,7 @@ function mediaTimeoutMs(env, provider) {
 }
 
 function maxMediaBytes(env) {
-  const fromEnv = parseInt(env.MAX_MEDIA_BYTES || '', 10);
-  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_MAX_MEDIA_BYTES;
+  return maxBodyBytes(env);
 }
 
 function openAIMediaUrl(baseUrl, endpoint) {
@@ -57,8 +55,11 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
   if (!spec) return protocolError('openai', `未知媒体接口 ${mediaPath}`, 404);
 
   const maxBytes = maxMediaBytes(env);
-  const len = parseInt(request.headers.get('Content-Length') || '0', 10);
-  if (len > maxBytes) return protocolError('openai', `请求体过大（上限 ${maxBytes} 字节）`, 413, 'invalid_request_error');
+  const lenHdr = request.headers.get('content-length');
+  if (lenHdr != null && lenHdr !== '') {
+    const len = parseInt(lenHdr, 10);
+    if (Number.isFinite(len) && len > maxBytes) return protocolError('openai', `请求体过大（上限 ${maxBytes} 字节）`, 413, 'invalid_request_error');
+  }
 
   const contentType = request.headers.get('Content-Type') || '';
   const isMultipart = contentType.toLowerCase().includes('multipart/form-data');
@@ -78,7 +79,11 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
       const form = await new Response(rawBytes, { headers: { 'Content-Type': contentType } }).formData();
       requestedModel = String(form.get('model') || '').trim();
     } else {
-      jsonBody = await request.json();
+      const raw = new Uint8Array(await request.arrayBuffer());
+      if (raw.byteLength > maxBytes) {
+        return protocolError('openai', `请求体过大（上限 ${maxBytes} 字节）`, 413, 'invalid_request_error');
+      }
+      jsonBody = JSON.parse(new TextDecoder().decode(raw));
       if (!jsonBody || typeof jsonBody !== 'object' || Array.isArray(jsonBody)) {
         return protocolError('openai', '请求体必须是 JSON 对象', 400, 'invalid_request_error');
       }

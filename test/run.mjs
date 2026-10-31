@@ -315,6 +315,20 @@ try {
   r = await req('/v1/embeddings', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', input: 'abc' }) });
   d = await j(r);
   ok(r.status === 200 && d.data[0].embedding.length === 2 && seen.at(-1).path === '/good/v1/embeddings', '/v1/embeddings 转发');
+  {
+    const huge = 'x'.repeat(25 * 1024 * 1024 + 32);
+    const tooBig = async (label, res) => {
+      const body = await j(res);
+      const msg = (body && body.error && (body.error.message || body.error)) || '';
+      ok(res.status === 413 && String(msg).includes('请求体过大') && String(msg).includes(String(25 * 1024 * 1024)), label, JSON.stringify(body).slice(0, 200));
+    };
+    await tooBig('chat 超过 25MB -> 413', await chat({ model: 'good/m1', messages: [{ role: 'user', content: huge }] }));
+    await tooBig('messages 超过 25MB -> 413', await req('/v1/messages', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', max_tokens: 8, messages: [{ role: 'user', content: huge }] }) }));
+    await tooBig('embeddings 超过 25MB -> 413', await req('/v1/embeddings', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', input: huge }) }));
+    await tooBig('count_tokens 超过 25MB -> 413', await req('/v1/messages/count_tokens', { method: 'POST', headers: H, body: JSON.stringify({ model: 'anth/claude-x', messages: [{ role: 'user', content: huge }] }) }));
+    await tooBig('图片生成 JSON 超过 25MB -> 413', await req('/v1/images/generations', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', prompt: huge }) }));
+    await tooBig('登录请求体超过 25MB -> 413', await req('/admin/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: huge }) }));
+  }
 
   // ---- 图片 / 语音（对齐控制台网关） ----
   r = await req('/v1/images/generations', { method: 'POST', headers: H, body: JSON.stringify({ model: 'good/m1', prompt: 'a cat', size: '256x256' }) });
