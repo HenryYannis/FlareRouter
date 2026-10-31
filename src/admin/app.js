@@ -8,7 +8,7 @@
     zh: {
       title: 'FlareRouter 网关',
       header: { copyEndpoint: '复制地址', copied: '已复制', logout: '退出账号', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
-      tabs: { overview: '概览', providers: '服务商', fallback: '容灾', keys: '调用密钥', logs: '日志', chat: '测试', settings: '设置' },
+      tabs: { overview: '概览', providers: '上游', fallback: '容灾', keys: '密钥', logs: '日志', chat: '测试', settings: '设置' },
       login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', unauth: '未登录' },
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
@@ -17,7 +17,7 @@
         thProvider: '服务商', thCalls: '调用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暂无调用', unhit: '（未命中）'
       },
       providers: {
-        title: '服务商', desc: '顺序即 auto 默认容灾顺序（未自定义容灾链时）', add: '添加服务商',
+        title: '上游', desc: '顺序即 auto 默认容灾顺序（未自定义容灾链时）', add: '添加服务商',
         thOrder: '顺序', thNameId: '名称 / ID', thBase: 'Base URL', thKey: 'Key', thModels: '模型', thEnable: '启用', thActions: '操作',
         empty: '还没有服务商，点右上角「添加服务商」。', edit: '编辑', del: '删除',
         delConfirm: '删除服务商「{name}」？它在容灾链里的条目也会一并移除。', deleted: '已删除',
@@ -91,7 +91,7 @@
     'zh-Hant': {
       title: 'FlareRouter 網關',
       header: { copyEndpoint: '複製地址', copied: '已複製', logout: '退出帳號', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
-      tabs: { overview: '概覽', providers: '服務商', fallback: '容災', keys: '調用密鑰', logs: '日誌', chat: '測試', settings: '設定' },
+      tabs: { overview: '概覽', providers: '上游', fallback: '容災', keys: '密鑰', logs: '日誌', chat: '測試', settings: '設定' },
       login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', unauth: '未登入' },
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
@@ -100,7 +100,7 @@
         thProvider: '服務商', thCalls: '調用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暫無調用', unhit: '（未命中）'
       },
       providers: {
-        title: '服務商', desc: '順序即 auto 預設容災順序（未自訂容災鏈時）', add: '新增服務商',
+        title: '上游', desc: '順序即 auto 預設容災順序（未自訂容災鏈時）', add: '新增服務商',
         thOrder: '順序', thNameId: '名稱 / ID', thBase: 'Base URL', thKey: 'Key', thModels: '模型', thEnable: '啟用', thActions: '操作',
         empty: '還沒有服務商，點右上角「新增服務商」。', edit: '編輯', del: '刪除',
         delConfirm: '刪除服務商「{name}」？它在容災鏈裡的條目也會一併移除。', deleted: '已刪除',
@@ -174,7 +174,7 @@
     en: {
       title: 'FlareRouter Gateway',
       header: { copyEndpoint: 'Copy URL', copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
-      tabs: { overview: 'Overview', providers: 'Providers', fallback: 'Failover', keys: 'API Keys', logs: 'Logs', chat: 'Test', settings: 'Settings' },
+      tabs: { overview: 'Overview', providers: 'Upstream', fallback: 'Failover', keys: 'Keys', logs: 'Logs', chat: 'Test', settings: 'Settings' },
       login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', unauth: 'Not signed in' },
       overview: {
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh',
@@ -183,7 +183,7 @@
         thProvider: 'Provider', thCalls: 'Calls', thSuccess: 'Success', thTokens: 'Tokens', noStats: 'No calls yet', unhit: '(Unhit)'
       },
       providers: {
-        title: 'Providers', desc: 'Order defines default failover when chain is unset', add: 'Add Provider',
+        title: 'Upstream', desc: 'Order defines default failover when chain is unset', add: 'Add Provider',
         thOrder: 'Order', thNameId: 'Name / ID', thBase: 'Base URL', thKey: 'Key', thModels: 'Models', thEnable: 'Enabled', thActions: 'Actions',
         empty: 'No providers yet. Click "Add Provider" above to start.', edit: 'Edit', del: 'Delete',
         delConfirm: 'Delete provider "{name}"? Entries in failover chain will also be removed.', deleted: 'Deleted',

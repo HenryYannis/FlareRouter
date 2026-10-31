@@ -138,8 +138,20 @@ header {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
-header h1 { font-size: 17px; margin: 0; font-weight: 700; color: var(--primary); }
-header .endpoint { color: var(--muted); font-size: 12.5px; }
+header h1 {
+  font-size: 17px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 26px;
+}
+header .endpoint {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 26px;
+  display: inline-flex;
+  align-items: center;
+}
 header .sp { flex: 1; }
 
 /* 主导航：保持玻璃条 + .on，不做胶囊滑块（与 Panel 刻意差异） */

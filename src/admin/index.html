@@ -82,11 +82,11 @@
     </header>
     <nav id="tabs">
       <button data-tab="overview" class="on" data-i18n="tabs.overview">概览</button>
-      <button data-tab="providers" data-i18n="tabs.providers">服务商</button>
-      <button data-tab="fallback" data-i18n="tabs.fallback">容灾</button>
-      <button data-tab="keys" data-i18n="tabs.keys">调用密钥</button>
-      <button data-tab="logs" data-i18n="tabs.logs">日志</button>
+      <button data-tab="providers" data-i18n="tabs.providers">上游</button>
+      <button data-tab="keys" data-i18n="tabs.keys">密钥</button>
       <button data-tab="chat" data-i18n="tabs.chat">测试</button>
+      <button data-tab="fallback" data-i18n="tabs.fallback">容灾</button>
+      <button data-tab="logs" data-i18n="tabs.logs">日志</button>
       <button data-tab="settings" data-i18n="tabs.settings">设置</button>
     </nav>
 
@@ -116,7 +116,7 @@
     <section data-pane="providers" class="hidden">
       <div class="card">
         <div class="row" style="margin-bottom:10px">
-          <h2 style="margin:0" data-i18n="providers.title">服务商</h2>
+          <h2 style="margin:0" data-i18n="providers.title">上游</h2>
           <span class="muted small" data-i18n="providers.desc">顺序即 auto 默认容灾顺序（未自定义容灾链时）</span>
           <span class="grow"></span>
           <button class="btn primary" id="add-prov" data-i18n="providers.add">添加服务商</button>
@@ -249,7 +249,7 @@
 <!-- 服务商编辑 -->
 <dialog id="dlg-prov">
   <form method="dialog" id="prov-form">
-    <div class="dh" id="prov-title" data-i18n="providers.title">服务商</div>
+    <div class="dh" id="prov-title" data-i18n="providers.title">上游</div>
     <div class="db">
       <div class="row">
         <div class="grow"><label class="f" for="p-name" data-i18n="providers.labelName">名称</label><input type="text" id="p-name" style="width:100%" placeholder="例如：OpenRouter"></div>
