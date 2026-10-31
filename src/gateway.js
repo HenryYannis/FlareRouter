@@ -418,9 +418,15 @@ export async function handleCountTokens(request, env) {
   const { targets, error } = resolveTargets(cfg, body.model, { allowFallback: !noFallback });
   if (error) return protocolError('anthropic', error.message, error.status);
   const trail = [];
-  for (const { provider, model } of targets) {
+  for (let i = 0; i < targets.length; i++) {
+    const { provider, model } = targets[i];
     if (upstreamProtocolOf(provider) === 'openai') {
-      return json({ input_tokens: estimateAnthropicInputTokens(body) }, 200, { ...CORS_HEADERS, 'x-gateway-provider': provider.id, 'x-gateway-estimated': '1' });
+      // 只有主目标就是 OpenAI 时才本地估算。容灾链里的 OpenAI 不能挡住后面的 Anthropic。
+      if (i === 0) {
+        return json({ input_tokens: estimateAnthropicInputTokens(body) }, 200, { ...CORS_HEADERS, 'x-gateway-provider': provider.id, 'x-gateway-estimated': '1' });
+      }
+      trail.push({ provider: provider.id, model, status: 0, error: 'count_tokens 仅在主目标是 OpenAI 兼容上游时做本地估算，已跳过' });
+      continue;
     }
     const url = anthropicUrl(provider.baseUrl, 'messages/count_tokens');
     const controller = new AbortController();
