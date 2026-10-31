@@ -8,7 +8,7 @@
     zh: {
       title: 'FlareRouter 网关',
       header: { copyEndpoint: '复制地址', copied: '已复制', logout: '退出账号', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
-      tabs: { overview: '概览', providers: '服务商', fallback: '容灾', keys: '调用密钥', logs: '日志', chat: '对话', test: '测试', settings: '设置' },
+      tabs: { overview: '概览', providers: '服务商', fallback: '容灾', keys: '调用密钥', logs: '日志', chat: '对话', settings: '设置' },
       login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', unauth: '未登录' },
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
@@ -71,10 +71,13 @@
         ttfbTotal: '首包 {ttfb} ms · 总 {total} ms', totalOnly: '{total} ms'
       },
       chat: {
+        desc: '走真实的转发、容灾与日志链路（日志里密钥显示为「管理页测试」）。会话仅保存在本机浏览器。',
         labelModel: '模型', noFallback: '关闭容灾', clear: '清空对话', clearConfirm: '清空当前对话？此操作不可恢复。',
         placeholder: '输入消息，Enter 发送，Shift+Enter 换行', send: '发送', stop: '停止',
         empty: '还没有消息。选一个模型，开始对话。', thinking: '生成中…',
-        errAborted: '已停止', localOnly: '对话仅保存在本机浏览器'
+        thinkLabel: '思考过程', errAborted: '已停止', localOnly: '对话仅保存在本机浏览器',
+        metaInfo: 'HTTP {status} · 服务商 {provider} · 模型 {model} · 尝试 {attempts} 次',
+        ttfbTotal: '首包 {ttfb} ms · 总 {total} ms', totalOnly: '{total} ms'
       },
       settings: {
         logsTitle: '日志', retentionLabel: '日志保留', daysUnit: '天（0 = 永久，每日 Cron 清理）',
@@ -87,7 +90,7 @@
     'zh-Hant': {
       title: 'FlareRouter 網關',
       header: { copyEndpoint: '複製地址', copied: '已複製', logout: '退出帳號', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
-      tabs: { overview: '概覽', providers: '服務商', fallback: '容災', keys: '調用密鑰', logs: '日誌', chat: '對話', test: '測試', settings: '設定' },
+      tabs: { overview: '概覽', providers: '服務商', fallback: '容災', keys: '調用密鑰', logs: '日誌', chat: '對話', settings: '設定' },
       login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', unauth: '未登入' },
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
@@ -150,10 +153,13 @@
         ttfbTotal: '首包 {ttfb} ms · 總 {total} ms', totalOnly: '{total} ms'
       },
       chat: {
+        desc: '走真實的轉發、容災與日誌鏈路（日誌裡密鑰顯示為「管理頁測試」）。對話僅保存在本機瀏覽器。',
         labelModel: '模型', noFallback: '關閉容災', clear: '清空對話', clearConfirm: '清空當前對話？此操作不可恢復。',
         placeholder: '輸入訊息，Enter 發送，Shift+Enter 換行', send: '發送', stop: '停止',
         empty: '還沒有訊息。選一個模型，開始對話。', thinking: '生成中…',
-        errAborted: '已停止', localOnly: '對話僅保存在本機瀏覽器'
+        thinkLabel: '思考過程', errAborted: '已停止', localOnly: '對話僅保存在本機瀏覽器',
+        metaInfo: 'HTTP {status} · 服務商 {provider} · 模型 {model} · 嘗試 {attempts} 次',
+        ttfbTotal: '首包 {ttfb} ms · 總 {total} ms', totalOnly: '{total} ms'
       },
       settings: {
         logsTitle: '日誌', retentionLabel: '日誌保留', daysUnit: '天（0 = 永久，每日 Cron 清理）',
@@ -166,7 +172,7 @@
     en: {
       title: 'FlareRouter Gateway',
       header: { copyEndpoint: 'Copy URL', copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
-      tabs: { overview: 'Overview', providers: 'Providers', fallback: 'Failover', keys: 'API Keys', logs: 'Logs', chat: 'Chat', test: 'Test', settings: 'Settings' },
+      tabs: { overview: 'Overview', providers: 'Providers', fallback: 'Failover', keys: 'API Keys', logs: 'Logs', chat: 'Chat', settings: 'Settings' },
       login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', unauth: 'Not signed in' },
       overview: {
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh',
@@ -229,10 +235,13 @@
         ttfbTotal: 'TTFB {ttfb} ms · Total {total} ms', totalOnly: '{total} ms'
       },
       chat: {
+        desc: 'Uses the real proxy, failover and logging path (logged as "Admin Test"). Chat is stored only in this browser.',
         labelModel: 'Model', noFallback: 'Disable Failover', clear: 'Clear Chat', clearConfirm: 'Clear this chat? This cannot be undone.',
         placeholder: 'Type a message. Enter to send, Shift+Enter for newline', send: 'Send', stop: 'Stop',
         empty: 'No messages yet. Pick a model and start chatting.', thinking: 'Generating…',
-        errAborted: 'Stopped', localOnly: 'Chat is stored only in this browser'
+        thinkLabel: 'Thinking', errAborted: 'Stopped', localOnly: 'Chat is stored only in this browser',
+        metaInfo: 'HTTP {status} · Provider {provider} · Model {model} · Attempts {attempts}',
+        ttfbTotal: 'TTFB {ttfb} ms · Total {total} ms', totalOnly: '{total} ms'
       },
       settings: {
         logsTitle: 'Logs', retentionLabel: 'Log retention', daysUnit: 'days (0 = forever, daily cron cleanup)',
@@ -590,8 +599,6 @@
     var ms = state.cfg.models || modelsFrom(state.cfg.providers);
     state.cfg.models = ms;
     var opts = ms.map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
-    var keepT = $('#t-model').value;
-    $('#t-model').innerHTML = opts; if (keepT) $('#t-model').value = keepT;
     var keepC = $('#c-model').value || (chatState && chatState.model) || '';
     $('#c-model').innerHTML = opts; if (keepC) $('#c-model').value = keepC;
     $('#chain-add').innerHTML = ms.filter(function (m) { return m !== 'auto'; }).map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
@@ -807,6 +814,12 @@
       chatState.noFallback = !!o.noFallback;
       chatState.messages = Array.isArray(o.messages) ? o.messages.filter(function (m) {
         return m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string';
+      }).map(function (m) {
+        return {
+          role: m.role,
+          content: m.content,
+          reasoning: typeof m.reasoning === 'string' ? m.reasoning : ''
+        };
       }).slice(-40) : [];
     } catch (e) {}
   }
@@ -815,9 +828,16 @@
       localStorage.setItem(CHAT_LS_KEY, JSON.stringify({
         model: $('#c-model').value || chatState.model || 'auto',
         noFallback: $('#c-nofb').checked,
-        messages: chatState.messages
+        messages: chatState.messages.map(function (m) {
+          return { role: m.role, content: m.content, reasoning: m.reasoning || '' };
+        })
       }));
     } catch (e) {}
+  }
+  function apiMessagesFromChat() {
+    return chatState.messages.map(function (m) {
+      return { role: m.role, content: m.content };
+    });
   }
   function renderMd(src) {
     var s = String(src == null ? '' : src);
@@ -875,8 +895,12 @@
     }
     box.innerHTML = chatState.messages.map(function (m, idx) {
       var role = m.role === 'assistant' ? 'assistant' : 'user';
+      var think = '';
+      if (role === 'assistant' && m.reasoning) {
+        think = '<details class="chat-think"><summary>' + esc(t('chat.thinkLabel')) + '</summary><div class="chat-think-body">' + esc(m.reasoning).replace(/\n/g, '<br>') + '</div></details>';
+      }
       var body = role === 'assistant' ? renderMd(m.content) : esc(m.content).replace(/\n/g, '<br>');
-      return '<div class="chat-bubble ' + role + '" data-idx="' + idx + '"><div class="chat-role">' + (role === 'assistant' ? 'AI' : 'You') + '</div><div class="chat-body">' + body + '</div></div>';
+      return '<div class="chat-bubble ' + role + '" data-idx="' + idx + '"><div class="chat-role">' + (role === 'assistant' ? 'AI' : 'You') + '</div>' + think + '<div class="chat-body">' + body + '</div></div>';
     }).join('');
     box.scrollTop = box.scrollHeight;
   }
@@ -888,7 +912,7 @@
     $('#c-model').disabled = chatBusy;
     $('#c-nofb').disabled = chatBusy;
     $('#c-stop').classList.toggle('hidden', !chatBusy);
-    $('#c-status').textContent = chatBusy ? t('chat.thinking') : '';
+    if (chatBusy) $('#c-status').textContent = t('chat.thinking');
   }
   function initChatUi() {
     loadChatState();
@@ -905,6 +929,7 @@
     chatState.messages = [];
     saveChatState();
     renderChatMessages();
+    $('#c-status').textContent = '';
     setChatBusy(false);
   });
   $('#c-stop').addEventListener('click', function () {
@@ -915,14 +940,17 @@
     var text = $('#c-input').value.trim();
     if (!text) return;
     $('#c-input').value = '';
-    chatState.messages.push({ role: 'user', content: text });
-    chatState.messages.push({ role: 'assistant', content: '' });
+    chatState.messages.push({ role: 'user', content: text, reasoning: '' });
+    chatState.messages.push({ role: 'assistant', content: '', reasoning: '' });
     renderChatMessages();
     saveChatState();
     setChatBusy(true);
     chatAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var assistantIdx = chatState.messages.length - 1;
+    var t0 = performance.now();
+    var first = 0;
     try {
+      var payloadMessages = apiMessagesFromChat().slice(0, -1);
       var res = await fetch('/admin/api/test', {
         method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-Admin': '1' },
@@ -931,18 +959,26 @@
           model: $('#c-model').value || 'auto',
           stream: true,
           noFallback: $('#c-nofb').checked,
-          messages: chatState.messages.slice(0, -1)
+          messages: payloadMessages
         })
+      });
+      var meta = t('chat.metaInfo', {
+        status: res.status,
+        provider: res.headers.get('x-gateway-provider') || '—',
+        model: res.headers.get('x-gateway-model') || '—',
+        attempts: res.headers.get('x-gateway-attempts') || '—'
       });
       if (!res.ok) {
         var errText = await res.text();
         try { var ej = JSON.parse(errText); errText = (ej.error && ej.error.message) || ej.error || errText; } catch (e) {}
         if (res.status === 401) show('login');
         chatState.messages[assistantIdx].content = String(errText || ('HTTP ' + res.status));
+        $('#c-status').textContent = meta + ' · ' + t('chat.totalOnly', { total: Math.round(performance.now() - t0) });
       } else if (res.body) {
-        var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', textOut = '';
+        var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', contentOut = '', reasonOut = '';
         for (;;) {
           var r = await reader.read(); if (r.done) break;
+          if (!first) first = performance.now();
           buf += dec.decode(r.value, { stream: true });
           var lines = buf.split('\n'); buf = lines.pop();
           lines.forEach(function (ln) {
@@ -950,20 +986,33 @@
             var d = ln.slice(5).trim(); if (!d || d === '[DONE]') return;
             try {
               var o = JSON.parse(d), dl = o.choices && o.choices[0] && o.choices[0].delta;
-              if (dl) textOut += (dl.reasoning_content || '') + (dl.content || '');
-            } catch (e) { textOut += '\n' + d; }
+              if (dl) {
+                if (dl.reasoning_content) reasonOut += dl.reasoning_content;
+                if (dl.content) contentOut += dl.content;
+              }
+            } catch (e) { contentOut += '\n' + d; }
           });
-          chatState.messages[assistantIdx].content = textOut;
+          chatState.messages[assistantIdx].reasoning = reasonOut;
+          chatState.messages[assistantIdx].content = contentOut;
           renderChatMessages();
         }
-        if (!textOut) chatState.messages[assistantIdx].content = '(empty)';
+        if (!contentOut && !reasonOut) chatState.messages[assistantIdx].content = '(empty)';
+        $('#c-status').textContent = meta + ' · ' + t('chat.ttfbTotal', {
+          ttfb: Math.round((first || performance.now()) - t0),
+          total: Math.round(performance.now() - t0)
+        });
       } else {
         chatState.messages[assistantIdx].content = '(empty)';
+        $('#c-status').textContent = meta + ' · ' + t('chat.totalOnly', { total: Math.round(performance.now() - t0) });
       }
     } catch (err) {
       var msg = (err && err.name === 'AbortError') ? t('chat.errAborted') : String(err && err.message || err);
-      if (!chatState.messages[assistantIdx].content) chatState.messages[assistantIdx].content = msg;
-      else if (err && err.name === 'AbortError') chatState.messages[assistantIdx].content += '\n\n(' + t('chat.errAborted') + ')';
+      if (!chatState.messages[assistantIdx].content && !chatState.messages[assistantIdx].reasoning) {
+        chatState.messages[assistantIdx].content = msg;
+      } else if (err && err.name === 'AbortError') {
+        chatState.messages[assistantIdx].content += (chatState.messages[assistantIdx].content ? '\n\n' : '') + '(' + t('chat.errAborted') + ')';
+      }
+      $('#c-status').textContent = '';
     }
     saveChatState();
     renderChatMessages();
@@ -976,50 +1025,6 @@
       e.preventDefault();
       sendChat();
     }
-  });
-
-  // ---- 测试 ----
-  $('#t-go').addEventListener('click', async function () {
-    var btn = this; btn.disabled = true;
-    var out = $('#t-out'); out.classList.remove('hidden'); out.classList.remove('err'); out.textContent = '';
-    $('#t-meta').textContent = t('test.requesting');
-    var t0 = performance.now();
-    try {
-      var res = await fetch('/admin/api/test', {
-        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Admin': '1' },
-        body: JSON.stringify({ model: $('#t-model').value, prompt: $('#t-prompt').value, stream: $('#t-stream').checked, noFallback: $('#t-nofb').checked })
-      });
-      var meta = t('test.metaInfo', {
-        status: res.status,
-        provider: res.headers.get('x-gateway-provider') || '—',
-        model: res.headers.get('x-gateway-model') || '—',
-        attempts: res.headers.get('x-gateway-attempts') || '—'
-      });
-      if (res.ok && $('#t-stream').checked && res.body) {
-        var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', text = '';
-        var first = 0;
-        for (;;) {
-          var r = await reader.read(); if (r.done) break;
-          if (!first) first = performance.now();
-          buf += dec.decode(r.value, { stream: true });
-          var lines = buf.split('\n'); buf = lines.pop();
-          lines.forEach(function (ln) {
-            ln = ln.trim(); if (ln.indexOf('data:') !== 0) return;
-            var d = ln.slice(5).trim(); if (!d || d === '[DONE]') return;
-            try { var o = JSON.parse(d), dl = o.choices && o.choices[0] && o.choices[0].delta; if (dl) text += (dl.reasoning_content || '') + (dl.content || ''); } catch (e) { text += '\n[error] ' + d; }
-          });
-          out.textContent = text;
-        }
-        $('#t-meta').textContent = meta + ' · ' + t('test.ttfbTotal', { ttfb: Math.round(first - t0), total: Math.round(performance.now() - t0) });
-      } else {
-        var raw = await res.text();
-        try { raw = JSON.stringify(JSON.parse(raw), null, 2); } catch (e) {}
-        if (!res.ok) { out.classList.add('err'); if (res.status === 401) show('login'); }
-        out.textContent = raw;
-        $('#t-meta').textContent = meta + ' · ' + t('test.totalOnly', { total: Math.round(performance.now() - t0) });
-      }
-    } catch (err) { out.classList.add('err'); out.textContent = String(err && err.stack || err); $('#t-meta').textContent = ''; }
-    btn.disabled = false;
   });
 
   // ---- 启动 ----
