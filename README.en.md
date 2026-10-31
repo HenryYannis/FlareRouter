@@ -56,7 +56,7 @@ Then open `https://your-host/admin` and sign in with the admin password:
 1. Under 服务商 (Providers), add providers (the base URL usually ends in `/v1`). Leave the model list empty and saving pulls and stores every model; or click 从服务商拉取 (pull from provider) and tick models, which are saved as you tick
 2. Under 容灾 (Failover), order the failover chain (if empty, the first model of each provider is used, in provider order)
 3. Under 调用密钥 (Gateway keys), create a key; the plain text is shown only once
-4. Send a message under 测试 (Test) and check the result under 日志 (Logs)
+4. Use 对话 (Chat) for multi-turn streaming chats (stored only in this browser); use 测试 (Test) for a one-shot probe and check 日志 (Logs)
 
 To update, run `npx wrangler deploy`; when a new migration ships, run `npm run db:migrate` again (migrations already applied are skipped).
 

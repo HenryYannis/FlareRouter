@@ -568,6 +568,18 @@ try {
   r = await admin('/admin/api/test', { model: 'good/m1', prompt: 'ping' });
   d = await j(r);
   ok(r.status === 200 && d.choices[0].message.content === 'pong from m1', '管理页测试调用走同一链路');
+  r = await admin('/admin/api/test', {
+    model: 'good/m1',
+    messages: [
+      { role: 'user', content: 'hi' },
+      { role: 'assistant', content: 'hello' },
+      { role: 'user', content: 'ping' },
+    ],
+  });
+  d = await j(r);
+  ok(r.status === 200 && d.choices[0].message.content === 'pong from m1', '管理页测试支持 messages 多轮');
+  t = await (await req('/admin')).text();
+  ok(t.includes('data-pane="chat"') && t.includes('id="c-messages"'), '管理页有对话栏目');
 
   // ---- 日志 ----
   await sleep(500);
