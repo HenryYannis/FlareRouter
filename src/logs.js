@@ -32,7 +32,7 @@ export function writeLog(env, ctx, entry) {
     entry.completionTokens ?? null,
     entry.totalTokens ?? null,
     entry.fallback ? 1 : 0,
-    entry.attempts || 1,
+    entry.attempts ?? 1,
     entry.trail && entry.trail.length ? cut(JSON.stringify(entry.trail), 8000) : null,
     cut(entry.error),
     cut(entry.prompt),
