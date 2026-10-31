@@ -36,7 +36,7 @@ function findProviderById(cfg, id) {
   return cfg.providers.find((p) => p.id.toLowerCase() === low) || null;
 }
 
-// 把「服务商ID/模型」解析成 {provider, model}；前缀不是服务商ID时返回 null
+// 把「服务商 ID/模型」解析成 {provider, model}；前缀不是服务商 ID 时返回 null
 export function parseScoped(cfg, scoped) {
   const s = String(scoped || '').trim();
   const i = s.indexOf('/');
@@ -97,7 +97,7 @@ export function resolveTargets(cfg, requestedModel, { allowFallback = true } = {
     if (!primary.length) {
       return {
         targets: [],
-        error: { status: 404, message: `找不到模型「${req}」：请用「服务商ID/模型」格式，或先把该模型加进某个已启用服务商的模型列表。可用列表见 GET /v1/models` },
+        error: { status: 404, message: `找不到模型「${req}」：请用「服务商 ID/模型」格式，或先把该模型加进某个已启用服务商的模型列表。可用列表见 GET /v1/models` },
       };
     }
   }

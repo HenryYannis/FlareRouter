@@ -9,7 +9,7 @@ let cacheAt = 0;
 export const DEFAULT_SETTINGS = {
   // 请求的模型失败后，是否继续按「容灾链」尝试其它服务商/模型
   fallbackEnabled: true,
-  // 容灾链：按顺序排列的「服务商ID/模型」；为空时按服务商顺序取各家第一个模型
+  // 容灾链：按顺序排列的「服务商 ID/模型」；为空时按服务商顺序取各家第一个模型
   fallbackChain: [],
   // 日志保留天数，0 = 永久保留（由每日 Cron 清理）
   logRetentionDays: 30,
