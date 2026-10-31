@@ -440,6 +440,32 @@ try {
     && um[3].role === 'tool' && um[3].tool_call_id === 'toolu_01' && um[3].content === '晴 25 度' && um[4].role === 'user' && um[4].content === '谢谢，再说一句',
   'Anthropic→OpenAI 请求：system、多轮、图片、tool_use、tool_result 转换', JSON.stringify(um));
   ok(up.body.max_tokens === 200 && up.body.temperature === 0.3 && JSON.stringify(up.body.stop) === '["END"]' && up.body.tools.length === 1 && up.body.tools[0].function.parameters.properties.city && up.body.tool_choice === 'auto' && !up.body.system, 'Anthropic→OpenAI 请求：参数与 tools 转换（丢弃服务端工具）', JSON.stringify(up.body).slice(0, 400));
+
+  r = await msgs({
+    model: 'good/m1', max_tokens: 40,
+    messages: [
+      { role: 'user', content: '查一下' },
+      { role: 'assistant', content: [{ type: 'text', text: '我搜一下' }, { type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_search', input: { query: '天气' } }] },
+      { role: 'user', content: [
+        { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_1', content: [{ type: 'web_search_result', title: '晴', url: 'https://example.com/w' }] },
+        { type: 'text', text: '总结' },
+      ] },
+    ],
+  });
+  up = seen.at(-1);
+  {
+    const sm = up.body.messages || [];
+    const asst = sm.find((m) => m.role === 'assistant');
+    const toolMsg = sm.find((m) => m.role === 'tool');
+    const callId = asst && asst.tool_calls && asst.tool_calls[0] && asst.tool_calls[0].id;
+    ok(
+      r.status === 200 && asst && asst.tool_calls && asst.tool_calls[0].function.name === 'web_search'
+        && toolMsg && toolMsg.tool_call_id === callId && String(toolMsg.content).includes('晴')
+        && sm.some((m) => m.role === 'user' && (m.content === '总结' || (Array.isArray(m.content) && m.content.some((c) => c.text === '总结')))),
+      'server_tool_use 与 web_search_tool_result 成对转成 tool_calls / tool 消息',
+      JSON.stringify(sm),
+    );
+  }
   ok(r.status === 200 && d.type === 'message' && d.role === 'assistant' && d.model === 'good/m1' && d.content[0].type === 'text' && d.content[0].text === 'pong from m1' && d.stop_reason === 'end_turn' && d.usage.input_tokens === 6 && d.usage.output_tokens === 3 && d.usage.cache_read_input_tokens === 4 && r.headers.get('x-gateway-protocol') === 'anthropic->openai', 'OpenAI→Anthropic 响应（非流式，usage 含缓存）', JSON.stringify(d));
 
   // tool_use 非流式
