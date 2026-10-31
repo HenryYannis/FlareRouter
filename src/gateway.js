@@ -12,6 +12,7 @@ import {
   estimateAnthropicInputTokens,
   openAIToAnthropicRequest,
   openAIToAnthropicResponse,
+  sanitizeAnthropicPayload,
   usageForLog,
 } from './anthropic.js';
 import { CORS_HEADERS, apiError, errText, estimateMessagesTokens, estimateTokens, json } from './util.js';
@@ -170,7 +171,7 @@ function buildUpstream({ clientProtocol, endpoint, provider, model, body, reques
       upstreamProtocol,
       url: anthropicUrl(provider.baseUrl, 'messages'),
       headers: anthropicHeaders(provider.apiKey, { version, beta, stream }),
-      payload: { ...body, model },
+      payload: sanitizeAnthropicPayload({ ...body, model }),
     };
   }
   if (clientProtocol === 'anthropic' && upstreamProtocol === 'openai') {
@@ -468,7 +469,7 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
     if (typeof completionTokens !== 'number') completionTokens = estimateTokens(st.outText);
     await writeLog(env, ctx, {
       ...logCommon,
-      status: res.status,
+      status: st.error ? 502 : res.status,
       latencyMs: Date.now() - t0,
       ttfbMs: ttfb,
       promptTokens,
