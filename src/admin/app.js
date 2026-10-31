@@ -40,7 +40,8 @@
       },
       keys: {
         title: '调用密钥', namePlaceholder: '名称，例如：笔记本 / Cherry Studio', generate: '生成新密钥',
-        newKeyNotice: '新密钥已生成，已完整保存至列表，可随时查看或复制：', copy: '复制',
+        newKeyNotice: '已为「{name}」生成密钥，已保存至列表，可随时查看或复制：', copy: '复制', dismiss: '关闭',
+        nameRequired: '请先填写名称',
         showHide: '显示 / 隐藏明文', legacyNoRaw: '旧密钥无明文', thName: '名称', thKey: '密钥',
         thCreated: '创建', thLastUsed: '最近使用', thStatus: '状态', thActions: '操作',
         active: '有效', revoked: '已吊销', revoke: '吊销', delete: '删除',
@@ -111,7 +112,8 @@
       },
       keys: {
         title: '調用密鑰', namePlaceholder: '名稱，例如：筆記本 / Cherry Studio', generate: '生成新密鑰',
-        newKeyNotice: '新密鑰已生成，已完整儲存至列表，可隨時查看或複製：', copy: '複製',
+        newKeyNotice: '已為「{name}」產生密鑰，已儲存至列表，可隨時查看或複製：', copy: '複製', dismiss: '關閉',
+        nameRequired: '請先填寫名稱',
         showHide: '顯示 / 隱藏明文', legacyNoRaw: '舊密鑰無明文', thName: '名稱', thKey: '密鑰',
         thCreated: '建立', thLastUsed: '最近使用', thStatus: '狀態', thActions: '操作',
         active: '有效', revoked: '已吊銷', revoke: '吊銷', delete: '刪除',
@@ -182,7 +184,8 @@
       },
       keys: {
         title: 'API Keys', namePlaceholder: 'Name, e.g. Laptop / Cursor', generate: 'Generate Key',
-        newKeyNotice: 'New key generated and saved. You can view or copy it anytime in the list below:', copy: 'Copy',
+        newKeyNotice: 'Key created for "{name}" and saved to the list. You can view or copy it anytime:', copy: 'Copy', dismiss: 'Dismiss',
+        nameRequired: 'Please enter a name first',
         showHide: 'Show / Hide Key', legacyNoRaw: 'Legacy (no raw key)', thName: 'Name', thKey: 'Key',
         thCreated: 'Created', thLastUsed: 'Last Used', thStatus: 'Status', thActions: 'Actions',
         active: 'Active', revoked: 'Revoked', revoke: 'Revoke', delete: 'Delete',
@@ -633,14 +636,29 @@
       $('#lf-key').innerHTML = '<option value="">' + t('logs.allKeys') + '</option><option value="admin">' + t('logs.adminTest') + '</option>' + r.items.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join('');
     } catch (err) { $('#key-table').innerHTML = '<tr><td class="err">' + esc(err.message) + '</td></tr>'; }
   }
+  function dismissNewKey() {
+    $('#key-new').classList.add('hidden');
+    $('#key-new-val').textContent = '';
+    $('#key-new-notice').textContent = '';
+    $('#key-name').value = '';
+  }
   $('#key-create').addEventListener('click', async function () {
+    var name = $('#key-name').value.trim();
+    if (!name) {
+      toast(t('keys.nameRequired'));
+      $('#key-name').focus();
+      return;
+    }
     try {
-      var k = await api('/admin/api/keys', { body: { name: $('#key-name').value.trim() || t('keys.unnamed') } });
-      $('#key-new-val').textContent = k.key; $('#key-new').classList.remove('hidden'); $('#key-name').value = '';
+      var k = await api('/admin/api/keys', { body: { name: name } });
+      $('#key-new-notice').textContent = t('keys.newKeyNotice', { name: name });
+      $('#key-new-val').textContent = k.key;
+      $('#key-new').classList.remove('hidden');
       loadKeys();
     } catch (err) { alert(err.message); }
   });
   $('#key-copy').addEventListener('click', function () { navigator.clipboard.writeText($('#key-new-val').textContent).then(function () { toast(t('header.copied')); }); });
+  $('#key-new-dismiss').addEventListener('click', dismissNewKey);
   $('#key-table').addEventListener('click', async function (e) {
     var b = e.target.closest('[data-ktoggle], [data-kcopy], [data-revoke], [data-kdel]'); if (!b) return;
     try {
