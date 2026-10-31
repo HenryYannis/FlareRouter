@@ -347,6 +347,7 @@ table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
 th { font-size: var(--fs-meta); color: var(--muted); font-weight: var(--fw-ui); }
 th.col-actions, td.col-actions { text-align: center; }
+#key-table td { vertical-align: middle; }
 html.night-theme th { background: rgba(255, 255, 255, 0.02); }
 tr.click { cursor: pointer; }
 tr.click:hover td { background: var(--soft); }
