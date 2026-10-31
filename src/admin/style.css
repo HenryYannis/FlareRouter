@@ -168,10 +168,15 @@ nav button {
 }
 nav button:hover { color: var(--text); background: var(--soft); }
 nav button.on {
-  color: var(--text);
-  background: var(--card);
-  border-color: var(--border);
+  color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.12);
+  border-color: rgba(var(--primary-rgb), 0.35);
   font-weight: 600;
+}
+nav button.on:hover {
+  color: var(--primary-hover);
+  background: rgba(var(--primary-rgb), 0.18);
+  border-color: var(--primary);
 }
 
 .card {
