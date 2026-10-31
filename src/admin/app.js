@@ -217,7 +217,7 @@
     }
   };
 
-  var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, editing: null, fetched: [], lang: 'zh', maskedKeys: {} };
+  var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, editing: null, fetched: [], lang: 'zh', unmaskedKeys: {} };
 
   function t(path, params) {
     var lang = state.lang || 'zh';
@@ -313,29 +313,9 @@
     return data;
   }
 
-  // ---- 主题（对齐 FlarePanel：跟随系统 + 日月按钮 + 星空） ----
-  var starsContainer = null;
+  // ---- 主题（对齐 FlarePanel：跟随系统 + 日月按钮） ----
   function systemPrefersDark() {
     return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  }
-  function createSkyStars() {
-    if (!starsContainer) {
-      starsContainer = document.createElement('div');
-      starsContainer.className = 'stars-container';
-      starsContainer.id = 'sky-stars-container';
-      document.body.appendChild(starsContainer);
-    }
-    starsContainer.innerHTML = '';
-    for (var i = 0; i < 35; i++) {
-      var star = document.createElement('div');
-      star.className = 'star';
-      var size = (Math.random() * 1.5 + 1).toFixed(1);
-      star.style.cssText = 'width:' + size + 'px;height:' + size + 'px;top:' + (Math.random() * 100).toFixed(1) + '%;left:' + (Math.random() * 100).toFixed(1) + '%;animation-delay:' + (Math.random() * 3).toFixed(1) + 's;animation-duration:' + (Math.random() * 5 + 4).toFixed(1) + 's';
-      starsContainer.appendChild(star);
-    }
-  }
-  function clearSkyStars() {
-    if (starsContainer) { starsContainer.remove(); starsContainer = null; }
   }
   function updateThemeButtons(isDark) {
     var label = isDark ? t('header.themeToLight') : t('header.themeToDark');
@@ -348,7 +328,6 @@
     document.documentElement.classList.remove('day-theme', 'night-theme');
     document.documentElement.classList.add(isDark ? 'night-theme' : 'day-theme');
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    if (isDark) createSkyStars(); else clearSkyStars();
     updateThemeButtons(isDark);
   }
   function initTheme() {
@@ -631,11 +610,11 @@
       $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th>' + t('keys.thStatus') + '</th><th>' + t('keys.thActions') + '</th></tr>' +
         (r.items.length ? r.items.map(function (k) {
           var hasRaw = !!k.raw_key;
-          var isMasked = !!state.maskedKeys[k.id];
-          var displayKey = hasRaw ? (isMasked ? k.preview : k.raw_key) : k.preview;
+          var isUnmasked = !!state.unmaskedKeys[k.id];
+          var displayKey = hasRaw ? (isUnmasked ? k.raw_key : '*'.repeat(k.raw_key.length)) : k.preview;
           var keyHtml = '<span class="key-cell">' +
-            '<span class="mono small key-val">' + esc(displayKey) + '</span>' +
-            (hasRaw ? ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isMasked ? '👁' : '🙈') + '</button>' : ' <span class="muted small" title="' + t('keys.legacyNoRaw') + '">(' + t('keys.legacyNoRaw') + ')</span>') +
+            '<span class="mono small key-val' + (hasRaw ? ' click' : '') + '"' + (hasRaw ? ' data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '"' : '') + '>' + esc(displayKey) + '</span>' +
+            (hasRaw ? ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isUnmasked ? '🙈' : '👁') + '</button>' : ' <span class="muted small" title="' + t('keys.legacyNoRaw') + '">(' + t('keys.legacyNoRaw') + ')</span>') +
             (hasRaw ? ' <button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button>' : '') +
             '</span>';
           return '<tr><td><b>' + esc(k.name) + '</b></td>' +
@@ -657,11 +636,11 @@
   });
   $('#key-copy').addEventListener('click', function () { navigator.clipboard.writeText($('#key-new-val').textContent).then(function () { toast(t('header.copied')); }); });
   $('#key-table').addEventListener('click', async function (e) {
-    var b = e.target.closest('button'); if (!b) return;
+    var b = e.target.closest('[data-ktoggle], [data-kcopy], [data-revoke], [data-kdel]'); if (!b) return;
     try {
       if (b.dataset.ktoggle) {
         var id = b.dataset.ktoggle;
-        state.maskedKeys[id] = !state.maskedKeys[id];
+        state.unmaskedKeys[id] = !state.unmaskedKeys[id];
         loadKeys();
         return;
       }

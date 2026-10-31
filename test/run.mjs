@@ -153,13 +153,12 @@ try {
     r.status === 200 &&
       t.includes('FlareRouter') &&
       t.includes('night-theme') &&
-      t.includes('stars-container') &&
       t.includes('data-theme-toggle') &&
       t.includes('data-lang-select') &&
       t.includes('data-i18n') &&
       t.includes('var $$ = function') &&
       !/gradient/i.test(t),
-    'GET /admin 返回管理页（主题/星空、三语国际化、保留 var $$、无渐变）',
+    'GET /admin 返回管理页（主题、三语国际化、保留 var $$、无渐变）',
   );
   let rFavicon = await req('/favicon.ico');
   ok(rFavicon.status === 204, 'GET /favicon.ico -> 204');
