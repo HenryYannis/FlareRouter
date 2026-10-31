@@ -471,6 +471,10 @@ try {
     && am[1].role === 'assistant' && am[1].content[0].type === 'tool_use' && am[1].content[0].input.city === '深圳'
     && am[2].role === 'user' && am[2].content[0].type === 'tool_result' && am[2].content[0].tool_use_id === 'call_9' && am[2].content[1].text === '然后呢',
   'OpenAI→Anthropic 请求：system、图片、tool_calls、tool 消息合并、max_tokens 默认、温度截断', JSON.stringify(up.body).slice(0, 600));
+  r = await chat({ model: 'anth/claude-x', response_format: { type: 'json_object' }, messages: [{ role: 'user', content: 'hi' }] });
+  ok(String(seen.at(-1).body.system || '').includes('JSON'), 'response_format=json_object 折进 Anthropic system', JSON.stringify(seen.at(-1).body.system));
+  r = await msgs({ model: 'good/o3-mini', max_tokens: 32, messages: [{ role: 'user', content: 'hi' }] });
+  ok(seen.at(-1).body.max_completion_tokens === 32 && seen.at(-1).body.max_tokens == null, 'o 系列上游使用 max_completion_tokens', JSON.stringify({ max_tokens: seen.at(-1).body.max_tokens, max_completion_tokens: seen.at(-1).body.max_completion_tokens }));
   ok(r.status === 200 && d.object === 'chat.completion' && d.choices[0].message.content === 'claude pong from claude-x' && d.choices[0].finish_reason === 'stop' && d.usage.prompt_tokens === 16 && d.usage.completion_tokens === 4 && d.usage.prompt_tokens_details?.cached_tokens === 5 && d.model === 'anth/claude-x', 'Anthropic→OpenAI 响应（非流式，usage 含缓存）', JSON.stringify(d));
   r = await chat({ model: 'anth/claude-x', tools: [{ type: 'function', function: { name: 'get_weather', parameters: {} } }], messages: [{ role: 'user', content: 'weather?' }] });
   d = await j(r);
