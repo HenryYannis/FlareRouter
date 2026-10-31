@@ -11,6 +11,12 @@
 
 面向一个人自用：没有用户体系、计费和配额，零构建，管理页拆成 HTML/CSS/JS 后由入口注入成单页打进 Worker。错误信息一律原文返回、原文显示，不做隐藏。
 
+![概览](docs/screenshots/overview.webp)
+
+![上游](docs/screenshots/providers.webp)
+
+![设置](docs/screenshots/settings.webp)
+
 ## 功能
 
 - **服务商管理**：名称、ID、协议类型（OpenAI 兼容 / Anthropic）、Base URL、API Key（页面只显示脱敏预览）、模型列表（可从服务商 `/models` 拉取勾选）、启用、顺序、超时
