@@ -6,10 +6,10 @@
 
   var I18N = {
     zh: {
-      title: 'FlareRouter · 管理',
+      title: 'FlareRouter 网关',
       header: { copyEndpoint: '复制地址', copied: '已复制', logout: '退出', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
       tabs: { overview: '概览', providers: '服务商', fallback: '容灾', keys: '调用密钥', logs: '日志', test: '测试', settings: '设置' },
-      login: { title: 'FlareRouter · 管理登录', passwordLabel: '管理员密码', submit: '登录', unauth: '未登录' },
+      login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', unauth: '未登录' },
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
         totalCalls: '调用次数', successRate: '成功率', failedCalls: '失败', fallbackTriggered: '触发容灾', totalTokens: 'Tokens', avgLatency: '平均耗时',
@@ -78,10 +78,10 @@
       footer: { brand: 'FlareRouter', github: 'GitHub' }
     },
     'zh-Hant': {
-      title: 'FlareRouter · 管理',
+      title: 'FlareRouter 網關',
       header: { copyEndpoint: '複製地址', copied: '已複製', logout: '退出', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
       tabs: { overview: '概覽', providers: '服務商', fallback: '容災', keys: '調用密鑰', logs: '日誌', test: '測試', settings: '設定' },
-      login: { title: 'FlareRouter · 管理登入', passwordLabel: '管理員密碼', submit: '登入', unauth: '未登入' },
+      login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', unauth: '未登入' },
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
         totalCalls: '調用次數', successRate: '成功率', failedCalls: '失敗', fallbackTriggered: '觸發容災', totalTokens: 'Tokens', avgLatency: '平均耗時',
@@ -150,10 +150,10 @@
       footer: { brand: 'FlareRouter', github: 'GitHub' }
     },
     en: {
-      title: 'FlareRouter · Admin',
+      title: 'FlareRouter Gateway',
       header: { copyEndpoint: 'Copy URL', copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
       tabs: { overview: 'Overview', providers: 'Providers', fallback: 'Failover', keys: 'API Keys', logs: 'Logs', test: 'Test', settings: 'Settings' },
-      login: { title: 'FlareRouter · Admin Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', unauth: 'Not signed in' },
+      login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', unauth: 'Not signed in' },
       overview: {
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh',
         totalCalls: 'Total Calls', successRate: 'Success Rate', failedCalls: 'Failed', fallbackTriggered: 'Failovers', totalTokens: 'Tokens', avgLatency: 'Avg Latency',
