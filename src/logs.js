@@ -14,6 +14,37 @@ const COLS_LEGACY = `ts, key_id, key_name, endpoint, requested_model, provider_i
 
 const missingCol = (e) => /no column|no such column|has no column/i.test((e && e.message) || '');
 
+// 先缩短每条 error，仍超长再丢掉末尾的尝试，保证入库的是合法 JSON 且不超过 8000。
+function encodeTrail(trail) {
+  if (!trail || !trail.length) return null;
+  const limit = 8000;
+  const pack = (maxErr) => trail.map((t) => {
+    if (!t || typeof t !== 'object') return { error: String(t ?? '') };
+    const copy = { ...t };
+    if (copy.error != null) copy.error = String(copy.error).slice(0, maxErr);
+    return copy;
+  });
+  let maxErr = 2000;
+  let items = pack(maxErr);
+  let s = JSON.stringify(items);
+  while (s.length > limit && maxErr > 40) {
+    maxErr = Math.max(40, Math.floor(maxErr / 2));
+    items = pack(maxErr);
+    s = JSON.stringify(items);
+    if (maxErr === 40) break;
+  }
+  while (s.length > limit && items.length > 1) {
+    items = items.slice(0, -1);
+    s = JSON.stringify(items);
+  }
+  if (s.length > limit) {
+    const one = items[0] && typeof items[0] === 'object' ? { ...items[0] } : { error: '' };
+    one.error = String(one.error || '').slice(0, 400);
+    s = JSON.stringify([one]);
+  }
+  return s;
+}
+
 export function writeLog(env, ctx, entry) {
   const baseLegacy = [
     entry.ts,
@@ -33,7 +64,7 @@ export function writeLog(env, ctx, entry) {
     entry.totalTokens ?? null,
     entry.fallback ? 1 : 0,
     entry.attempts || 1,
-    entry.trail && entry.trail.length ? cut(JSON.stringify(entry.trail), 8000) : null,
+    entry.trail && entry.trail.length ? encodeTrail(entry.trail) : null,
     cut(entry.error),
     cut(entry.prompt),
   ];
