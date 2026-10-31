@@ -548,6 +548,22 @@ try {
   r = await chat({
     model: 'anth/claude-x',
     messages: [
+      { role: 'assistant', content: null, tool_calls: [{ id: '', type: 'function', function: { name: 'get_weather', arguments: '{}' } }] },
+      { role: 'tool', tool_call_id: '', content: 'ok' },
+      { role: 'user', content: '然后呢' },
+    ],
+  });
+  up = seen.at(-1);
+  {
+    const asstEmpty = (up.body.messages || []).find((m) => m.role === 'assistant');
+    const userEmpty = (up.body.messages || []).find((m) => m.role === 'user');
+    const id1 = (asstEmpty?.content || []).find((b) => b.type === 'tool_use')?.id;
+    const id2 = (userEmpty?.content || []).find((b) => b.type === 'tool_result')?.tool_use_id;
+    ok(id1 && id1 === id2, '空 tool id 在同一次请求里配对成同一个 id', JSON.stringify({ id1, id2, messages: up.body.messages }));
+  }
+  r = await chat({
+    model: 'anth/claude-x',
+    messages: [
       { role: 'user', content: '第一轮' },
       { role: 'system', content: '中途提醒' },
       { role: 'user', content: '第二轮' },
