@@ -189,10 +189,11 @@ nav button {
   white-space: nowrap;
 }
 nav button { flex: 1; text-align: center; }
-/* 移动端：三列两行等宽，三种语言都放得下 */
+/* 移动端：保持一行，按钮均分撑满左右；放不下时横向滚动而不换行 */
 @media (max-width: 720px) {
-  nav { display: grid; grid-template-columns: repeat(3, 1fr); }
-  nav button { padding: 6px 4px; }
+  nav { flex-wrap: nowrap; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  nav button { flex: 1 1 auto; padding: 6px 4px; }
 }
 nav button:hover { color: var(--text); background: var(--soft); }
 nav button.on {
