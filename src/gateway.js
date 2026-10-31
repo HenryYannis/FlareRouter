@@ -15,7 +15,7 @@ import {
   sanitizeAnthropicPayload,
   usageForLog,
 } from './anthropic.js';
-import { CORS_HEADERS, apiError, errText, estimateMessagesTokens, estimateTokens, json } from './util.js';
+import { CORS_HEADERS, apiError, errText, estimateMessagesTokens, estimateTokens, json, readBodyLimited } from './util.js';
 
 const ERROR_TEXT_LIMIT = 2000;
 
@@ -219,9 +219,12 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
   const t0 = Date.now();
   const clientProtocol = endpoint === 'messages' ? 'anthropic' : 'openai';
   const fail = (message, status, type) => protocolError(clientProtocol, message, status, type);
+  const limited = await readBodyLimited(request, env);
+  if (limited.tooLarge) return fail(`请求体过大（上限 ${limited.tooLarge} 字节）`, 413, 'invalid_request_error');
+  if (limited.readError) return fail(`读取请求体失败：${errText(limited.readError)}`, 400, 'invalid_request_error');
   let body;
   try {
-    body = await request.json();
+    body = JSON.parse(new TextDecoder().decode(limited.bytes));
   } catch (e) {
     return fail(`请求体不是合法 JSON：${errText(e)}`, 400, 'invalid_request_error');
   }
@@ -410,8 +413,11 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
  * 不写调用日志（Claude Code 会频繁调用）
  */
 export async function handleCountTokens(request, env) {
+  const limited = await readBodyLimited(request, env);
+  if (limited.tooLarge) return protocolError('anthropic', `请求体过大（上限 ${limited.tooLarge} 字节）`, 413);
+  if (limited.readError) return protocolError('anthropic', `读取请求体失败：${errText(limited.readError)}`, 400);
   let body;
-  try { body = await request.json(); } catch (e) { return protocolError('anthropic', `请求体不是合法 JSON：${errText(e)}`, 400); }
+  try { body = JSON.parse(new TextDecoder().decode(limited.bytes)); } catch (e) { return protocolError('anthropic', `请求体不是合法 JSON：${errText(e)}`, 400); }
   if (!body || typeof body !== 'object' || Array.isArray(body)) return protocolError('anthropic', '请求体必须是 JSON 对象', 400);
   const cfg = await getConfig(env);
   const noFallback = /^(0|off|false|no)$/i.test(request.headers.get('x-gateway-fallback') || '');
