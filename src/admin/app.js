@@ -73,7 +73,7 @@
       },
       chat: {
         desc: '走真实的转发、容灾与日志链路。会话仅保存在本机浏览器。',
-        labelModel: '模型', noFallback: '关闭容灾', clear: '清空对话', clearConfirm: '清空当前对话？此操作不可恢复。',
+        labelModel: '模型', noFallback: '关闭容灾', clear: '清空', clearConfirm: '清空当前对话？此操作不可恢复。',
         placeholder: '输入消息，Enter 发送，Shift+Enter 换行', send: '发送', stop: '停止',
         attach: '上传文件', removeAttach: '移除', dropHint: '可将图片或文件拖到此处',
         errTooMany: '最多上传 {max} 个文件', errTooLarge: '文件过大（上限 {max} MiB）：{name}',
@@ -160,7 +160,7 @@
       },
       chat: {
         desc: '走真實的轉發、容災與日誌鏈路。會話僅保存在本機瀏覽器。',
-        labelModel: '模型', noFallback: '關閉容災', clear: '清空對話', clearConfirm: '清空當前對話？此操作不可恢復。',
+        labelModel: '模型', noFallback: '關閉容災', clear: '清空', clearConfirm: '清空當前對話？此操作不可恢復。',
         placeholder: '輸入訊息，Enter 發送，Shift+Enter 換行', send: '發送', stop: '停止',
         attach: '上傳檔案', removeAttach: '移除', dropHint: '可將圖片或檔案拖到此處',
         errTooMany: '最多上傳 {max} 個檔案', errTooLarge: '檔案過大（上限 {max} MiB）：{name}',
@@ -247,7 +247,7 @@
       },
       chat: {
         desc: 'Uses the real proxy, failover and logging path. Session is stored only in this browser.',
-        labelModel: 'Model', noFallback: 'Disable Failover', clear: 'Clear Chat', clearConfirm: 'Clear this chat? This cannot be undone.',
+        labelModel: 'Model', noFallback: 'Disable Failover', clear: 'Clear', clearConfirm: 'Clear this chat? This cannot be undone.',
         placeholder: 'Type a message. Enter to send, Shift+Enter for newline', send: 'Send', stop: 'Stop',
         attach: 'Attach file', removeAttach: 'Remove', dropHint: 'Drop images or files here',
         errTooMany: 'At most {max} files', errTooLarge: 'File too large (max {max} MiB): {name}',
@@ -564,7 +564,7 @@
 
   function renderProviders() {
     var ps = state.cfg.providers;
-    var h = '<tr><th>' + t('providers.thOrder') + '</th><th>' + t('providers.thNameId') + '</th><th class="hide-sm">' + t('providers.thBase') + '</th><th>' + t('providers.thKey') + '</th><th>' + t('providers.thModels') + '</th><th>' + t('providers.thEnable') + '</th><th>' + t('providers.thActions') + '</th></tr>';
+    var h = '<tr><th>' + t('providers.thOrder') + '</th><th>' + t('providers.thNameId') + '</th><th class="hide-sm">' + t('providers.thBase') + '</th><th>' + t('providers.thKey') + '</th><th>' + t('providers.thModels') + '</th><th>' + t('providers.thEnable') + '</th><th class="col-actions">' + t('providers.thActions') + '</th></tr>';
     if (!ps.length) h += '<tr><td colspan="7" class="muted">' + t('providers.empty') + '</td></tr>';
     ps.forEach(function (p, i) {
       h += '<tr>' +
@@ -574,7 +574,7 @@
         '<td class="mono small">' + (p.hasKey ? esc(p.apiKeyPreview) : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') + '</td>' +
         '<td class="small" title="' + esc(p.models.join(', ')) + '">' + p.models.length + '<div class="muted mono">' + esc(p.models[0] || '') + '</div></td>' +
         '<td><label class="switch"><input type="checkbox" data-toggle="' + esc(p.id) + '"' + (p.enabled ? ' checked' : '') + '><span></span></label></td>' +
-        '<td style="white-space:nowrap"><button class="btn sm" data-edit="' + i + '">' + t('providers.edit') + '</button> <button class="btn sm danger" data-del="' + esc(p.id) + '">' + t('providers.del') + '</button></td>' +
+        '<td class="col-actions" style="white-space:nowrap"><button class="btn sm" data-edit="' + i + '">' + t('providers.edit') + '</button> <button class="btn sm danger" data-del="' + esc(p.id) + '">' + t('providers.del') + '</button></td>' +
         '</tr>';
     });
     $('#prov-table').innerHTML = h;
@@ -775,7 +775,7 @@
   // ---- 密钥 ----
   function renderKeys(items) {
     state.keys = items || [];
-    $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th>' + t('keys.thStatus') + '</th><th>' + t('keys.thActions') + '</th></tr>' +
+    $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th>' + t('keys.thStatus') + '</th><th class="col-actions">' + t('keys.thActions') + '</th></tr>' +
       (state.keys.length ? state.keys.map(function (k) {
         var hasRaw = !!k.raw_key;
         var isUnmasked = !!state.unmaskedKeys[k.id];
@@ -790,7 +790,7 @@
           '<td class="small">' + fmtTime(k.created_at) + '</td>' +
           '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
           '<td><span class="tag ' + (k.revoked ? 'bad' : 'ok') + '">' + (k.revoked ? t('keys.revoked') : t('keys.active')) + '</span></td>' +
-          '<td style="white-space:nowrap"><button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' + (k.revoked ? '' : '<button class="btn sm" data-revoke="' + esc(k.id) + '">' + t('keys.revoke') + '</button> ') + '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
+          '<td class="col-actions" style="white-space:nowrap"><button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' + (k.revoked ? '' : '<button class="btn sm" data-revoke="' + esc(k.id) + '">' + t('keys.revoke') + '</button> ') + '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
       }).join('') : '<tr><td colspan="6" class="muted">' + t('keys.empty') + '</td></tr>');
     $('#lf-key').innerHTML = '<option value="">' + t('logs.allKeys') + '</option><option value="admin">' + t('logs.adminTest') + '</option>' + state.keys.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join('');
   }
@@ -1216,6 +1216,8 @@
     $('#c-nofb').disabled = chatBusy;
     $('#c-attach').disabled = chatBusy;
     $('#c-file').disabled = chatBusy;
+    // 忙时发送位换成停止，保持右侧三钮同高
+    $('#c-send').classList.toggle('hidden', chatBusy);
     $('#c-stop').classList.toggle('hidden', !chatBusy);
     if (chatBusy) $('#c-status').textContent = t('chat.thinking');
   }
