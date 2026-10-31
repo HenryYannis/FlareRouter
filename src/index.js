@@ -11,6 +11,7 @@ import ADMIN_HTML from './admin/index.html';
 import ADMIN_CSS from './admin/style.css';
 import ADMIN_APP from './admin/app.js';
 import { CORS_HEADERS, apiError, errText, extractBearer, json } from './util.js';
+import { APPLE_TOUCH_ICON_B64 } from './admin/apple-touch-icon.js';
 
 function adminPage() {
   return ADMIN_HTML
@@ -24,6 +25,13 @@ async function route(request, env, ctx) {
 
   if (path === '/favicon.ico') {
     return new Response(null, { status: 204 });
+  }
+
+  if (path === '/apple-touch-icon.png' || path === '/apple-touch-icon-precomposed.png') {
+    const bin = Uint8Array.from(atob(APPLE_TOUCH_ICON_B64), (c) => c.charCodeAt(0));
+    return new Response(bin, {
+      headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' },
+    });
   }
 
   // ---- 管理页 ----
