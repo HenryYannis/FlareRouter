@@ -21,7 +21,7 @@ Built for one person: no user accounts, billing or quotas, no build step. The ad
 - **Failover**: a network error, timeout or any non-2xx moves to the next entry in the chain; streams switch only before the upstream starts responding; the header `x-gateway-fallback: off` disables it for one request, and a setting disables it globally
 - **Gateway keys**: authenticate with `Authorization: Bearer`, `x-api-key` or `api-key`; create several, view raw keys, copy anytime, revoke and delete in the admin page; D1 stores raw keys and hashes
 - **Logs**: stored in D1, written asynchronously with `ctx.waitUntil`; filter by status, failover, protocol, provider, key, model or error text, and clear them; every failed attempt keeps the upstream's raw error
-- **Admin page**: `/admin` on the same Worker, admin-password sign-in; tabs for overview, upstream, keys, test, failover, logs and settings; sources in `src/admin/` (`index.html`, `style.css`, `app.js`); supports Simplified Chinese, Traditional Chinese, and English; day/night theme follows the system like FlarePanel; Test supports multi-turn streaming, collapsible thinking, and Markdown (stored only in this browser)
+- **Admin page**: `/admin` on the same Worker, admin-password sign-in; tabs for overview, upstream, keys, test, logs and settings (failover lives under settings); sources in `src/admin/` (`index.html`, `style.css`, `app.js`); supports Simplified Chinese, Traditional Chinese, and English; day/night theme follows the system like FlarePanel; Test supports multi-turn streaming, collapsible thinking, and Markdown (stored only in this browser)
 
 ## Deploy
 
@@ -55,8 +55,8 @@ Then open `https://your-host/admin` and sign in with the admin password:
 
 1. Under 上游 (Upstream), add providers (the base URL usually ends in `/v1`). You can save with an empty model list, then click 从服务商拉取 (pull from provider) and tick models; ticks are saved as you go
 2. Under 密钥 (Keys), create a key; the plain text is shown only once
-3. Use 测试 (Test) for multi-turn streaming chats (real proxy/failover/logging)
-4. Under 容灾 (Failover), order the failover chain (if empty, the first model of each provider is used, in provider order); check results under 日志 (Logs)
+3. Use 测试 (Test) for multi-turn streaming chats (real proxy/failover/logging); check results under 日志 (Logs)
+4. Under 设置 (Settings), configure the failover chain (if empty, the first model of each provider is used, in provider order), log retention and backup
 
 To update, run `npx wrangler deploy`; when a new migration ships, run `npm run db:migrate` again (migrations already applied are skipped).
 
