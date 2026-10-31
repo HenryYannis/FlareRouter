@@ -53,7 +53,7 @@ It deploys to `https://flarerouter.<your-subdomain>.workers.dev`. To use your ow
 
 Then open `https://your-host/admin` and sign in with the admin password:
 
-1. Under 服务商 (Providers), add providers (the base URL usually ends in `/v1`). Leave the model list empty and saving pulls and stores every model; or click 从服务商拉取 (pull from provider) and tick models, which are saved as you tick
+1. Under 服务商 (Providers), add providers (the base URL usually ends in `/v1`). You can save with an empty model list, then click 从服务商拉取 (pull from provider) and tick models; ticks are saved as you go
 2. Under 容灾 (Failover), order the failover chain (if empty, the first model of each provider is used, in provider order)
 3. Under 调用密钥 (Gateway keys), create a key; the plain text is shown only once
 4. Send a message under 测试 (Test) and check the result under 日志 (Logs)

@@ -123,7 +123,7 @@ export async function handleAdminApi(request, env, ctx, path) {
 
   if (path === '/admin/api/providers' && method === 'POST') {
     const b = await readJson(request);
-    const cfg = await getConfig(env, { fresh: true });
+    const cfg = await getConfig(env);
     const input = b.provider || {};
     const id = String(input.id || '').trim();
     if (!ID_RE.test(id)) return err('服务商 ID 只能用字母、数字、下划线、点、短横线，1–40 位，且不能含「/」');
@@ -139,17 +139,8 @@ export async function handleAdminApi(request, env, ctx, path) {
     const p = normalizeProvider({ ...(old || {}), ...input, id, apiKey });
     if (!p.baseUrl) return err('Base URL 不能为空');
     if (!/^https?:\/\//i.test(p.baseUrl)) return err('Base URL 需以 http:// 或 https:// 开头');
-    // 模型列表留空：保存时自动从服务商拉取并全部写入；拉取失败照常保存，把原因带回去
-    let modelsNotice = '';
-    if (!p.models.length) {
-      const r = await fetchUpstreamModels(p.baseUrl, p.apiKey, p.protocol);
-      if (r.models && r.models.length) {
-        p.models = r.models;
-        modelsNotice = `已自动拉取并写入 ${r.models.length} 个模型`;
-      } else {
-        modelsNotice = `模型列表为空，自动拉取失败：${r.error || '服务商没有返回模型'}`;
-      }
-    }
+    // 模型列表留空时不再同步拉上游（避免保存卡顿）；用户可点「从服务商拉取」
+    const modelsNotice = p.models.length ? '' : '模型列表为空，可点「从服务商拉取」写入';
     if (idx >= 0) cfg.providers[idx] = p;
     else cfg.providers.push(p);
     if (old && old.id !== id) {
@@ -161,7 +152,7 @@ export async function handleAdminApi(request, env, ctx, path) {
 
   if (path === '/admin/api/providers/delete' && method === 'POST') {
     const { id } = await readJson(request);
-    const cfg = await getConfig(env, { fresh: true });
+    const cfg = await getConfig(env);
     cfg.providers = cfg.providers.filter((p) => p.id !== id);
     cfg.settings.fallbackChain = cfg.settings.fallbackChain.filter((s) => !s.startsWith(`${id}/`));
     return json(publicConfig(await saveConfig(env, cfg)));
@@ -169,7 +160,7 @@ export async function handleAdminApi(request, env, ctx, path) {
 
   if (path === '/admin/api/providers/toggle' && method === 'POST') {
     const { id, enabled } = await readJson(request);
-    const cfg = await getConfig(env, { fresh: true });
+    const cfg = await getConfig(env);
     const p = cfg.providers.find((x) => x.id === id);
     if (!p) return err(`找不到服务商 ${id}`, 404);
     p.enabled = !!enabled;
@@ -178,7 +169,7 @@ export async function handleAdminApi(request, env, ctx, path) {
 
   if (path === '/admin/api/providers/reorder' && method === 'POST') {
     const { ids } = await readJson(request);
-    const cfg = await getConfig(env, { fresh: true });
+    const cfg = await getConfig(env);
     if (!Array.isArray(ids)) return err('ids 必须是数组');
     const map = new Map(cfg.providers.map((p) => [p.id, p]));
     const next = ids.map((i) => map.get(i)).filter(Boolean);
@@ -191,7 +182,7 @@ export async function handleAdminApi(request, env, ctx, path) {
     const b = await readJson(request);
     let { baseUrl, apiKey, protocol } = b;
     if (b.id && (!apiKey || !baseUrl || !protocol)) {
-      const cfg = await getConfig(env, { fresh: true });
+      const cfg = await getConfig(env);
       const p = cfg.providers.find((x) => x.id === b.id);
       if (p) {
         apiKey = apiKey || p.apiKey;
@@ -206,7 +197,7 @@ export async function handleAdminApi(request, env, ctx, path) {
 
   if (path === '/admin/api/settings' && method === 'POST') {
     const b = await readJson(request);
-    const cfg = await getConfig(env, { fresh: true });
+    const cfg = await getConfig(env);
     const s = cfg.settings;
     if (typeof b.fallbackEnabled === 'boolean') s.fallbackEnabled = b.fallbackEnabled;
     if (typeof b.logPrompts === 'boolean') s.logPrompts = b.logPrompts;
@@ -252,12 +243,12 @@ export async function handleAdminApi(request, env, ctx, path) {
   if (path === '/admin/api/keys/revoke' && method === 'POST') {
     const { id } = await readJson(request);
     await revokeKey(env, id);
-    return json({ ok: true });
+    return json({ ok: true, items: await listKeys(env) });
   }
   if (path === '/admin/api/keys/delete' && method === 'POST') {
     const { id } = await readJson(request);
     await deleteKey(env, id);
-    return json({ ok: true });
+    return json({ ok: true, items: await listKeys(env) });
   }
 
   // ---- 日志 ----
