@@ -250,13 +250,11 @@ nav button.on:hover {
   background: var(--danger) !important;
   border-color: var(--danger) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(var(--danger-rgb), 0.35);
 }
 .btn.danger:hover:not(:disabled) {
   background: var(--danger-hover) !important;
   border-color: var(--danger-hover) !important;
   color: #ffffff !important;
-  box-shadow: 0 6px 20px rgba(var(--danger-rgb), 0.55);
   transform: translateY(-1px);
 }
 .btn.danger:active:not(:disabled) {
