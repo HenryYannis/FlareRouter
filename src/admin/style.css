@@ -589,7 +589,15 @@ dialog .df {
 .key-cell { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .key-val { user-select: all; font-variant-numeric: tabular-nums; }
 .key-val.click { cursor: pointer; }
-footer { color: var(--muted); font-size: var(--fs-footer); text-align: center; margin-top: 24px; }
+footer {
+  color: var(--muted);
+  font-size: var(--fs-footer);
+  text-align: center;
+  margin-top: 24px;
+  padding: 0 12px;
+  line-height: 1.5;
+}
+footer .footer-brand { font-weight: var(--fw-ui); }
 footer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 footer a:hover { color: var(--primary); }
 
