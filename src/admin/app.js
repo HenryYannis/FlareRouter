@@ -7,7 +7,7 @@
   var I18N = {
     zh: {
       title: 'FlareRouter 网关',
-      header: { copyEndpoint: '复制地址', copied: '已复制', logout: '退出', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
+      header: { copyEndpoint: '复制地址', copied: '已复制', logout: '退出账号', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
       tabs: { overview: '概览', providers: '服务商', fallback: '容灾', keys: '调用密钥', logs: '日志', chat: '对话', test: '测试', settings: '设置' },
       login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', unauth: '未登录' },
       overview: {
@@ -86,7 +86,7 @@
     },
     'zh-Hant': {
       title: 'FlareRouter 網關',
-      header: { copyEndpoint: '複製地址', copied: '已複製', logout: '退出', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
+      header: { copyEndpoint: '複製地址', copied: '已複製', logout: '退出帳號', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
       tabs: { overview: '概覽', providers: '服務商', fallback: '容災', keys: '調用密鑰', logs: '日誌', chat: '對話', test: '測試', settings: '設定' },
       login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', unauth: '未登入' },
       overview: {
