@@ -65,9 +65,9 @@ async function handleLogin(request, env) {
   return json({ ok: true }, 200, { 'Set-Cookie': cookieHeader(await makeSession(env), SESSION_TTL_S) });
 }
 
+// 管理端已鉴权：返回上游明文 Key，便于自建网关查看/复制（与调用密钥 raw_key、配置导出一致）
 function publicProvider(p) {
-  const { apiKey, ...rest } = p;
-  return { ...rest, hasKey: !!apiKey, apiKeyPreview: maskKey(apiKey) };
+  return { ...p, hasKey: !!p.apiKey, apiKeyPreview: maskKey(p.apiKey) };
 }
 
 function publicConfig(cfg) {
