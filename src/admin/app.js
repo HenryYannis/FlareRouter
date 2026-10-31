@@ -7,7 +7,7 @@
   var I18N = {
     zh: {
       title: 'FlareRouter 网关',
-      header: { copyEndpoint: '复制地址', copied: '已复制', logout: '退出账号', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
+      header: { copied: '已复制', logout: '退出账号', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
       tabs: { overview: '概览', providers: '上游', fallback: '容灾', keys: '密钥', logs: '日志', chat: '测试', settings: '设置' },
       login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', unauth: '未登录' },
       overview: {
@@ -104,7 +104,7 @@
     },
     'zh-Hant': {
       title: 'FlareRouter 網關',
-      header: { copyEndpoint: '複製地址', copied: '已複製', logout: '退出帳號', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
+      header: { copied: '已複製', logout: '退出帳號', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
       tabs: { overview: '概覽', providers: '上游', fallback: '容災', keys: '密鑰', logs: '日誌', chat: '測試', settings: '設定' },
       login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', unauth: '未登入' },
       overview: {
@@ -201,7 +201,7 @@
     },
     en: {
       title: 'FlareRouter Gateway',
-      header: { copyEndpoint: 'Copy URL', copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
+      header: { copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
       tabs: { overview: 'Overview', providers: 'Upstream', fallback: 'Failover', keys: 'Keys', logs: 'Logs', chat: 'Test', settings: 'Settings' },
       login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', unauth: 'Not signed in' },
       overview: {
@@ -551,8 +551,6 @@
     });
   }
   var base = location.origin + '/v1';
-  $('#ep').textContent = base;
-  $('#copy-ep').addEventListener('click', function () { navigator.clipboard.writeText(base).then(function () { toast(t('header.copied') + ' ' + base); }); });
 
   function usageRow(label, hint, method, url) {
     return '<div class="usage-row">' +
