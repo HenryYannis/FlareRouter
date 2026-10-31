@@ -225,6 +225,44 @@ export async function handleAdminApi(request, env, ctx, path) {
     const b = await readJson(request);
     const MAX_MESSAGES = 40;
     const MAX_CONTENT = 32000;
+    const MAX_PAYLOAD_CHARS = 8 * 1024 * 1024;
+    const normalizeTestContent = (raw) => {
+      if (typeof raw === 'string') return raw.slice(0, MAX_CONTENT);
+      if (!Array.isArray(raw)) return '';
+      const parts = [];
+      let used = 0;
+      for (const p of raw) {
+        if (!p || typeof p !== 'object') continue;
+        if (p.type === 'text') {
+          const text = String(p.text == null ? '' : p.text).slice(0, MAX_CONTENT);
+          if (!text) continue;
+          used += text.length;
+          if (used > MAX_PAYLOAD_CHARS) break;
+          parts.push({ type: 'text', text });
+        } else if (p.type === 'image_url') {
+          const url = typeof p.image_url === 'string' ? p.image_url : (p.image_url && p.image_url.url);
+          if (!url || typeof url !== 'string') continue;
+          if (!(url.startsWith('data:image/') || /^https?:\/\//i.test(url))) continue;
+          used += url.length;
+          if (used > MAX_PAYLOAD_CHARS) break;
+          parts.push({ type: 'image_url', image_url: { url } });
+        } else if (p.type === 'file' && p.file && typeof p.file === 'object') {
+          const fileData = typeof p.file.file_data === 'string' ? p.file.file_data : '';
+          if (!fileData.startsWith('data:')) continue;
+          const filename = String(p.file.filename || 'file').slice(0, 200);
+          used += fileData.length + filename.length;
+          if (used > MAX_PAYLOAD_CHARS) break;
+          parts.push({ type: 'file', file: { filename, file_data: fileData } });
+        }
+      }
+      if (!parts.length) return '';
+      if (parts.length === 1 && parts[0].type === 'text') return parts[0].text;
+      return parts;
+    };
+    const contentNonEmpty = (content) => {
+      if (typeof content === 'string') return content.length > 0;
+      return Array.isArray(content) && content.length > 0;
+    };
     let messages;
     if (Array.isArray(b.messages) && b.messages.length) {
       messages = [];
@@ -232,8 +270,9 @@ export async function handleAdminApi(request, env, ctx, path) {
         if (!m || typeof m !== 'object') continue;
         const role = String(m.role || '').trim();
         if (!/^(system|user|assistant)$/.test(role)) continue;
-        const content = String(m.content == null ? '' : m.content).slice(0, MAX_CONTENT);
-        messages.push({ role, content });
+        const content = normalizeTestContent(m.content);
+        if (!contentNonEmpty(content) && role !== 'assistant') continue;
+        messages.push({ role, content: contentNonEmpty(content) ? content : '' });
       }
       if (!messages.length) return err('messages 无效：需要至少一条合法的 system/user/assistant 消息');
     } else {

@@ -182,13 +182,20 @@
           <button class="btn sm" type="button" id="c-clear" data-i18n="chat.clear">清空对话</button>
         </div>
         <div id="c-messages" class="chat-messages" aria-live="polite"></div>
-        <div class="chat-compose">
-          <textarea id="c-input" rows="3" data-i18n-placeholder="chat.placeholder" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
-          <div class="row" style="margin-top:8px">
+        <div class="chat-compose" id="c-compose">
+          <div id="c-attach-list" class="chat-attach-list hidden" aria-live="polite"></div>
+          <div class="chat-compose-row">
+            <textarea id="c-input" rows="3" data-i18n-placeholder="chat.placeholder" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
+            <div class="chat-compose-actions">
+              <button class="btn chat-attach-btn" type="button" id="c-attach" data-i18n-aria-label="chat.attach" aria-label="上传文件">+</button>
+              <input type="file" id="c-file" class="hidden" multiple>
+              <button class="btn sm hidden" type="button" id="c-stop" data-i18n="chat.stop">停止</button>
+              <button class="btn primary" type="button" id="c-send" data-i18n="chat.send">发送</button>
+            </div>
+          </div>
+          <div class="chat-compose-status">
             <span class="muted small" id="c-status"></span>
-            <span class="grow"></span>
-            <button class="btn sm hidden" type="button" id="c-stop" data-i18n="chat.stop">停止</button>
-            <button class="btn primary" type="button" id="c-send" data-i18n="chat.send">发送</button>
+            <span class="muted small chat-drop-hint" data-i18n="chat.dropHint">可将图片或文件拖到此处</span>
           </div>
         </div>
       </div>
