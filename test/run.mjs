@@ -628,6 +628,9 @@ try {
   r = await admin('/admin/api/logs?q=exploded');
   d = await j(r);
   ok(d.items.length > 0, '日志按错误关键词筛选');
+  r = await admin('/admin/api/logs?q=' + encodeURIComponent('找不到模型') + '&limit=5');
+  d = await j(r);
+  ok(d.items.some((l) => l.status === 404 && l.attempts === 0), '找不到模型时日志 attempts 为 0', JSON.stringify(d.items.map((l) => l.attempts)));
   r = await admin('/admin/api/stats?days=1');
   d = await j(r);
   ok(r.status === 200 && d.total > 0 && d.byProvider.length > 0, '统计接口');
