@@ -371,6 +371,26 @@ tr.click:hover td { background: var(--soft); }
 .tag.bad { color: var(--danger); border-color: var(--danger); }
 .tag.warn { color: var(--warn); border-color: var(--warn); }
 
+.usage-docs { margin-top: 4px; }
+.usage-block { margin: 0 0 16px; }
+.usage-block-title { font-size: var(--fs-body); font-weight: var(--fw-ui); margin-bottom: 4px; }
+.usage-hint { margin: 0 0 8px; }
+.usage-row { margin: 0 0 10px; }
+.usage-row-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; margin-bottom: 4px; }
+.usage-row-label { font-weight: var(--fw-ui); font-size: var(--fs-meta); }
+.usage-url-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.usage-url-line code {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--code);
+  word-break: break-all;
+}
+.usage-note { margin: 0 0 8px; line-height: 1.45; }
+.usage-h3 { font-size: var(--fs-body); font-weight: var(--fw-ui); margin: 16px 0 8px; }
+
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .stat {
   border: 1px solid var(--glass-border);

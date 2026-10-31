@@ -14,7 +14,16 @@
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
         totalCalls: '调用次数', successRate: '成功率', failedCalls: '失败', fallbackTriggered: '触发容灾', totalTokens: 'Tokens', avgLatency: '平均耗时',
         cacheHit: '缓存命中',
-        usageTitle: '调用方式', usageDesc: 'OpenAI 兼容。模型写成「服务商 ID/模型」，写 auto 则按容灾链从头尝试。请求头 x-gateway-fallback: off 可临时关闭本次容灾。',
+        usageTitle: '调用方式',
+        usageBaseLabel: 'Base URL', usageBaseHint: '填进客户端的「API 地址 / Base URL」',
+        usageProtoLabel: '对话协议', usageProtoHint: '按客户端支持的类型选一行',
+        usageChatLabel: 'OpenAI Chat Completions', usageChatHint: '多数 OpenAI 兼容客户端的默认协议',
+        usageAnthLabel: 'Anthropic Messages', usageAnthHint: 'Claude Code / Anthropic SDK（token 计数：/v1/messages/count_tokens）',
+        usageOtherLabel: '其它能力', usageOtherHint: 'Embeddings 与媒体接口',
+        usageModelsLabel: '模型清单', usageModelsHint: '客户端拉取可用模型（需调用密钥）',
+        usageAuth: '鉴权：在「密钥」页生成 Key，请求头带 Authorization: Bearer <key> 或 x-api-key: <key>。',
+        usageModelHint: '模型写成「服务商 ID/模型」，写 auto 则按容灾链从头尝试；请求头 x-gateway-fallback: off 可临时关闭本次容灾。',
+        usageCurlLabel: '示例',
         thProvider: '服务商', thCalls: '调用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暂无调用', unhit: '（未命中）'
       },
       providers: {
@@ -102,7 +111,16 @@
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
         totalCalls: '調用次數', successRate: '成功率', failedCalls: '失敗', fallbackTriggered: '觸發容災', totalTokens: 'Tokens', avgLatency: '平均耗時',
         cacheHit: '快取命中',
-        usageTitle: '調用方式', usageDesc: 'OpenAI 相容。模型寫成「服務商 ID/模型」，寫 auto 則按容災鏈從頭嘗試。請求頭 x-gateway-fallback: off 可臨時關閉本次容災。',
+        usageTitle: '調用方式',
+        usageBaseLabel: 'Base URL', usageBaseHint: '填進客戶端的「API 位址 / Base URL」',
+        usageProtoLabel: '對話協議', usageProtoHint: '按客戶端支援的類型選一行',
+        usageChatLabel: 'OpenAI Chat Completions', usageChatHint: '多數 OpenAI 相容客戶端的預設協議',
+        usageAnthLabel: 'Anthropic Messages', usageAnthHint: 'Claude Code / Anthropic SDK（token 計數：/v1/messages/count_tokens）',
+        usageOtherLabel: '其它能力', usageOtherHint: 'Embeddings 與媒體介面',
+        usageModelsLabel: '模型清單', usageModelsHint: '客戶端拉取可用模型（需調用密鑰）',
+        usageAuth: '鑑權：在「密鑰」頁產生 Key，請求頭帶 Authorization: Bearer <key> 或 x-api-key: <key>。',
+        usageModelHint: '模型寫成「服務商 ID/模型」，寫 auto 則按容災鏈從頭嘗試；請求頭 x-gateway-fallback: off 可臨時關閉本次容災。',
+        usageCurlLabel: '範例',
         thProvider: '服務商', thCalls: '調用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暫無調用', unhit: '（未命中）'
       },
       providers: {
@@ -190,7 +208,16 @@
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh',
         totalCalls: 'Total Calls', successRate: 'Success Rate', failedCalls: 'Failed', fallbackTriggered: 'Failovers', totalTokens: 'Tokens', avgLatency: 'Avg Latency',
         cacheHit: 'Cache Hit',
-        usageTitle: 'Usage Guide', usageDesc: 'OpenAI compatible. Specify model as "provider/model", or "auto" to try along the failover chain. Header "x-gateway-fallback: off" disables failover per request.',
+        usageTitle: 'Usage Guide',
+        usageBaseLabel: 'Base URL', usageBaseHint: 'Paste into the client\'s API Base URL field',
+        usageProtoLabel: 'Chat Protocols', usageProtoHint: 'Pick the row your client supports',
+        usageChatLabel: 'OpenAI Chat Completions', usageChatHint: 'Default for most OpenAI-compatible clients',
+        usageAnthLabel: 'Anthropic Messages', usageAnthHint: 'Claude Code / Anthropic SDK (token count: /v1/messages/count_tokens)',
+        usageOtherLabel: 'Other Endpoints', usageOtherHint: 'Embeddings and media APIs',
+        usageModelsLabel: 'Model List', usageModelsHint: 'Clients fetch available models (requires an API key)',
+        usageAuth: 'Auth: create a key on the Keys page; send Authorization: Bearer <key> or x-api-key: <key>.',
+        usageModelHint: 'Model format: provider/model, or auto to walk the failover chain. Header x-gateway-fallback: off disables failover for one request.',
+        usageCurlLabel: 'Example',
         thProvider: 'Provider', thCalls: 'Calls', thSuccess: 'Success', thTokens: 'Tokens', noStats: 'No calls yet', unhit: '(Unhit)'
       },
       providers: {
@@ -271,7 +298,7 @@
     }
   };
 
-  var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, editing: null, fetched: [], lang: 'zh', unmaskedKeys: {}, unmaskedProviders: {} };
+  var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, editing: null, fetched: [], lang: 'zh', unmaskedKeys: {} };
 
   function t(path, params) {
     var lang = state.lang || 'zh';
@@ -313,6 +340,7 @@
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     updateThemeButtons(isDark);
     syncProtocol();
+    renderUsageDocs();
     if ($('#c-messages') && chatState && Array.isArray(chatState.messages)) renderChatMessages();
   }
 
@@ -522,6 +550,58 @@
       });
     });
   }
+  var base = location.origin + '/v1';
+  $('#ep').textContent = base;
+  $('#copy-ep').addEventListener('click', function () { navigator.clipboard.writeText(base).then(function () { toast(t('header.copied') + ' ' + base); }); });
+
+  function usageRow(label, hint, method, url) {
+    return '<div class="usage-row">' +
+      '<div class="usage-row-head"><span class="usage-row-label">' + esc(label) + '</span>' +
+      (hint ? '<span class="muted small">' + esc(hint) + '</span>' : '') + '</div>' +
+      '<div class="usage-url-line">' +
+      '<code class="mono">' + (method ? esc(method) + ' ' : '') + esc(url) + '</code>' +
+      ' <button type="button" class="btn sm" data-ucopy="' + esc(url) + '">' + t('keys.copy') + '</button>' +
+      '</div></div>';
+  }
+  function renderUsageDocs() {
+    var box = $('#usage-docs');
+    if (!box) return;
+    box.innerHTML =
+      '<div class="usage-block">' +
+        '<div class="usage-block-title">' + esc(t('overview.usageBaseLabel')) + '</div>' +
+        '<p class="muted small usage-hint">' + esc(t('overview.usageBaseHint')) + '</p>' +
+        '<div class="usage-url-line"><code class="mono">' + esc(base) + '</code> ' +
+        '<button type="button" class="btn sm" data-ucopy="' + esc(base) + '">' + t('keys.copy') + '</button></div>' +
+      '</div>' +
+      '<div class="usage-block">' +
+        '<div class="usage-block-title">' + esc(t('overview.usageProtoLabel')) + '</div>' +
+        '<p class="muted small usage-hint">' + esc(t('overview.usageProtoHint')) + '</p>' +
+        usageRow(t('overview.usageChatLabel'), t('overview.usageChatHint'), 'POST', base + '/chat/completions') +
+        usageRow(t('overview.usageAnthLabel'), t('overview.usageAnthHint'), 'POST', base + '/messages') +
+      '</div>' +
+      '<div class="usage-block">' +
+        '<div class="usage-block-title">' + esc(t('overview.usageOtherLabel')) + '</div>' +
+        '<p class="muted small usage-hint">' + esc(t('overview.usageOtherHint')) + '</p>' +
+        usageRow('Embeddings', '', 'POST', base + '/embeddings') +
+        usageRow('Media', '', 'POST', base + '/images/generations') +
+        usageRow('', '', 'POST', base + '/images/edits') +
+        usageRow('', '', 'POST', base + '/audio/transcriptions') +
+        usageRow('', '', 'POST', base + '/audio/speech') +
+      '</div>' +
+      '<div class="usage-block">' +
+        '<div class="usage-block-title">' + esc(t('overview.usageModelsLabel')) + '</div>' +
+        '<p class="muted small usage-hint">' + esc(t('overview.usageModelsHint')) + '</p>' +
+        usageRow('', '', 'GET', base + '/models') +
+      '</div>' +
+      '<p class="muted small usage-note">' + esc(t('overview.usageAuth')) + '</p>' +
+      '<p class="muted small usage-note">' + esc(t('overview.usageModelHint')) + '</p>';
+  }
+  $('#usage-docs').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ucopy]');
+    if (!b) return;
+    navigator.clipboard.writeText(b.dataset.ucopy).then(function () { toast(t('header.copied')); });
+  });
+
   initTheme();
   initLang();
 
@@ -549,10 +629,6 @@
     if (t === 'logs') { state.logOffset = 0; loadLogs(); }
   });
 
-  var base = location.origin + '/v1';
-  $('#ep').textContent = base;
-  $('#copy-ep').addEventListener('click', function () { navigator.clipboard.writeText(base).then(function () { toast(t('header.copied') + ' ' + base); }); });
-
   // ---- 配置 ----
   async function loadConfig() {
     state.cfg = await api('/admin/api/config');
@@ -574,17 +650,7 @@
         '<td class="mono"><button class="btn sm" data-up="' + i + '"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn sm" data-down="' + i + '"' + (i === ps.length - 1 ? ' disabled' : '') + '>↓</button></td>' +
         '<td><div>' + esc(p.name) + '</div><div class="muted mono small">' + esc(p.id) + '</div>' + (p.note ? '<div class="muted small">' + esc(p.note) + '</div>' : '') + '</td>' +
         '<td class="hide-sm mono small" style="word-break:break-all">' + esc(p.baseUrl) + (p.protocol === 'anthropic' ? ' <span class="tag">Anthropic</span>' : '') + '</td>' +
-        '<td>' + (p.apiKey
-          ? (function () {
-              var shown = !!state.unmaskedProviders[p.id];
-              var display = shown ? p.apiKey : '*'.repeat(p.apiKey.length);
-              return '<span class="key-cell">' +
-                '<span class="mono small key-val click" data-ptoggle="' + esc(p.id) + '" title="' + t('keys.showHide') + '">' + esc(display) + '</span>' +
-                ' <button class="btn sm" data-ptoggle="' + esc(p.id) + '" title="' + t('keys.showHide') + '">' + (shown ? '🙈' : '👁') + '</button>' +
-                ' <button class="btn sm" data-pcopy="' + esc(p.apiKey) + '">' + t('keys.copy') + '</button>' +
-                '</span>';
-            })()
-          : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') + '</td>' +
+        '<td class="mono small">' + (p.hasKey ? esc(p.apiKeyPreview) : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') + '</td>' +
         '<td class="small" title="' + esc(p.models.join(', ')) + '">' + p.models.length + '<div class="muted mono">' + esc(p.models[0] || '') + '</div></td>' +
         '<td><label class="switch"><input type="checkbox" data-toggle="' + esc(p.id) + '"' + (p.enabled ? ' checked' : '') + '><span></span></label></td>' +
         '<td class="col-actions" style="white-space:nowrap"><button class="btn sm" data-edit="' + i + '">' + t('providers.edit') + '</button> <button class="btn sm danger" data-del="' + esc(p.id) + '">' + t('providers.del') + '</button></td>' +
@@ -593,18 +659,6 @@
     $('#prov-table').innerHTML = h;
   }
   $('#prov-table').addEventListener('click', async function (e) {
-    var toggle = e.target.closest('[data-ptoggle]');
-    if (toggle) {
-      var tid = toggle.dataset.ptoggle;
-      state.unmaskedProviders[tid] = !state.unmaskedProviders[tid];
-      renderProviders();
-      return;
-    }
-    var copyBtn = e.target.closest('[data-pcopy]');
-    if (copyBtn) {
-      navigator.clipboard.writeText(copyBtn.dataset.pcopy).then(function () { toast(t('header.copied')); });
-      return;
-    }
     var b = e.target.closest('button'); if (!b) return;
     var ps = state.cfg.providers, ids = ps.map(function (p) { return p.id; });
     try {
