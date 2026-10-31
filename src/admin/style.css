@@ -1,4 +1,4 @@
-/* FlareRouter 管理页：日夜色板与 FlarePanel 对齐（晴空 / 星空 + 玻璃） */
+/* FlareRouter 管理页：日夜色板与 FlarePanel 对齐（晴空 / 星空底 + 玻璃；无星空粒子） */
 :root {
   --bg: #f0f9ff;
   --card: rgba(255, 255, 255, 0.72);
@@ -6,18 +6,28 @@
   --muted: #475569;
   --border: rgba(0, 157, 184, 0.16);
   --primary: #009db8;
+  --primary-rgb: 0, 157, 184;
+  --primary-hover: #00879e;
+  --primary-active: #007084;
   --primary-text: #ffffff;
   --danger: #ff3c3c;
+  --danger-rgb: 255, 60, 60;
+  --danger-hover: #e02828;
+  --danger-active: #c41818;
   --ok: #10b981;
   --warn: #9a6700;
   --soft: #f1f5f9;
   --code: rgba(255, 255, 255, 0.85);
-  --focus: rgba(0, 157, 184, 0.25);
+  --focus: rgba(0, 157, 184, 0.2);
   --glass-bg: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(0, 157, 184, 0.2);
   --background-blur: blur(20px);
   --radius: 14px;
+  --radius-sm: 8px;
   --shadow: 0 8px 32px 0 rgba(0, 157, 184, 0.08);
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
 }
 
 html.day-theme {
@@ -29,13 +39,19 @@ html.day-theme {
   --muted: #475569;
   --border: rgba(0, 157, 184, 0.16);
   --primary: #009db8;
+  --primary-rgb: 0, 157, 184;
+  --primary-hover: #00879e;
+  --primary-active: #007084;
   --primary-text: #ffffff;
   --danger: #ff3c3c;
+  --danger-rgb: 255, 60, 60;
+  --danger-hover: #e02828;
+  --danger-active: #c41818;
   --ok: #10b981;
   --warn: #9a6700;
   --soft: #f1f5f9;
   --code: rgba(255, 255, 255, 0.85);
-  --focus: rgba(0, 157, 184, 0.25);
+  --focus: rgba(0, 157, 184, 0.2);
   --glass-bg: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(0, 157, 184, 0.2);
   --shadow: 0 8px 32px 0 rgba(0, 157, 184, 0.08);
@@ -50,8 +66,14 @@ html.night-theme {
   --muted: #cbd5e1;
   --border: rgba(255, 255, 255, 0.12);
   --primary: #00c3e3;
-  --primary-text: #0f1114;
+  --primary-rgb: 0, 195, 227;
+  --primary-hover: #2ad5f2;
+  --primary-active: #00a8c4;
+  --primary-text: #ffffff;
   --danger: #ff3c3c;
+  --danger-rgb: 255, 60, 60;
+  --danger-hover: #ff5c5c;
+  --danger-active: #e02828;
   --ok: #34d399;
   --warn: #d29922;
   --soft: rgba(255, 255, 255, 0.06);
@@ -70,7 +92,7 @@ html {
 }
 html, body { margin: 0; color: var(--text); }
 body {
-  font: 14px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font: 14px/1.55 var(--font-sans);
   background-color: var(--bg);
   min-height: 100vh;
   min-height: 100dvh;
@@ -78,13 +100,15 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
   position: relative;
   z-index: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 a { color: var(--primary); }
-code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+code, pre, .mono { font-family: var(--font-mono); font-size: 12.5px; }
 pre {
   background: var(--code);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
   overflow: auto;
   white-space: pre-wrap;
@@ -112,6 +136,7 @@ header h1 { font-size: 17px; margin: 0; font-weight: 700; color: var(--primary);
 header .endpoint { color: var(--muted); font-size: 12.5px; }
 header .sp { flex: 1; }
 
+/* 主导航：保持玻璃条 + .on，不做胶囊滑块（与 Panel 刻意差异） */
 nav {
   display: flex;
   gap: 4px;
@@ -129,9 +154,11 @@ nav button {
   background: none;
   color: var(--muted);
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  font-family: inherit;
   font-size: 14px;
+  transition: var(--transition);
 }
 nav button:hover { color: var(--text); background: var(--soft); }
 nav button.on {
@@ -150,30 +177,84 @@ nav button.on {
   padding: 16px;
   margin-bottom: 16px;
   box-shadow: var(--shadow);
+  animation: fade-in 0.28s ease-out;
 }
 .card h2 { font-size: 15px; margin: 0 0 12px; font-weight: 600; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .grow { flex: 1; }
 .muted { color: var(--muted); }
 .small { font-size: 12.5px; }
 
+/* 按钮体系：对齐 FlarePanel 上浮 / 缩放 / 实心主色与危险色 */
 .btn {
+  font-family: inherit;
   border: 1px solid var(--border);
-  background: var(--card);
+  background: var(--glass-bg);
   color: var(--text);
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  user-select: none;
+  background-image: none !important;
+  transition: var(--transition);
 }
-.btn:hover { background: var(--soft); }
-.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
-.btn.primary:hover { filter: brightness(1.08); }
-.btn.danger { color: var(--danger); }
-.btn.sm { padding: 3px 8px; font-size: 12.5px; }
-.btn:disabled { opacity: .5; cursor: default; }
+.btn:hover:not(:disabled) {
+  background: rgba(var(--primary-rgb), 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn.primary {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-text) !important;
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  color: var(--primary-text) !important;
+  transform: translateY(-1px);
+}
+.btn.primary:active:not(:disabled) {
+  background: var(--primary-active) !important;
+  border-color: var(--primary-active) !important;
+  transform: scale(0.97);
+}
+.btn.danger {
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(var(--danger-rgb), 0.35);
+}
+.btn.danger:hover:not(:disabled) {
+  background: var(--danger-hover) !important;
+  border-color: var(--danger-hover) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(var(--danger-rgb), 0.55);
+  transform: translateY(-1px);
+}
+.btn.danger:active:not(:disabled) {
+  background: var(--danger-active) !important;
+  border-color: var(--danger-active) !important;
+  transform: scale(0.97);
+}
+.btn.sm { padding: 3px 8px; font-size: 12.5px; font-weight: 600; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
 .theme-toggle {
   width: 32px;
@@ -183,6 +264,11 @@ nav button.on {
   align-items: center;
   justify-content: center;
 }
+.theme-toggle:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--soft);
+  border-color: var(--border);
+}
 .theme-toggle .theme-icon-sun { display: none; }
 html[data-theme="dark"] .theme-toggle .theme-icon-sun { display: block; }
 html[data-theme="dark"] .theme-toggle .theme-icon-moon { display: none; }
@@ -191,10 +277,11 @@ input[type=text], input[type=password], input[type=number], select, textarea {
   background: var(--card);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 6px 9px;
   font-size: 13.5px;
   font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 textarea { width: 100%; resize: vertical; min-height: 70px; }
 input:focus, select:focus, textarea:focus {
@@ -264,7 +351,7 @@ tr.click:hover td { background: var(--soft); }
 
 dialog {
   border: 1px solid var(--glass-border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--glass-bg);
   backdrop-filter: var(--background-blur);
   -webkit-backdrop-filter: var(--background-blur);
@@ -286,7 +373,7 @@ dialog .df {
 
 .models-box {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   max-height: 220px;
   overflow: auto;
   padding: 6px 8px;
@@ -310,7 +397,7 @@ dialog .df {
   background: var(--text);
   color: var(--bg);
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   z-index: 99;
   max-width: 80vw;
@@ -318,8 +405,35 @@ dialog .df {
 }
 .scroll-x { overflow-x: auto; }
 .lang-select { cursor: pointer; padding: 2px 6px; font-size: 12.5px; }
+.lang-select:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--soft);
+  border-color: var(--border);
+  transform: none;
+}
 .key-cell { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .key-val { user-select: all; font-variant-numeric: tabular-nums; }
 .key-val.click { cursor: pointer; }
 footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 24px; }
-@media (max-width: 720px) { .hide-sm { display: none; } }
+
+@media (max-width: 720px) {
+  .hide-sm { display: none; }
+  .wrap { padding: 0 12px 40px; }
+  header { padding: 12px; margin: 8px 0 12px; gap: 8px; }
+  /* 锁定 16px，避免 iOS 聚焦自动缩放 */
+  input[type=text],
+  input[type=password],
+  input[type=number],
+  select:not(.lang-select),
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
