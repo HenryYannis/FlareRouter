@@ -716,6 +716,16 @@ try {
     await writeLog({ DB: fakeDb }, { waitUntil: (p) => waits.push(p) }, { ts: 1, endpoint: 'messages', status: 200, clientProtocol: 'anthropic', upstreamProtocol: 'openai', cacheReadTokens: 3 });
     await Promise.all(waits);
     ok(calls.length === 3 && calls[0].n === 23 && calls[1].n === 22 && calls[2].n === 20 && !calls[2].q.includes('client_protocol') && !calls[2].q.includes('cache_read_tokens'), '日志：缺缓存/协议列时逐级退回旧列写入，不丢日志', JSON.stringify(calls.map((c) => ({ n: c.n, cache: c.q.includes('cache_read_tokens'), proto: c.q.includes('client_protocol') }))));
+    const bound = [];
+    const fakeDb2 = { prepare: () => ({ bind: (...a) => ({ run: async () => { bound.push(a); return {}; } }) }) };
+    const waits2 = [];
+    const longTrail = Array.from({ length: 6 }, (_, i) => ({ provider: 'p' + i, providerName: 'P' + i, model: 'm', status: 500, error: 'E'.repeat(2000) }));
+    await writeLog({ DB: fakeDb2 }, { waitUntil: (p) => waits2.push(p) }, { ts: 2, endpoint: 'chat/completions', status: 500, attempts: 6, trail: longTrail });
+    await Promise.all(waits2);
+    const trailVal = bound[0].find((x) => typeof x === 'string' && x.startsWith('['));
+    let parsedTrail = null;
+    try { parsedTrail = JSON.parse(trailVal); } catch { parsedTrail = null; }
+    ok(Array.isArray(parsedTrail) && trailVal.length <= 8000 && parsedTrail.length >= 1 && parsedTrail.every((x) => x && x.provider), '超长 trail 截断后仍是合法 JSON', JSON.stringify({ len: trailVal && trailVal.length, n: parsedTrail && parsedTrail.length }));
   }
 } catch (e) {
   fail++;
