@@ -443,7 +443,11 @@ footer a:hover { color: var(--primary); }
 }
 html.night-theme .chat-messages { background: rgba(255, 255, 255, 0.04); }
 .chat-empty { text-align: center; padding: 48px 16px; line-height: 1.5; }
-.chat-bubble { max-width: min(92%, 720px); margin-bottom: 12px; }
+.chat-bubble {
+  width: fit-content;
+  max-width: min(92%, 720px);
+  margin-bottom: 12px;
+}
 .chat-bubble.user { margin-left: auto; }
 .chat-bubble.assistant { margin-right: auto; }
 .chat-role { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
@@ -468,15 +472,16 @@ html.night-theme .chat-messages { background: rgba(255, 255, 255, 0.04); }
 }
 .chat-think {
   margin: 0 0 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, 0.03);
+  padding: 0 0 8px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
   font-size: 12.5px;
+  color: var(--muted);
 }
-html.night-theme .chat-think { background: rgba(255, 255, 255, 0.05); }
 .chat-think summary {
   cursor: pointer;
-  padding: 8px 10px;
+  padding: 0;
   color: var(--muted);
   font-weight: 600;
   user-select: none;
@@ -491,7 +496,8 @@ html.night-theme .chat-think { background: rgba(255, 255, 255, 0.05); }
 }
 .chat-think[open] summary::before { transform: rotate(90deg); }
 .chat-think-body {
-  padding: 0 10px 10px;
+  margin-top: 6px;
+  padding: 0;
   color: var(--muted);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -499,6 +505,7 @@ html.night-theme .chat-think { background: rgba(255, 255, 255, 0.05); }
   max-height: 240px;
   overflow-y: auto;
 }
+.chat-md { min-width: 0; }
 .chat-body p { margin: 0 0 0.6em; }
 .chat-body p:last-child { margin-bottom: 0; }
 .chat-body ul, .chat-body ol { margin: 0.4em 0 0.6em; padding-left: 1.4em; }

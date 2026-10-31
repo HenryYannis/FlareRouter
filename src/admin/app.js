@@ -8,7 +8,7 @@
     zh: {
       title: 'FlareRouter 网关',
       header: { copyEndpoint: '复制地址', copied: '已复制', logout: '退出账号', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
-      tabs: { overview: '概览', providers: '服务商', fallback: '容灾', keys: '调用密钥', logs: '日志', chat: '对话', settings: '设置' },
+      tabs: { overview: '概览', providers: '服务商', fallback: '容灾', keys: '调用密钥', logs: '日志', chat: '测试', settings: '设置' },
       login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', unauth: '未登录' },
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
@@ -71,11 +71,11 @@
         ttfbTotal: '首包 {ttfb} ms · 总 {total} ms', totalOnly: '{total} ms'
       },
       chat: {
-        desc: '走真实的转发、容灾与日志链路（日志里密钥显示为「管理页测试」）。会话仅保存在本机浏览器。',
+        desc: '走真实的转发、容灾与日志链路。会话仅保存在本机浏览器。',
         labelModel: '模型', noFallback: '关闭容灾', clear: '清空对话', clearConfirm: '清空当前对话？此操作不可恢复。',
         placeholder: '输入消息，Enter 发送，Shift+Enter 换行', send: '发送', stop: '停止',
-        empty: '还没有消息。选一个模型，开始对话。', thinking: '生成中…',
-        thinkLabel: '思考过程', errAborted: '已停止', localOnly: '对话仅保存在本机浏览器',
+        empty: '还没有消息。选一个模型，开始测试。', thinking: '生成中…',
+        thinkLabel: '思考过程', errAborted: '已停止', localOnly: '会话仅保存在本机浏览器',
         metaInfo: 'HTTP {status} · 服务商 {provider} · 模型 {model} · 尝试 {attempts} 次',
         ttfbTotal: '首包 {ttfb} ms · 总 {total} ms', totalOnly: '{total} ms'
       },
@@ -90,7 +90,7 @@
     'zh-Hant': {
       title: 'FlareRouter 網關',
       header: { copyEndpoint: '複製地址', copied: '已複製', logout: '退出帳號', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
-      tabs: { overview: '概覽', providers: '服務商', fallback: '容災', keys: '調用密鑰', logs: '日誌', chat: '對話', settings: '設定' },
+      tabs: { overview: '概覽', providers: '服務商', fallback: '容災', keys: '調用密鑰', logs: '日誌', chat: '測試', settings: '設定' },
       login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', unauth: '未登入' },
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
@@ -153,11 +153,11 @@
         ttfbTotal: '首包 {ttfb} ms · 總 {total} ms', totalOnly: '{total} ms'
       },
       chat: {
-        desc: '走真實的轉發、容災與日誌鏈路（日誌裡密鑰顯示為「管理頁測試」）。對話僅保存在本機瀏覽器。',
+        desc: '走真實的轉發、容災與日誌鏈路。會話僅保存在本機瀏覽器。',
         labelModel: '模型', noFallback: '關閉容災', clear: '清空對話', clearConfirm: '清空當前對話？此操作不可恢復。',
         placeholder: '輸入訊息，Enter 發送，Shift+Enter 換行', send: '發送', stop: '停止',
-        empty: '還沒有訊息。選一個模型，開始對話。', thinking: '生成中…',
-        thinkLabel: '思考過程', errAborted: '已停止', localOnly: '對話僅保存在本機瀏覽器',
+        empty: '還沒有訊息。選一個模型，開始測試。', thinking: '生成中…',
+        thinkLabel: '思考過程', errAborted: '已停止', localOnly: '會話僅保存在本機瀏覽器',
         metaInfo: 'HTTP {status} · 服務商 {provider} · 模型 {model} · 嘗試 {attempts} 次',
         ttfbTotal: '首包 {ttfb} ms · 總 {total} ms', totalOnly: '{total} ms'
       },
@@ -172,7 +172,7 @@
     en: {
       title: 'FlareRouter Gateway',
       header: { copyEndpoint: 'Copy URL', copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
-      tabs: { overview: 'Overview', providers: 'Providers', fallback: 'Failover', keys: 'API Keys', logs: 'Logs', chat: 'Chat', settings: 'Settings' },
+      tabs: { overview: 'Overview', providers: 'Providers', fallback: 'Failover', keys: 'API Keys', logs: 'Logs', chat: 'Test', settings: 'Settings' },
       login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', unauth: 'Not signed in' },
       overview: {
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh',
@@ -235,11 +235,11 @@
         ttfbTotal: 'TTFB {ttfb} ms · Total {total} ms', totalOnly: '{total} ms'
       },
       chat: {
-        desc: 'Uses the real proxy, failover and logging path (logged as "Admin Test"). Chat is stored only in this browser.',
+        desc: 'Uses the real proxy, failover and logging path. Session is stored only in this browser.',
         labelModel: 'Model', noFallback: 'Disable Failover', clear: 'Clear Chat', clearConfirm: 'Clear this chat? This cannot be undone.',
         placeholder: 'Type a message. Enter to send, Shift+Enter for newline', send: 'Send', stop: 'Stop',
-        empty: 'No messages yet. Pick a model and start chatting.', thinking: 'Generating…',
-        thinkLabel: 'Thinking', errAborted: 'Stopped', localOnly: 'Chat is stored only in this browser',
+        empty: 'No messages yet. Pick a model and start testing.', thinking: 'Generating…',
+        thinkLabel: 'Thinking', errAborted: 'Stopped', localOnly: 'Session is stored only in this browser',
         metaInfo: 'HTTP {status} · Provider {provider} · Model {model} · Attempts {attempts}',
         ttfbTotal: 'TTFB {ttfb} ms · Total {total} ms', totalOnly: '{total} ms'
       },
@@ -900,7 +900,8 @@
         think = '<details class="chat-think"><summary>' + esc(t('chat.thinkLabel')) + '</summary><div class="chat-think-body">' + esc(m.reasoning).replace(/\n/g, '<br>') + '</div></details>';
       }
       var body = role === 'assistant' ? renderMd(m.content) : esc(m.content).replace(/\n/g, '<br>');
-      return '<div class="chat-bubble ' + role + '" data-idx="' + idx + '"><div class="chat-role">' + (role === 'assistant' ? 'AI' : 'You') + '</div>' + think + '<div class="chat-body">' + body + '</div></div>';
+      var md = role === 'assistant' ? '<div class="chat-md">' + body + '</div>' : body;
+      return '<div class="chat-bubble ' + role + '" data-idx="' + idx + '"><div class="chat-role">' + (role === 'assistant' ? 'AI' : 'You') + '</div><div class="chat-body">' + think + md + '</div></div>';
     }).join('');
     box.scrollTop = box.scrollHeight;
   }
