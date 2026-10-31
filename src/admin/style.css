@@ -186,6 +186,13 @@ nav button {
   font-family: inherit;
   font-size: var(--fs-nav);
   transition: var(--transition);
+  white-space: nowrap;
+}
+@media (min-width: 721px) {
+  nav button {
+    flex: 1;
+    text-align: center;
+  }
 }
 nav button:hover { color: var(--text); background: var(--soft); }
 nav button.on {
