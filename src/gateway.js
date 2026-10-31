@@ -362,7 +362,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
 export async function handleCountTokens(request, env) {
   let body;
   try { body = await request.json(); } catch (e) { return protocolError('anthropic', `请求体不是合法 JSON：${errText(e)}`, 400); }
-  if (!body || typeof body !== 'object') return protocolError('anthropic', '请求体必须是 JSON 对象', 400);
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return protocolError('anthropic', '请求体必须是 JSON 对象', 400);
   const cfg = await getConfig(env);
   const noFallback = /^(0|off|false|no)$/i.test(request.headers.get('x-gateway-fallback') || '');
   const { targets, error } = resolveTargets(cfg, body.model, { allowFallback: !noFallback });
