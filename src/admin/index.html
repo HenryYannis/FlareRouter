@@ -201,7 +201,7 @@
           <label class="switch"><input type="checkbox" id="fb-on"><span></span></label>
           <span data-i18n="fallback.switchLabel">请求的模型失败时，继续按下面的容灾链尝试</span>
         </div>
-        <p class="muted small" data-i18n="fallback.desc">失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。</p>
+        <p class="muted small" data-i18n="fallback.desc">网络错误、超时、429、5xx、401/403/404 就换下一个，400/413/422（请求本身的错）直接返回；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。</p>
         <ul class="chain" id="chain"></ul>
         <div class="row">
           <select id="chain-add" class="grow"></select>

@@ -44,7 +44,7 @@
       },
       fallback: {
         title: '容灾切换', switchLabel: '请求的模型失败时，继续按下面的容灾链尝试',
-        desc: '失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。',
+        desc: '网络错误、超时、429、5xx、401/403/404 就换下一个，400/413/422（请求本身的错）直接返回；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。',
         addToChain: '加入容灾链', save: '保存', saved: '容灾设置已保存', remove: '移除',
         chainInvalid: '服务商已停用或模型不存在，会被跳过',
         chainEmpty: '（空）按服务商顺序取每家第一个模型：{models}', chainNone: '暂无'
@@ -142,7 +142,7 @@
       },
       fallback: {
         title: '容災切換', switchLabel: '請求的模型失敗時，繼續按下面的容災鏈嘗試',
-        desc: '失敗（網路錯誤、超時、任何非 2xx）就換下一個；串流請求只在上游開始返回前切換。容災鏈留空時，按服務商順序取每家模型列表的第一個。',
+        desc: '網路錯誤、超時、429、5xx、401/403/404 就換下一個，400/413/422（請求本身的錯）直接回傳；串流請求只在上游開始返回前切換。容災鏈留空時，按服務商順序取每家模型列表的第一個。',
         addToChain: '加入容災鏈', save: '儲存', saved: '容災設定已儲存', remove: '移除',
         chainInvalid: '服務商已停用或模型不存在，會被跳過',
         chainEmpty: '（空）按服務商順序取每家第一個模型：{models}', chainNone: '暫無'
@@ -240,7 +240,7 @@
       },
       fallback: {
         title: 'Failover Chain', switchLabel: 'On request failure, try the models in failover chain below',
-        desc: 'Switches on network error, timeout, or non-2xx; streams failover only before 1st byte. When empty, defaults to 1st model of each provider in order.',
+        desc: 'Switches on network error, timeout, 429, 5xx or 401/403/404; 400/413/422 (request errors) return as-is; streams failover only before 1st byte. When empty, defaults to 1st model of each provider in order.',
         addToChain: 'Add to Chain', save: 'Save', saved: 'Failover settings saved', remove: 'Remove',
         chainInvalid: 'Provider disabled or model missing, will be skipped',
         chainEmpty: '(Empty) Tries 1st model of each provider: {models}', chainNone: 'None'

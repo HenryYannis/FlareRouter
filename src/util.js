@@ -103,3 +103,9 @@ export function estimateMessagesTokens(messages = []) {
   }
   return n;
 }
+
+// 请求本身的错误（参数、体积、语义、内容审核多为 400/422）：换服务商也没用，直接返回，不走容灾
+export const NO_FALLBACK_STATUS = new Set([400, 413, 422]);
+export function isRequestError(status) {
+  return NO_FALLBACK_STATUS.has(status);
+}
