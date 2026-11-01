@@ -659,25 +659,105 @@
     });
     $('#prov-table').innerHTML = h;
   }
+  var reorderTimer = null;
+  var reorderRollback = null;
+
+  function scheduleReorderSync() {
+    if (!reorderRollback) reorderRollback = state.cfg.providers.slice();
+    clearTimeout(reorderTimer);
+    reorderTimer = setTimeout(async function () {
+      var rollback = reorderRollback;
+      reorderTimer = null;
+      reorderRollback = null;
+      var ids = state.cfg.providers.map(function (p) { return p.id; });
+      try {
+        var res = await api('/admin/api/providers/reorder', { body: { ids: ids } });
+        if (res && res.providers) {
+          state.cfg.providers = res.providers;
+          state.cfg.settings = res.settings;
+          state.cfg.models = modelsFrom(res.providers);
+          renderProviders();
+          renderModelSelects();
+        }
+      } catch (err) {
+        if (rollback) {
+          state.cfg.providers = rollback;
+          state.cfg.models = modelsFrom(rollback);
+          renderProviders();
+          renderModelSelects();
+        }
+        await showAlert({ message: err.message });
+      }
+    }, 250);
+  }
+
   $('#prov-table').addEventListener('click', async function (e) {
     var b = e.target.closest('button'); if (!b) return;
-    var ps = state.cfg.providers, ids = ps.map(function (p) { return p.id; });
     try {
       if (b.dataset.up || b.dataset.down) {
         var i = +(b.dataset.up || b.dataset.down), j = b.dataset.up ? i - 1 : i + 1;
-        var tId = ids[i]; ids[i] = ids[j]; ids[j] = tId;
-        setCfg(await api('/admin/api/providers/reorder', { body: { ids: ids } }));
-      } else if (b.dataset.edit) openProv(ps[+b.dataset.edit]);
+        if (j < 0 || j >= state.cfg.providers.length) return;
+        var temp = state.cfg.providers[i];
+        state.cfg.providers[i] = state.cfg.providers[j];
+        state.cfg.providers[j] = temp;
+        state.cfg.models = modelsFrom(state.cfg.providers);
+        renderProviders();
+        renderModelSelects();
+        scheduleReorderSync();
+      } else if (b.dataset.edit) openProv(state.cfg.providers[+b.dataset.edit]);
       else if (b.dataset.del) {
-        if (!(await showConfirm({ message: t('providers.delConfirm', { name: b.dataset.del }), danger: true }))) return;
-        setCfg(await api('/admin/api/providers/delete', { body: { id: b.dataset.del } })); toast(t('providers.deleted'));
+        var delId = b.dataset.del;
+        if (!(await showConfirm({ message: t('providers.delConfirm', { name: delId }), danger: true }))) return;
+        if (reorderTimer) { clearTimeout(reorderTimer); reorderRollback = null; }
+        var prevProviders = state.cfg.providers.slice();
+        state.cfg.providers = state.cfg.providers.filter(function (p) { return p.id !== delId; });
+        state.cfg.models = modelsFrom(state.cfg.providers);
+        renderProviders();
+        renderModelSelects();
+        try {
+          var res = await api('/admin/api/providers/delete', { body: { id: delId } });
+          toast(t('providers.deleted'));
+          if (res && res.providers) {
+            setCfg(res);
+          }
+        } catch (err) {
+          state.cfg.providers = prevProviders;
+          state.cfg.models = modelsFrom(prevProviders);
+          renderProviders();
+          renderModelSelects();
+          await showAlert({ message: err.message });
+        }
       }
     } catch (err) { await showAlert({ message: err.message }); }
   });
   $('#prov-table').addEventListener('change', async function (e) {
     var id = e.target.dataset.toggle; if (!id) return;
-    try { setCfg(await api('/admin/api/providers/toggle', { body: { id: id, enabled: e.target.checked } })); }
-    catch (err) { await showAlert({ message: err.message }); e.target.checked = !e.target.checked; }
+    var isEnabled = e.target.checked;
+    var targetP = (state.cfg.providers || []).find(function (p) { return p.id === id; });
+    var prevEnabled = targetP ? targetP.enabled : !isEnabled;
+    if (targetP) {
+      targetP.enabled = isEnabled;
+      state.cfg.models = modelsFrom(state.cfg.providers);
+      renderModelSelects();
+    }
+    try {
+      var res = await api('/admin/api/providers/toggle', { body: { id: id, enabled: isEnabled } });
+      if (res && res.providers) {
+        state.cfg.providers = res.providers;
+        state.cfg.settings = res.settings;
+        state.cfg.models = modelsFrom(res.providers);
+        renderChain();
+        renderModelSelects();
+      }
+    } catch (err) {
+      e.target.checked = prevEnabled;
+      if (targetP) {
+        targetP.enabled = prevEnabled;
+        state.cfg.models = modelsFrom(state.cfg.providers);
+        renderModelSelects();
+      }
+      await showAlert({ message: err.message });
+    }
   });
 
   // ---- 服务商弹窗 ----
@@ -995,23 +1075,29 @@
     if ($('#lf-q').value.trim()) p.set('q', $('#lf-q').value.trim());
     try {
       var r = await api('/admin/api/logs?' + p.toString());
-      logItems = r.items; state.logTotal = r.total;
-      $('#log-table').innerHTML = '<tr><th>' + t('logs.thTime') + '</th><th>' + t('logs.thKey') + '</th><th>' + t('logs.thModel') + '</th><th>' + t('logs.thStatus') + '</th><th>' + t('logs.thLatency') + '</th><th>' + t('logs.thTokens') + '</th><th>' + t('logs.thFallback') + '</th></tr>' +
-        (r.items.length ? r.items.map(function (l, i) {
-          var ok = l.status >= 200 && l.status < 300;
-          var target = l.provider_id ? l.provider_id + '/' + (l.model || '') : '—';
-          return '<tr class="click" data-log="' + i + '"><td class="small" style="white-space:nowrap">' + fmtTime(l.ts) + '</td>' +
-            '<td class="small">' + esc(l.key_name || '—') + '</td>' +
-            '<td class="small"><div class="mono">' + esc(target) + '</div>' + (l.requested_model && l.requested_model !== target ? '<div class="muted mono">' + t('logs.requested') + esc(l.requested_model) + '</div>' : '') + (l.stream ? '<span class="tag">' + t('logs.tagStream') + '</span> ' : '') + protoTag(l) + '</td>' +
-            '<td><span class="tag ' + (ok ? (l.error ? 'warn' : 'ok') : 'bad') + '">' + l.status + '</span>' + (!ok && l.error ? '<div class="err small" style="max-width:320px;max-height:3.2em;overflow:hidden">' + esc(l.error) + '</div>' : '') + '</td>' +
-            '<td class="small">' + num(l.latency_ms) + ' ms' + (l.ttfb_ms != null ? '<div class="muted">' + num(l.ttfb_ms) + ' ms</div>' : '') + '</td>' +
-            '<td class="small">' + num(l.total_tokens) + '</td>' +
-            '<td>' + (l.fallback ? '<span class="tag warn">' + t('logs.attemptN', { n: l.attempts }) + '</span>' : '') + '</td></tr>';
-        }).join('') : '<tr><td colspan="7" class="muted">' + t('logs.empty') + '</td></tr>');
-      var end = Math.min(r.offset + r.items.length, r.total);
-      $('#log-info').textContent = r.total ? t('logs.pageInfo', { start: r.offset + 1, end: end, total: r.total }) : '';
-      $('#log-prev').disabled = r.offset <= 0; $('#log-next').disabled = end >= r.total;
+      renderLogs(r);
     } catch (err) { $('#log-table').innerHTML = '<tr><td class="err">' + esc(err.message) + '</td></tr>'; }
+  }
+  function renderLogs(r) {
+    r = r || { items: [], total: 0, offset: 0 };
+    logItems = r.items || [];
+    state.logTotal = r.total || 0;
+    var offset = r.offset || 0;
+    $('#log-table').innerHTML = '<tr><th>' + t('logs.thTime') + '</th><th>' + t('logs.thKey') + '</th><th>' + t('logs.thModel') + '</th><th>' + t('logs.thStatus') + '</th><th>' + t('logs.thLatency') + '</th><th>' + t('logs.thTokens') + '</th><th>' + t('logs.thFallback') + '</th></tr>' +
+      (logItems.length ? logItems.map(function (l, i) {
+        var ok = l.status >= 200 && l.status < 300;
+        var target = l.provider_id ? l.provider_id + '/' + (l.model || '') : '—';
+        return '<tr class="click" data-log="' + i + '"><td class="small" style="white-space:nowrap">' + fmtTime(l.ts) + '</td>' +
+          '<td class="small">' + esc(l.key_name || '—') + '</td>' +
+          '<td class="small"><div class="mono">' + esc(target) + '</div>' + (l.requested_model && l.requested_model !== target ? '<div class="muted mono">' + t('logs.requested') + esc(l.requested_model) + '</div>' : '') + (l.stream ? '<span class="tag">' + t('logs.tagStream') + '</span> ' : '') + protoTag(l) + '</td>' +
+          '<td><span class="tag ' + (ok ? (l.error ? 'warn' : 'ok') : 'bad') + '">' + l.status + '</span>' + (!ok && l.error ? '<div class="err small" style="max-width:320px;max-height:3.2em;overflow:hidden">' + esc(l.error) + '</div>' : '') + '</td>' +
+          '<td class="small">' + num(l.latency_ms) + ' ms' + (l.ttfb_ms != null ? '<div class="muted">' + num(l.ttfb_ms) + ' ms</div>' : '') + '</td>' +
+          '<td class="small">' + num(l.total_tokens) + '</td>' +
+          '<td>' + (l.fallback ? '<span class="tag warn">' + t('logs.attemptN', { n: l.attempts }) + '</span>' : '') + '</td></tr>';
+      }).join('') : '<tr><td colspan="7" class="muted">' + t('logs.empty') + '</td></tr>');
+    var end = Math.min(offset + logItems.length, state.logTotal);
+    $('#log-info').textContent = state.logTotal ? t('logs.pageInfo', { start: offset + 1, end: end, total: state.logTotal }) : '';
+    $('#log-prev').disabled = offset <= 0; $('#log-next').disabled = end >= state.logTotal;
   }
   var PROTO_NAME = { openai: 'OpenAI', anthropic: 'Anthropic' };
   function protoTag(l) {
@@ -1025,8 +1111,17 @@
   $('#log-next').addEventListener('click', function () { state.logOffset += state.logLimit; loadLogs(); });
   $('#lf-clear').addEventListener('click', async function () {
     if (!(await showConfirm({ message: t('logs.clearConfirm'), danger: true }))) return;
-    try { var r = await api('/admin/api/logs/clear', { body: {} }); toast(t('logs.deletedCount', { count: r.deleted == null ? '' : r.deleted })); state.logOffset = 0; loadLogs(); }
-    catch (err) { await showAlert({ message: err.message }); }
+    var prevItems = logItems.slice(), prevTotal = state.logTotal, prevOffset = state.logOffset;
+    state.logOffset = 0;
+    renderLogs({ items: [], total: 0, offset: 0 });
+    try {
+      var r = await api('/admin/api/logs/clear', { body: {} });
+      toast(t('logs.deletedCount', { count: r.deleted == null ? '' : r.deleted }));
+    } catch (err) {
+      state.logOffset = prevOffset;
+      renderLogs({ items: prevItems, total: prevTotal, offset: prevOffset });
+      await showAlert({ message: err.message });
+    }
   });
   $('#log-table').addEventListener('click', function (e) {
     var tr = e.target.closest('tr[data-log]'); if (!tr) return;
