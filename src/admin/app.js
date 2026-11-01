@@ -892,14 +892,13 @@
         var keyHtml = '<span class="key-cell">' +
           '<span class="mono small key-val' + (hasRaw ? ' click' : '') + '"' + (hasRaw ? ' data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '"' : '') + '>' + esc(displayKey) + '</span>' +
           (hasRaw ? ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isUnmasked ? '🙈' : '👁') + '</button>' : ' <span class="muted small" title="' + t('keys.legacyNoRaw') + '">(' + t('keys.legacyNoRaw') + ')</span>') +
-          (hasRaw ? ' <button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button>' : '') +
           '</span>';
         return '<tr><td><b>' + esc(k.name) + '</b></td>' +
           '<td>' + keyHtml + '</td>' +
           '<td class="small">' + fmtTime(k.created_at) + '</td>' +
           '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
           '<td><span class="tag ' + (k.revoked ? 'bad' : 'ok') + '">' + (k.revoked ? t('keys.revoked') : t('keys.active')) + '</span></td>' +
-          '<td class="col-actions" style="white-space:nowrap"><button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' + (k.revoked ? '' : '<button class="btn sm" data-revoke="' + esc(k.id) + '">' + t('keys.revoke') + '</button> ') + '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
+          '<td class="col-actions" style="white-space:nowrap">' + (hasRaw ? '<button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button> ' : '') + '<button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' + (k.revoked ? '' : '<button class="btn sm" data-revoke="' + esc(k.id) + '">' + t('keys.revoke') + '</button> ') + '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
       }).join('') : '<tr><td colspan="6" class="muted">' + t('keys.empty') + '</td></tr>');
     $('#lf-key').innerHTML = '<option value="">' + t('logs.allKeys') + '</option><option value="admin">' + t('logs.adminTest') + '</option>' + state.keys.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join('');
   }
