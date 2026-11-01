@@ -80,6 +80,7 @@ const upstream = http.createServer(async (req, res) => {
   }
 
   if (req.url === '/good/v1/models') return send(200, { data: [{ id: 'm1' }, { id: 'm2' }, { id: 'vendor/m3' }] });
+  if (req.url.startsWith('/badreq/')) return send(400, { error: { message: 'invalid param temperature' } });
   if (req.url.startsWith('/bad/')) return send(500, { error: { message: 'upstream exploded: quota of key sk-xxx exhausted' } });
   if (req.url.startsWith('/slow/')) { await sleep(3000); return send(200, {}); }
   if (req.url.startsWith('/brokenstream/')) {
@@ -354,6 +355,11 @@ try {
   ok(r.status === 200 && r.headers.get('x-gateway-provider') === 'good', 'auto 按容灾链');
 
   // 全部失败
+  await admin('/admin/api/providers', { provider: { id: 'badreq', name: '参数错服务商', baseUrl: `${UP}/badreq/v1`, apiKey: 'sk-badreq-abcdefghij', models: 'x' } });
+  await admin('/admin/api/settings', { fallbackEnabled: true, fallbackChain: ['badreq/x', 'good/m1'] });
+  r = await chat({ model: 'auto', messages: [{ role: 'user', content: 'hi' }] });
+  d = await j(r);
+  ok(r.status === 400 && JSON.stringify(d).includes('invalid param temperature') && JSON.stringify(d).includes('不切换'), '400 属于请求错误：不换下一家，直接返回', r.status + ' ' + JSON.stringify(d));
   await admin('/admin/api/settings', { fallbackChain: ['bad/x', 'slow/y'] });
   r = await chat({ model: 'auto', messages: [{ role: 'user', content: 'hi' }] });
   d = await j(r);

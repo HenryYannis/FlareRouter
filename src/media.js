@@ -5,7 +5,7 @@
 import { getConfig } from './config.js';
 import { resolveTargets, protocolError } from './gateway.js';
 import { writeLog } from './logs.js';
-import { CORS_HEADERS, errText, maxBodyBytes } from './util.js';
+import { CORS_HEADERS, errText, maxBodyBytes, isRequestError } from './util.js';
 
 const ERROR_TEXT_LIMIT = 2000;
 const DEFAULT_MEDIA_TIMEOUT_MS = 120000;
@@ -121,6 +121,7 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
 
   const trail = [];
   let lastStatus = 502;
+  let stoppedEarly = false;
 
   for (let i = 0; i < targets.length; i++) {
     const { provider, model } = targets[i];
@@ -167,6 +168,7 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
       try { text = await res.text(); } catch (e) { text = `读取错误响应失败：${errText(e)}`; }
       fail1(res.status, `HTTP ${res.status} ${res.statusText || ''} ${text}`.trim().slice(0, ERROR_TEXT_LIMIT));
       lastStatus = res.status;
+      if (isRequestError(res.status)) { stoppedEarly = true; break; }
       continue;
     }
 
@@ -226,7 +228,9 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
   }
 
   const summary = trail.map((t, i) => `#${i + 1} ${t.providerName}/${t.model}：${t.error}`).join('\n');
-  const message = `全部 ${trail.length} 个候选均失败。\n${summary}`;
+  const message = stoppedEarly
+    ? `上游返回 ${lastStatus}，属于请求本身的错误，不切换服务商。\n${summary}`
+    : `全部 ${trail.length} 个候选均失败。\n${summary}`;
   const status = lastStatus >= 400 ? lastStatus : 502;
   const last = targets[targets.length - 1];
   writeLog(env, ctx, {
