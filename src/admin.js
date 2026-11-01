@@ -105,12 +105,16 @@ async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
     ? `${anthropicUrl(baseUrl, 'models')}?limit=1000`
     : `${String(baseUrl || '').replace(/\/+$/, '').replace(/\/(chat\/completions|models)$/, '')}/models`;
   let res;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
   try {
     const headers = isAnth ? anthropicHeaders(apiKey) : { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' };
-    res = await fetch(url, { headers });
+    res = await fetch(url, { headers, signal: controller.signal });
   } catch (e) {
+    clearTimeout(timer);
     return { error: `${errText(e)}（${url}）` };
   }
+  clearTimeout(timer);
   const text = await res.text();
   if (!res.ok) return { error: `HTTP ${res.status} ${res.statusText || ''} ${text}`.slice(0, 3000) };
   try {

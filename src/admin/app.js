@@ -40,7 +40,7 @@
         fetchPopulated: '已写入全部 {count} 个模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
         noMatchModels: '没有匹配的模型（共 {count} 个）', labelTimeout: '超时（毫秒，拿到响应头为止）', labelNote: '备注',
         streamUsage: '流式请求自动加 stream_options.include_usage', cancel: '取消', save: '保存', saved: '已保存',
-        savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」',
+        savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」', saving: '保存中…',
         sectionBasic: '基础连接与鉴权', sectionModels: '模型列表配置', sectionAdvanced: '高级选项'
       },
       fallback: {
@@ -143,7 +143,7 @@
         fetchPopulated: '已寫入全部 {count} 個模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
         noMatchModels: '沒有匹配的模型（共 {count} 個）', labelTimeout: '超時（毫秒，拿到回應頭為止）', labelNote: '備註',
         streamUsage: '串流請求自動加 stream_options.include_usage', cancel: '取消', save: '儲存', saved: '已儲存',
-        savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」',
+        savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」', saving: '儲存中…',
         sectionBasic: '基礎連接與鑒權', sectionModels: '模型列表配置', sectionAdvanced: '進階選項'
       },
       fallback: {
@@ -246,7 +246,7 @@
         fetchPopulated: 'Populated all {count} models', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
         noMatchModels: 'No matching models ({count} total)', labelTimeout: 'Timeout (ms, until response headers)', labelNote: 'Note',
         streamUsage: 'Auto add stream_options.include_usage to stream requests', cancel: 'Cancel', save: 'Save', saved: 'Saved',
-        savedEmptyModels: 'Saved. Models empty — use Fetch from Provider',
+        savedEmptyModels: 'Saved. Models empty — use Fetch from Provider', saving: 'Saving…',
         sectionBasic: 'Connection & Authentication', sectionModels: 'Model List Configuration', sectionAdvanced: 'Advanced Options'
       },
       fallback: {
@@ -799,6 +799,10 @@
     $('#p-note').value = p ? p.note || '' : '';
     $('#p-usage').checked = p ? p.streamUsage !== false : true;
     $('#prov-err').textContent = ''; $('#p-fetch-err').textContent = '';
+    $('#prov-save').textContent = t('providers.save');
+    $('#prov-save').disabled = false;
+    $('#p-fetch').textContent = t('providers.fetchModels');
+    $('#p-fetch').disabled = false;
     $('#p-fetch-box').classList.add('hidden');
     $('#dlg-prov').showModal();
   }
@@ -828,6 +832,10 @@
   });
   $('#prov-save').addEventListener('click', async function () {
     $('#prov-err').textContent = '';
+    var saveBtn = $('#prov-save');
+    if (saveBtn.disabled) return;
+    saveBtn.disabled = true;
+    saveBtn.textContent = t('providers.saving');
     var keyVal = $('#p-key').value.trim();
     var editingId = state.editing || '';
     var prev = editingId ? (state.cfg.providers || []).find(function (x) { return x.id === editingId; }) : null;
@@ -849,16 +857,31 @@
       var ap = (res.providers || []).find(function (p) { return p.id === savedId; });
       toast(ap && !ap.models.length ? t('providers.savedEmptyModels') : t('providers.saved'));
     }
-    catch (err) { $('#prov-err').textContent = err.message; }
+    catch (err) {
+      $('#prov-err').textContent = err.message;
+    }
+    finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = t('providers.save');
+    }
   });
   $('#p-fetch').addEventListener('click', async function () {
+    var fetchBtn = $('#p-fetch');
+    if (fetchBtn.disabled) return;
+    fetchBtn.disabled = true;
+    fetchBtn.textContent = t('providers.fetching');
     $('#p-fetch-err').textContent = t('providers.fetching');
     try {
       var r = await api('/admin/api/providers/fetch-models', { body: { id: state.editing, protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(), apiKey: $('#p-key').value.trim() } });
       state.fetched = r.models; state.fetchedLimits = r.limits || {}; $('#p-fetch-err').textContent = '';
       if (!currentModels().length && r.models.length) { $('#p-models').value = r.models.join('\n'); toast(t('providers.fetchPopulated', { count: r.models.length })); }
       $('#p-fetch-box').classList.remove('hidden'); renderFetched();
-    } catch (err) { $('#p-fetch-err').textContent = err.message; }
+    } catch (err) {
+      $('#p-fetch-err').textContent = err.message;
+    } finally {
+      fetchBtn.disabled = false;
+      fetchBtn.textContent = t('providers.fetchModels');
+    }
   });
   function currentModels() { return $('#p-models').value.split(/[,\n]/).map(function (s) { return s.trim(); }).filter(Boolean); }
   function renderFetched() {
