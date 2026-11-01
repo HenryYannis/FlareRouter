@@ -674,36 +674,41 @@
     });
     $('#prov-table').innerHTML = h;
   }
+  var reorderSeq = 0;
   var reorderTimer = null;
   var reorderRollback = null;
 
   function scheduleReorderSync() {
     if (!reorderRollback) reorderRollback = state.cfg.providers.slice();
+    var thisSeq = ++reorderSeq;
     clearTimeout(reorderTimer);
     reorderTimer = setTimeout(async function () {
       var rollback = reorderRollback;
       reorderTimer = null;
-      reorderRollback = null;
       var ids = state.cfg.providers.map(function (p) { return p.id; });
       try {
         var res = await api('/admin/api/providers/reorder', { body: { ids: ids } });
-        if (res && res.providers) {
-          state.cfg.providers = res.providers;
-          state.cfg.settings = res.settings;
-          state.cfg.models = modelsFrom(res.providers);
-          renderProviders();
-          renderModelSelects();
+        // 静默同步：成功时无需销毁重绘表格，杜绝二次跳动！
+        if (thisSeq === reorderSeq) {
+          reorderRollback = null;
+          if (res) {
+            state.cfg.settings = res.settings;
+            state.cfg.models = modelsFrom(res.providers);
+            renderModelSelects();
+          }
         }
       } catch (err) {
-        if (rollback) {
+        // 只有当前版本报错时才回滚并重新渲染恢复
+        if (thisSeq === reorderSeq && rollback) {
+          reorderRollback = null;
           state.cfg.providers = rollback;
           state.cfg.models = modelsFrom(rollback);
           renderProviders();
           renderModelSelects();
+          await showAlert({ message: err.message });
         }
-        await showAlert({ message: err.message });
       }
-    }, 250);
+    }, 400);
   }
 
   $('#prov-table').addEventListener('click', async function (e) {
