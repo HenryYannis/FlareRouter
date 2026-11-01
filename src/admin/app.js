@@ -870,7 +870,7 @@
     if (fetchBtn.disabled) return;
     fetchBtn.disabled = true;
     fetchBtn.textContent = t('providers.fetching');
-    $('#p-fetch-err').textContent = t('providers.fetching');
+    $('#p-fetch-err').textContent = '';
     try {
       var r = await api('/admin/api/providers/fetch-models', { body: { id: state.editing, protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(), apiKey: $('#p-key').value.trim() } });
       state.fetched = r.models; state.fetchedLimits = r.limits || {}; $('#p-fetch-err').textContent = '';
