@@ -461,21 +461,34 @@ export function usageForLog(protocol, u) {
   return out;
 }
 
-// OpenAI 兼容服务商的缓存字段并不统一：
-// OpenAI/OpenRouter prompt_tokens_details.cached_tokens；DeepSeek prompt_cache_hit_tokens；
-// Moonshot/部分中转 cached_tokens；Responses 风格 input_tokens_details.cached_tokens；
-// 少数中转直接透传 Anthropic 的 cache_read_input_tokens
+// OpenAI 兼容服务商的缓存字段并不统一（口径对齐 Agent2API 的 extract_usage）：
+// 容器 prompt_tokens_details / input_tokens_details 先查，再查顶层别名；
+// 取第一个「正数」而不是第一个存在的——有的上游嵌套 cached_tokens 恒为 0、真值在顶层
+// cache_read_input_tokens。全部不是正数但出现过数字时记 0（表示上游报了、只是没命中）。
+const CACHE_READ_KEYS = [
+  'cached_tokens', 'cached_input_tokens', 'cache_read_tokens', 'cache_read_input_tokens',
+  'prompt_cache_hit_tokens', 'cacheReadTokens', 'cacheReadInputTokens', 'cachedInputTokens',
+];
+const CACHE_READ_CONTAINERS = ['prompt_tokens_details', 'input_tokens_details'];
+function toNum(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+  if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
+  return undefined;
+}
 export function openAICachedTokens(u) {
   if (!u || typeof u !== 'object') return undefined;
-  const cands = [
-    u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens,
-    u.prompt_cache_hit_tokens,
-    u.cached_tokens,
-    u.input_tokens_details && u.input_tokens_details.cached_tokens,
-    u.cache_read_input_tokens,
-  ];
-  for (const v of cands) if (typeof v === 'number') return v;
-  return undefined;
+  const objs = CACHE_READ_CONTAINERS.map((k) => u[k]).filter((o) => o && typeof o === 'object');
+  objs.push(u);
+  let sawZero = false;
+  for (const o of objs) {
+    for (const k of CACHE_READ_KEYS) {
+      const n = toNum(o[k]);
+      if (n === undefined) continue;
+      if (n > 0) return Math.floor(n);
+      sawZero = true;
+    }
+  }
+  return sawZero ? 0 : undefined;
 }
 
 // ================================================================ token 估算
