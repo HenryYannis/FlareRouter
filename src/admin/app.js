@@ -52,7 +52,7 @@
         batchAdd: '批量选择...', pickerTitle: '批量选择模型加入容灾链',
         pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
         pickerSelectedCount: '已选 {count} 个模型', pickerConfirm: '加入容灾链', pickerCancel: '取消',
-        pickerToastAdded: '已更新容灾链（共 {count} 个模型）'
+        pickerToastAdded: '已更新容灾链（共 {count} 个模型）', groupAll: '全选', groupNone: '清空'
       },
       keys: {
         title: '调用密钥', namePlaceholder: '名称，例如：笔记本 / Cherry Studio', generate: '生成新密钥',
@@ -155,7 +155,7 @@
         batchAdd: '批量選擇...', pickerTitle: '批量選擇模型加入容災鏈',
         pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
         pickerSelectedCount: '已選 {count} 個模型', pickerConfirm: '加入容災鏈', pickerCancel: '取消',
-        pickerToastAdded: '已更新容災鏈（共 {count} 個模型）'
+        pickerToastAdded: '已更新容災鏈（共 {count} 個模型）', groupAll: '全選', groupNone: '清空'
       },
       keys: {
         title: '調用密鑰', namePlaceholder: '名稱，例如：筆記本 / Cherry Studio', generate: '生成新密鑰',
@@ -258,7 +258,7 @@
         batchAdd: 'Batch Select...', pickerTitle: 'Select Models for Failover Chain',
         pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
         pickerSelectedCount: '{count} models selected', pickerConfirm: 'Apply to Chain', pickerCancel: 'Cancel',
-        pickerToastAdded: 'Updated failover chain ({count} models)'
+        pickerToastAdded: 'Updated failover chain ({count} models)', groupAll: 'Select All', groupNone: 'Clear'
       },
       keys: {
         title: 'API Keys', namePlaceholder: 'Name, e.g. Laptop / Cursor', generate: 'Generate Key',
@@ -947,15 +947,13 @@
           }
         });
         if (visibleCount > 0) {
-          var allChecked = visibleSelectedCount === visibleCount;
           html += '<div class="chain-picker-group" data-group-pid="' + esc(p.id) + '">' +
             '<div class="chain-picker-group-title">' +
-              '<label class="chain-picker-group-label" title="' + esc(p.name) + '">' +
-                '<input type="checkbox" data-g-chk="' + esc(p.id) + '"' + (allChecked ? ' checked' : '') + '> ' +
-                '<span class="fw-ui">' + esc(p.name) + '</span> ' +
-                '<span class="muted small mono">(' + esc(p.id) + ')</span> ' +
-                '<span class="muted small">· ' + visibleCount + ' 个模型</span>' +
-              '</label>' +
+              '<div><span class="fw-ui">' + esc(p.name) + '</span> <span class="muted small mono">(' + esc(p.id) + ')</span> <span class="muted small">· ' + visibleCount + ' 个模型</span></div>' +
+              '<div class="row" style="gap:4px">' +
+                '<button type="button" class="btn sm" data-g-all="' + esc(p.id) + '">' + t('fallback.groupAll') + '</button>' +
+                '<button type="button" class="btn sm" data-g-none="' + esc(p.id) + '">' + t('fallback.groupNone') + '</button>' +
+              '</div>' +
             '</div>' +
             '<div class="chain-picker-grid">' + modelsHtml + '</div>' +
           '</div>';
@@ -977,34 +975,28 @@
   $('#chain-picker-q').addEventListener('input', renderChainPickerGroups);
 
   $('#chain-picker-list').addEventListener('change', function (e) {
-    var gChk = e.target.closest('input[data-g-chk]');
-    if (gChk) {
-      var pid = gChk.dataset.gChk;
-      var p = state.cfg.providers.find(function (x) { return x.id === pid; });
-      if (p) {
-        p.models.forEach(function (m) {
-          var k = p.id + '/' + m;
-          if (gChk.checked) pickerSelected.add(k);
-          else pickerSelected.delete(k);
-        });
-      }
-      renderChainPickerGroups();
-      return;
-    }
     var cb = e.target.closest('input[data-pk]');
     if (!cb) return;
     var k = cb.dataset.pk;
     if (cb.checked) pickerSelected.add(k);
     else pickerSelected.delete(k);
-    // 更新该服务商的组全选状态
-    var groupEl = cb.closest('.chain-picker-group');
-    if (groupEl) {
-      var allBoxes = groupEl.querySelectorAll('input[data-pk]');
-      var checkedBoxes = groupEl.querySelectorAll('input[data-pk]:checked');
-      var groupChk = groupEl.querySelector('input[data-g-chk]');
-      if (groupChk) groupChk.checked = (allBoxes.length > 0 && allBoxes.length === checkedBoxes.length);
-    }
     updateChainPickerSummary();
+  });
+
+  $('#chain-picker-list').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.gAll) {
+      var pid = b.dataset.gAll;
+      var p = state.cfg.providers.find(function (x) { return x.id === pid; });
+      if (p) { p.models.forEach(function (m) { pickerSelected.add(p.id + '/' + m); }); }
+      renderChainPickerGroups();
+    } else if (b.dataset.gNone) {
+      var pid = b.dataset.gNone;
+      var p = state.cfg.providers.find(function (x) { return x.id === pid; });
+      if (p) { p.models.forEach(function (m) { pickerSelected.delete(p.id + '/' + m); }); }
+      renderChainPickerGroups();
+    }
   });
 
   $('#chain-picker-first').addEventListener('click', function () {
