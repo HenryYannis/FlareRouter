@@ -203,10 +203,11 @@
         </div>
         <p class="muted small" data-i18n="fallback.desc">失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。</p>
         <ul class="chain" id="chain"></ul>
-        <div class="row">
-          <select id="chain-add" class="grow"></select>
-          <button class="btn" id="chain-add-btn" data-i18n="fallback.addToChain">加入容灾链</button>
-          <button class="btn primary" id="chain-save" data-i18n="fallback.save">保存</button>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <select id="chain-add" class="grow" style="min-width:200px"></select>
+          <button class="btn" id="chain-add-btn" type="button" data-i18n="fallback.addToChain">加入容灾链</button>
+          <button class="btn" id="chain-batch-btn" type="button" data-i18n="fallback.batchAdd">批量选择...</button>
+          <button class="btn primary" id="chain-save" type="button" data-i18n="fallback.save">保存设置</button>
         </div>
       </div>
       <div class="card">
@@ -247,43 +248,61 @@
   <form method="dialog" id="prov-form">
     <div class="dh" id="prov-title" data-i18n="providers.title">上游</div>
     <div class="db">
-      <div class="row">
-        <div class="grow"><label class="f" for="p-name" data-i18n="providers.labelName">名称</label><input type="text" id="p-name" style="width:100%" placeholder="例如：OpenRouter"></div>
-        <div class="grow"><label class="f" for="p-id" data-i18n="providers.labelId">ID（用于「ID/模型」寻址）</label><input type="text" id="p-id" style="width:100%" placeholder="例如：openrouter" spellcheck="false"></div>
-      </div>
-      <label class="f" for="p-protocol" data-i18n="providers.labelProto">协议类型</label>
-      <select id="p-protocol" style="width:100%">
-        <option value="openai" data-i18n="providers.protoOpenAI">OpenAI 兼容（/chat/completions，Bearer 鉴权）</option>
-        <option value="anthropic" data-i18n="providers.protoAnthropic">Anthropic Messages（/v1/messages，x-api-key 鉴权）</option>
-      </select>
-      <div class="muted small" id="p-protocol-tip" style="margin-top:4px"></div>
-      <label class="f" for="p-url">Base URL</label>
-      <input type="text" id="p-url" placeholder="https://api.example.com/v1" spellcheck="false">
-      <label class="f" for="p-key">API Key</label>
-      <div class="row" style="gap:8px;align-items:center">
-        <input type="password" id="p-key" class="grow" placeholder="留空则清除已保存的 Key" spellcheck="false" autocomplete="new-password">
-        <button type="button" class="btn sm" id="p-key-toggle" title="显示 / 隐藏明文" data-i18n-title="keys.showHide">👁</button>
-        <button type="button" class="btn sm" id="p-key-copy" data-i18n="keys.copy">复制</button>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <label class="f grow" for="p-models" style="margin:0" data-i18n="providers.labelModels">模型列表（逗号或换行分隔，第一个为默认；留空可点「从服务商拉取」）</label>
-        <button class="btn sm" type="button" id="p-fetch" data-i18n="providers.fetchModels">从服务商拉取</button>
-      </div>
-      <textarea id="p-models" spellcheck="false" style="margin-top:4px"></textarea>
-      <div id="p-fetch-box" class="hidden">
-        <div class="row" style="margin-top:6px">
-          <input type="text" id="p-fetch-q" data-i18n-placeholder="providers.searchModels" placeholder="搜索…" class="grow">
-          <button class="btn sm" type="button" id="p-fetch-all" data-i18n="providers.selectAll">全选可见</button>
-          <button class="btn sm" type="button" id="p-fetch-none" data-i18n="providers.selectNone">取消可见</button>
+      <!-- 基础连接与鉴权 -->
+      <div class="form-section">
+        <div class="form-section-title" data-i18n="providers.sectionBasic">基础连接与鉴权</div>
+        <div class="row">
+          <div class="grow"><label class="f" for="p-name" data-i18n="providers.labelName">名称</label><input type="text" id="p-name" style="width:100%" placeholder="例如：OpenRouter"></div>
+          <div class="grow"><label class="f" for="p-id" data-i18n="providers.labelId">ID（用于「ID/模型」寻址）</label><input type="text" id="p-id" style="width:100%" placeholder="例如：openrouter" spellcheck="false"></div>
         </div>
-        <div class="models-box" id="p-fetch-list"></div>
+        <div class="row" style="margin-top:8px">
+          <div style="flex:1"><label class="f" for="p-protocol" data-i18n="providers.labelProto">协议类型</label>
+            <select id="p-protocol" style="width:100%">
+              <option value="openai" data-i18n="providers.protoOpenAI">OpenAI 兼容（/chat/completions，Bearer 鉴权）</option>
+              <option value="anthropic" data-i18n="providers.protoAnthropic">Anthropic Messages（/v1/messages，x-api-key 鉴权）</option>
+            </select>
+          </div>
+        </div>
+        <div class="muted small" id="p-protocol-tip" style="margin-top:4px"></div>
+        <label class="f" for="p-url" style="margin-top:8px">Base URL</label>
+        <input type="text" id="p-url" placeholder="https://api.example.com/v1" spellcheck="false">
+        <label class="f" for="p-key" style="margin-top:8px">API Key</label>
+        <div class="row" style="gap:8px;align-items:center">
+          <input type="password" id="p-key" class="grow" placeholder="留空则清除已保存的 Key" spellcheck="false" autocomplete="new-password">
+          <button type="button" class="btn sm" id="p-key-toggle" title="显示 / 隐藏明文" data-i18n-title="keys.showHide">👁</button>
+          <button type="button" class="btn sm" id="p-key-copy" data-i18n="keys.copy">复制</button>
+        </div>
       </div>
-      <div id="p-fetch-err" class="err small"></div>
-      <div class="row">
-        <div><label class="f" for="p-timeout" data-i18n="providers.labelTimeout">超时（毫秒，拿到响应头为止）</label><input type="number" id="p-timeout" min="1000" step="1000" style="width:160px"></div>
-        <div class="grow"><label class="f" for="p-note" data-i18n="providers.labelNote">备注</label><input type="text" id="p-note" style="width:100%"></div>
+
+      <!-- 模型列表配置 -->
+      <div class="form-section">
+        <div class="form-section-title" data-i18n="providers.sectionModels">模型列表配置</div>
+        <div class="row">
+          <label class="f grow" for="p-models" style="margin:0" data-i18n="providers.labelModels">模型列表（逗号或换行分隔，第一个为默认；留空可点「从服务商拉取」）</label>
+          <button class="btn sm" type="button" id="p-fetch" data-i18n="providers.fetchModels">从服务商拉取</button>
+        </div>
+        <textarea id="p-models" spellcheck="false" style="margin-top:6px;min-height:80px"></textarea>
+        <div id="p-fetch-box" class="hidden">
+          <div class="row" style="margin-top:6px">
+            <input type="text" id="p-fetch-q" data-i18n-placeholder="providers.searchModels" placeholder="搜索…" class="grow">
+            <button class="btn sm" type="button" id="p-fetch-all" data-i18n="providers.selectAll">全选可见</button>
+            <button class="btn sm" type="button" id="p-fetch-none" data-i18n="providers.selectNone">取消可见</button>
+          </div>
+          <div class="models-box" id="p-fetch-list"></div>
+        </div>
+        <div id="p-fetch-err" class="err small"></div>
       </div>
-      <label class="row small" style="margin-top:10px"><input type="checkbox" id="p-usage"> <span data-i18n="providers.streamUsage">流式请求自动加 stream_options.include_usage</span></label>
+
+      <!-- 高级参数 -->
+      <div class="form-section" style="margin-bottom:0">
+        <div class="form-section-title" data-i18n="providers.sectionAdvanced">高级选项</div>
+        <div class="row">
+          <div><label class="f" for="p-timeout" data-i18n="providers.labelTimeout">超时（毫秒）</label><input type="number" id="p-timeout" min="1000" step="1000" style="width:140px"></div>
+          <div class="grow"><label class="f" for="p-note" data-i18n="providers.labelNote">备注</label><input type="text" id="p-note" style="width:100%" placeholder="可选备注信息"></div>
+        </div>
+        <label class="row small" style="margin-top:8px"><input type="checkbox" id="p-usage"> <span data-i18n="providers.streamUsage">流式请求自动加 stream_options.include_usage</span></label>
+      </div>
+
       <div id="prov-err" class="err small" style="margin-top:8px"></div>
     </div>
     <div class="df">
@@ -291,6 +310,31 @@
       <button class="btn primary" type="button" id="prov-save" data-i18n="providers.save">保存</button>
     </div>
   </form>
+</dialog>
+
+<!-- 容灾链批量选择 -->
+<dialog id="dlg-chain-picker">
+  <div class="dh" style="display:flex;justify-content:space-between;align-items:center">
+    <span data-i18n="fallback.pickerTitle">批量选择模型加入容灾链</span>
+    <button type="button" class="btn sm" onclick="this.closest('dialog').close()">✕</button>
+  </div>
+  <div class="db" style="padding:12px 16px;max-height:65vh;display:flex;flex-direction:column;gap:10px">
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <input type="text" id="chain-picker-q" class="grow" placeholder="搜索服务商或模型名称…" data-i18n-placeholder="fallback.pickerSearch" style="min-width:180px">
+      <button type="button" class="btn sm" id="chain-picker-first" data-i18n="fallback.pickerPickFirst">只选各商首模</button>
+      <button type="button" class="btn sm" id="chain-picker-all" data-i18n="fallback.pickerSelectAll">全选可见</button>
+      <button type="button" class="btn sm" id="chain-picker-none" data-i18n="fallback.pickerClearAll">清空已选</button>
+    </div>
+    <div id="chain-picker-list" style="overflow-y:auto;max-height:48vh;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;background:var(--code)">
+    </div>
+  </div>
+  <div class="df" style="display:flex;justify-content:space-between;align-items:center">
+    <span class="muted small" id="chain-picker-summary"></span>
+    <div style="display:flex;gap:8px">
+      <button type="button" class="btn" onclick="this.closest('dialog').close()" data-i18n="fallback.pickerCancel">取消</button>
+      <button type="button" class="btn primary" id="chain-picker-confirm" data-i18n="fallback.pickerConfirm">加入容灾链</button>
+    </div>
+  </div>
 </dialog>
 
 <!-- 日志详情 -->

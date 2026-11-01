@@ -40,14 +40,20 @@
         fetchPopulated: '已写入全部 {count} 个模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
         noMatchModels: '没有匹配的模型（共 {count} 个）', labelTimeout: '超时（毫秒，拿到响应头为止）', labelNote: '备注',
         streamUsage: '流式请求自动加 stream_options.include_usage', cancel: '取消', save: '保存', saved: '已保存',
-        savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」'
+        savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」',
+        sectionBasic: '基础连接与鉴权', sectionModels: '模型列表配置', sectionAdvanced: '高级选项'
       },
       fallback: {
         title: '容灾切换', switchLabel: '请求的模型失败时，继续按下面的容灾链尝试',
         desc: '失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。',
         addToChain: '加入容灾链', save: '保存', saved: '容灾设置已保存', remove: '移除',
         chainInvalid: '服务商已停用或模型不存在，会被跳过',
-        chainEmpty: '（空）按服务商顺序取每家第一个模型：{models}', chainNone: '暂无'
+        chainEmpty: '（空）按服务商顺序取每家第一个模型：{models}', chainNone: '暂无',
+        batchAdd: '批量选择...', pickerTitle: '批量选择模型加入容灾链',
+        pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
+        pickerSelectedCount: '已选 {count} 个模型', pickerConfirm: '加入容灾链', pickerCancel: '取消',
+        pickerToastAdded: '已更新容灾链（共 {count} 个模型）',
+        groupAll: '全选该商', groupNone: '清空该商'
       },
       keys: {
         title: '调用密钥', namePlaceholder: '名称，例如：笔记本 / Cherry Studio', generate: '生成新密钥',
@@ -138,14 +144,20 @@
         fetchPopulated: '已寫入全部 {count} 個模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
         noMatchModels: '沒有匹配的模型（共 {count} 個）', labelTimeout: '超時（毫秒，拿到回應頭為止）', labelNote: '備註',
         streamUsage: '串流請求自動加 stream_options.include_usage', cancel: '取消', save: '儲存', saved: '已儲存',
-        savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」'
+        savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」',
+        sectionBasic: '基礎連接與鑒權', sectionModels: '模型列表配置', sectionAdvanced: '進階選項'
       },
       fallback: {
         title: '容災切換', switchLabel: '請求的模型失敗時，繼續按下面的容災鏈嘗試',
         desc: '失敗（網路錯誤、超時、任何非 2xx）就換下一個；串流請求只在上游開始返回前切換。容災鏈留空時，按服務商順序取每家模型列表的第一個。',
         addToChain: '加入容災鏈', save: '儲存', saved: '容災設定已儲存', remove: '移除',
         chainInvalid: '服務商已停用或模型不存在，會被跳過',
-        chainEmpty: '（空）按服務商順序取每家第一個模型：{models}', chainNone: '暫無'
+        chainEmpty: '（空）按服務商順序取每家第一個模型：{models}', chainNone: '暫無',
+        batchAdd: '批量選擇...', pickerTitle: '批量選擇模型加入容災鏈',
+        pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
+        pickerSelectedCount: '已選 {count} 個模型', pickerConfirm: '加入容災鏈', pickerCancel: '取消',
+        pickerToastAdded: '已更新容災鏈（共 {count} 個模型）',
+        groupAll: '全選該商', groupNone: '清空該商'
       },
       keys: {
         title: '調用密鑰', namePlaceholder: '名稱，例如：筆記本 / Cherry Studio', generate: '生成新密鑰',
@@ -236,14 +248,20 @@
         fetchPopulated: 'Populated all {count} models', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
         noMatchModels: 'No matching models ({count} total)', labelTimeout: 'Timeout (ms, until response headers)', labelNote: 'Note',
         streamUsage: 'Auto add stream_options.include_usage to stream requests', cancel: 'Cancel', save: 'Save', saved: 'Saved',
-        savedEmptyModels: 'Saved. Models empty — use Fetch from Provider'
+        savedEmptyModels: 'Saved. Models empty — use Fetch from Provider',
+        sectionBasic: 'Connection & Authentication', sectionModels: 'Model List Configuration', sectionAdvanced: 'Advanced Options'
       },
       fallback: {
         title: 'Failover Chain', switchLabel: 'On request failure, try the models in failover chain below',
         desc: 'Switches on network error, timeout, or non-2xx; streams failover only before 1st byte. When empty, defaults to 1st model of each provider in order.',
         addToChain: 'Add to Chain', save: 'Save', saved: 'Failover settings saved', remove: 'Remove',
         chainInvalid: 'Provider disabled or model missing, will be skipped',
-        chainEmpty: '(Empty) Tries 1st model of each provider: {models}', chainNone: 'None'
+        chainEmpty: '(Empty) Tries 1st model of each provider: {models}', chainNone: 'None',
+        batchAdd: 'Batch Select...', pickerTitle: 'Select Models for Failover Chain',
+        pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
+        pickerSelectedCount: '{count} models selected', pickerConfirm: 'Apply to Chain', pickerCancel: 'Cancel',
+        pickerToastAdded: 'Updated failover chain ({count} models)',
+        groupAll: 'Select All', groupNone: 'Clear'
       },
       keys: {
         title: 'API Keys', namePlaceholder: 'Name, e.g. Laptop / Cursor', generate: 'Generate Key',
@@ -895,6 +913,129 @@
   $('#chain-save').addEventListener('click', async function () {
     try { setCfg(await api('/admin/api/settings', { body: { fallbackEnabled: $('#fb-on').checked, fallbackChain: chainDraft } })); toast(t('fallback.saved')); }
     catch (err) { await showAlert({ message: err.message }); }
+  });
+
+  // ---- 批量选择模型加入容灾链 ----
+  var pickerSelected = new Set();
+  function openChainPicker() {
+    pickerSelected = new Set(chainDraft);
+    $('#chain-picker-q').value = '';
+    renderChainPickerGroups();
+    $('#dlg-chain-picker').showModal();
+  }
+
+  function renderChainPickerGroups() {
+    var q = ($('#chain-picker-q').value || '').trim().toLowerCase();
+    var providers = state.cfg.providers.filter(function (p) { return p.enabled && p.models && p.models.length; });
+    var html = '';
+    if (!providers.length) {
+      html = '<div class="muted small" style="text-align:center;padding:20px">' + t('providers.empty') + '</div>';
+    } else {
+      providers.forEach(function (p) {
+        var pMatch = p.name.toLowerCase().indexOf(q) >= 0 || p.id.toLowerCase().indexOf(q) >= 0;
+        var modelsHtml = '';
+        var visibleCount = 0;
+        p.models.forEach(function (m) {
+          var fullKey = p.id + '/' + m;
+          var mMatch = pMatch || m.toLowerCase().indexOf(q) >= 0;
+          if (mMatch) {
+            visibleCount++;
+            var isChecked = pickerSelected.has(fullKey);
+            modelsHtml += '<label class="chain-picker-item" title="' + esc(fullKey) + '">' +
+              '<input type="checkbox" data-pk="' + esc(fullKey) + '"' + (isChecked ? ' checked' : '') + '> ' +
+              '<span class="mono" style="word-break:break-all">' + esc(m) + '</span>' +
+              '</label>';
+          }
+        });
+        if (visibleCount > 0) {
+          html += '<div class="chain-picker-group" data-group-pid="' + esc(p.id) + '">' +
+            '<div class="chain-picker-group-title">' +
+              '<div><span class="mono fw-ui">' + esc(p.name) + '</span> <span class="muted small mono">(' + esc(p.id) + ')</span> <span class="muted small">· ' + visibleCount + '</span></div>' +
+              '<div class="row" style="gap:4px">' +
+                '<button type="button" class="btn sm" data-g-first="' + esc(p.id) + '">' + t('fallback.pickerPickFirst') + '</button>' +
+                '<button type="button" class="btn sm" data-g-all="' + esc(p.id) + '">' + t('fallback.groupAll') + '</button>' +
+                '<button type="button" class="btn sm" data-g-none="' + esc(p.id) + '">' + t('fallback.groupNone') + '</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="chain-picker-grid">' + modelsHtml + '</div>' +
+          '</div>';
+        }
+      });
+      if (!html) {
+        html = '<div class="muted small" style="text-align:center;padding:20px">' + t('providers.noMatchModels', { count: 0 }) + '</div>';
+      }
+    }
+    $('#chain-picker-list').innerHTML = html;
+    updateChainPickerSummary();
+  }
+
+  function updateChainPickerSummary() {
+    $('#chain-picker-summary').textContent = t('fallback.pickerSelectedCount', { count: pickerSelected.size });
+  }
+
+  $('#chain-batch-btn').addEventListener('click', openChainPicker);
+  $('#chain-picker-q').addEventListener('input', renderChainPickerGroups);
+
+  $('#chain-picker-list').addEventListener('change', function (e) {
+    var cb = e.target.closest('input[data-pk]');
+    if (!cb) return;
+    var k = cb.dataset.pk;
+    if (cb.checked) pickerSelected.add(k);
+    else pickerSelected.delete(k);
+    updateChainPickerSummary();
+  });
+
+  $('#chain-picker-list').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.gAll) {
+      var pid = b.dataset.gAll;
+      var p = state.cfg.providers.find(function (x) { return x.id === pid; });
+      if (p) { p.models.forEach(function (m) { pickerSelected.add(p.id + '/' + m); }); }
+      renderChainPickerGroups();
+    } else if (b.dataset.gNone) {
+      var pid = b.dataset.gNone;
+      var p = state.cfg.providers.find(function (x) { return x.id === pid; });
+      if (p) { p.models.forEach(function (m) { pickerSelected.delete(p.id + '/' + m); }); }
+      renderChainPickerGroups();
+    } else if (b.dataset.gFirst) {
+      var pid = b.dataset.gFirst;
+      var p = state.cfg.providers.find(function (x) { return x.id === pid; });
+      if (p && p.models.length) { pickerSelected.add(p.id + '/' + p.models[0]); }
+      renderChainPickerGroups();
+    }
+  });
+
+  $('#chain-picker-first').addEventListener('click', function () {
+    state.cfg.providers.forEach(function (p) {
+      if (p.enabled && p.models && p.models.length) {
+        pickerSelected.add(p.id + '/' + p.models[0]);
+      }
+    });
+    renderChainPickerGroups();
+  });
+
+  $('#chain-picker-all').addEventListener('click', function () {
+    $('#chain-picker-list').querySelectorAll('input[data-pk]').forEach(function (cb) {
+      pickerSelected.add(cb.dataset.pk);
+    });
+    renderChainPickerGroups();
+  });
+
+  $('#chain-picker-none').addEventListener('click', function () {
+    pickerSelected.clear();
+    renderChainPickerGroups();
+  });
+
+  $('#chain-picker-confirm').addEventListener('click', function () {
+    var nextDraft = chainDraft.filter(function (k) { return pickerSelected.has(k); });
+    pickerSelected.forEach(function (k) {
+      if (nextDraft.indexOf(k) < 0) nextDraft.push(k);
+    });
+    chainDraft = nextDraft;
+    drawChain();
+    $('#dlg-chain-picker').close();
+    toast(t('fallback.pickerToastAdded', { count: chainDraft.length }));
   });
 
   function renderModelSelects() {
