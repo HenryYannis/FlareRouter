@@ -37,7 +37,7 @@
         tipOpenAI: 'Base URL 一般以 /v1 结尾，请求发往 /chat/completions，模型列表取 /models。',
         keyEmptyTag: '未填', keyPlaceholderEdit: '留空则清除已保存的 Key', keyPlaceholderNew: '必填（部分本地服务可留空）',
         labelModels: '模型列表（逗号或换行分隔，第一个为默认；留空可点「从服务商拉取」）', fetchModels: '从服务商拉取', fetching: '拉取中…',
-        fetchPopulated: '已写入全部 {count} 个模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
+        fetchPopulated: '已写入全部 {count} 个模型', fetchPruned: '已移除 {count} 个服务商不再提供的旧模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
         noMatchModels: '没有匹配的模型（共 {count} 个）', labelTimeout: '超时（毫秒，拿到响应头为止）', labelNote: '备注',
         streamUsage: '流式请求自动加 stream_options.include_usage', cancel: '取消', save: '保存', saved: '已保存',
         savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」', saving: '保存中…',
@@ -140,7 +140,7 @@
         tipOpenAI: 'Base URL 一般以 /v1 結尾，請求發往 /chat/completions，模型列表取 /models。',
         keyEmptyTag: '未填', keyPlaceholderEdit: '留空則清除已儲存的 Key', keyPlaceholderNew: '必填（部分本地服務可留空）',
         labelModels: '模型列表（逗號或換行分隔，第一個為預設；留空可點「從服務商拉取」）', fetchModels: '從服務商拉取', fetching: '拉取中…',
-        fetchPopulated: '已寫入全部 {count} 個模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
+        fetchPopulated: '已寫入全部 {count} 個模型', fetchPruned: '已移除 {count} 個服務商不再提供的舊模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
         noMatchModels: '沒有匹配的模型（共 {count} 個）', labelTimeout: '超時（毫秒，拿到回應頭為止）', labelNote: '備註',
         streamUsage: '串流請求自動加 stream_options.include_usage', cancel: '取消', save: '儲存', saved: '已儲存',
         savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」', saving: '儲存中…',
@@ -243,7 +243,7 @@
         tipOpenAI: 'Base URL usually ends in /v1. Requests go to /chat/completions, models to /models.',
         keyEmptyTag: 'None', keyPlaceholderEdit: 'Leave empty to clear saved Key', keyPlaceholderNew: 'Required (can be empty for local)',
         labelModels: 'Models (comma or newline separated, 1st is default; leave empty and use Fetch from Provider)', fetchModels: 'Fetch from Provider', fetching: 'Fetching…',
-        fetchPopulated: 'Populated all {count} models', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
+        fetchPopulated: 'Populated all {count} models', fetchPruned: 'Removed {count} old models the provider no longer lists', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
         noMatchModels: 'No matching models ({count} total)', labelTimeout: 'Timeout (ms, until response headers)', labelNote: 'Note',
         streamUsage: 'Auto add stream_options.include_usage to stream requests', cancel: 'Cancel', save: 'Save', saved: 'Saved',
         savedEmptyModels: 'Saved. Models empty — use Fetch from Provider', saving: 'Saving…',
@@ -874,7 +874,9 @@
     try {
       var r = await api('/admin/api/providers/fetch-models', { body: { id: state.editing, protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(), apiKey: $('#p-key').value.trim() } });
       state.fetched = r.models; state.fetchedLimits = r.limits || {}; $('#p-fetch-err').textContent = '';
-      if (!currentModels().length && r.models.length) { $('#p-models').value = r.models.join('\n'); toast(t('providers.fetchPopulated', { count: r.models.length })); }
+      var cur = currentModels(), kept = cur.filter(function (m) { return r.models.indexOf(m) >= 0; });
+      if (!kept.length && r.models.length) { $('#p-models').value = r.models.join('\n'); toast(t('providers.fetchPopulated', { count: r.models.length })); }
+      else if (r.models.length && kept.length < cur.length) { $('#p-models').value = kept.join('\n'); toast(t('providers.fetchPruned', { count: cur.length - kept.length })); }
       $('#p-fetch-box').classList.remove('hidden'); renderFetched();
     } catch (err) {
       $('#p-fetch-err').textContent = err.message;
