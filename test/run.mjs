@@ -1064,6 +1064,10 @@ try {
     ok(c({ prompt_tokens: 10, cached_tokens: 5 }) === 5, '缓存字段：顶层 cached_tokens');
     ok(c({ prompt_tokens: 10, cache_read_input_tokens: 4 }) === 4, '缓存字段：透传 cache_read_input_tokens');
     ok(c({ prompt_tokens: 10 }) === undefined, '缓存字段：无字段保持空');
+    ok(c({ prompt_tokens: 10, prompt_tokens_details: { cached_tokens: 0 }, cache_read_input_tokens: 4800 }) === 4800, '缓存字段：嵌套恒 0 不挡顶层真值');
+    ok(c({ prompt_tokens: 10, input_tokens_details: { cached_tokens: '7' } }) === 7, '缓存字段：字符串数字');
+    ok(c({ prompt_tokens: 10, cacheReadInputTokens: 9 }) === 9, '缓存字段：驼峰');
+    ok(c({ prompt_tokens: 10, prompt_tokens_details: { cached_tokens: 0 } }) === 0, '缓存字段：报了 0 记 0');
   }
 } catch (e) {
   fail++;
