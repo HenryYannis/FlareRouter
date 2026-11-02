@@ -40,7 +40,7 @@
         fetchPopulated: '已写入全部 {count} 个模型', fetchPruned: '已移除 {count} 个服务商不再提供的旧模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
         noMatchModels: '没有匹配的模型（共 {count} 个）', labelTimeout: '超时（毫秒，拿到响应头为止）', labelNote: '备注',
         streamUsage: '流式请求自动加 stream_options.include_usage', cancel: '取消', save: '保存', saved: '已保存',
-        savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」', saving: '保存中…',
+        savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」', saving: '保存中…', selectAvailable: '只选可用', selectAvailableTip: '只选中测试成功的可用模型', testModels: '测试模型', testStop: '停止', testRunning: '正在测试 ({done}/{total})… 可用: {ok}，失败: {fail}', testDone: '测试完成：共 {total} 个，可用 {ok} 个，失败 {fail} 个', testNoResults: '请先点击「测试模型」进行可用性测试', testSelectedCount: '已勾选 {count} 个可用模型', testNoneAvailable: '未找到测试可用的模型', testing: '测试中…', testFailed: '失败', urlRequired: 'Base URL 必填', noModelsToTest: '暂无模型可供测试',
         sectionBasic: '基础连接与鉴权', sectionModels: '模型列表配置', sectionAdvanced: '高级选项'
       },
       fallback: {
@@ -143,7 +143,7 @@
         fetchPopulated: '已寫入全部 {count} 個模型', fetchPruned: '已移除 {count} 個服務商不再提供的舊模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
         noMatchModels: '沒有匹配的模型（共 {count} 個）', labelTimeout: '超時（毫秒，拿到回應頭為止）', labelNote: '備註',
         streamUsage: '串流請求自動加 stream_options.include_usage', cancel: '取消', save: '儲存', saved: '已儲存',
-        savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」', saving: '儲存中…',
+        savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」', saving: '儲存中…', selectAvailable: '只選可用', selectAvailableTip: '只選中測試成功的可用模型', testModels: '測試模型', testStop: '停止', testRunning: '正在測試 ({done}/{total})… 可用: {ok}，失敗: {fail}', testDone: '測試完成：共 {total} 個，可用 {ok} 個，失敗 {fail} 個', testNoResults: '請先點擊「測試模型」進行可用性測試', testSelectedCount: '已勾選 {count} 個可用模型', testNoneAvailable: '未找到測試可用的模型', testing: '測試中…', testFailed: '失敗', urlRequired: 'Base URL 必填', noModelsToTest: '暫無模型可供測試',
         sectionBasic: '基礎連接與鑒權', sectionModels: '模型列表配置', sectionAdvanced: '進階選項'
       },
       fallback: {
@@ -246,7 +246,7 @@
         fetchPopulated: 'Populated all {count} models', fetchPruned: 'Removed {count} old models the provider no longer lists', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
         noMatchModels: 'No matching models ({count} total)', labelTimeout: 'Timeout (ms, until response headers)', labelNote: 'Note',
         streamUsage: 'Auto add stream_options.include_usage to stream requests', cancel: 'Cancel', save: 'Save', saved: 'Saved',
-        savedEmptyModels: 'Saved. Models empty — use Fetch from Provider', saving: 'Saving…',
+        savedEmptyModels: 'Saved. Models empty — use Fetch from Provider', saving: 'Saving…', selectAvailable: 'Select Available', selectAvailableTip: 'Select only tested and working models', testModels: 'Test Models', testStop: 'Stop', testRunning: 'Testing ({done}/{total})… OK: {ok}, Failed: {fail}', testDone: 'Testing done: {total} total, {ok} available, {fail} failed', testNoResults: 'Please click "Test Models" first to check availability', testSelectedCount: 'Selected {count} available models', testNoneAvailable: 'No available models found', testing: 'Testing…', testFailed: 'Failed', urlRequired: 'Base URL is required', noModelsToTest: 'No models to test',
         sectionBasic: 'Connection & Authentication', sectionModels: 'Model List Configuration', sectionAdvanced: 'Advanced Options'
       },
       fallback: {
@@ -803,6 +803,12 @@
     $('#prov-save').disabled = false;
     $('#p-fetch').textContent = t('providers.fetchModels');
     $('#p-fetch').disabled = false;
+    state.testResults = {};
+    state.testingActive = false;
+    $('#p-test-status').classList.add('hidden');
+    $('#p-test-info').textContent = '';
+    $('#p-fetch-test').textContent = t('providers.testModels');
+    $('#p-fetch-test').disabled = false;
     $('#p-fetch-box').classList.add('hidden');
     $('#dlg-prov').showModal();
   }
@@ -874,6 +880,9 @@
     try {
       var r = await api('/admin/api/providers/fetch-models', { body: { id: state.editing, protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(), apiKey: $('#p-key').value.trim() } });
       state.fetched = r.models; state.fetchedLimits = r.limits || {}; $('#p-fetch-err').textContent = '';
+      state.testResults = {}; state.testingActive = false;
+      $('#p-test-status').classList.add('hidden');
+      $('#p-fetch-test').textContent = t('providers.testModels');
       var cur = currentModels(), kept = cur.filter(function (m) { return r.models.indexOf(m) >= 0; });
       if (!kept.length && r.models.length) { $('#p-models').value = r.models.join('\n'); toast(t('providers.fetchPopulated', { count: r.models.length })); }
       else if (r.models.length && kept.length < cur.length) { $('#p-models').value = kept.join('\n'); toast(t('providers.fetchPruned', { count: cur.length - kept.length })); }
@@ -890,7 +899,20 @@
     var q = $('#p-fetch-q').value.trim().toLowerCase(), cur = currentModels();
     var list = state.fetched.filter(function (m) { return !q || m.toLowerCase().indexOf(q) >= 0; });
     $('#p-fetch-list').innerHTML = list.length ? list.map(function (m) {
-      return '<label><input type="checkbox" value="' + esc(m) + '"' + (cur.indexOf(m) >= 0 ? ' checked' : '') + '> <span class="mono">' + esc(m) + '</span></label>';
+      var isChecked = cur.indexOf(m) >= 0;
+      var res = state.testResults ? state.testResults[m] : null;
+      var badge = '';
+      if (res) {
+        if (res.testing) {
+          badge = '<span class="model-badge testing" title="' + esc(t('providers.testing')) + '">⏳ ' + esc(t('providers.testing')) + '</span>';
+        } else if (res.ok) {
+          badge = '<span class="model-badge success" title="' + esc('HTTP ' + res.status + ' OK (' + res.latencyMs + 'ms)') + '">● ' + res.latencyMs + 'ms</span>';
+        } else {
+          var errDesc = res.error || ('HTTP ' + res.status);
+          badge = '<span class="model-badge fail" title="' + esc(errDesc + (res.latencyMs ? ' (' + res.latencyMs + 'ms)' : '')) + '">✕ ' + esc(res.status ? String(res.status) : t('providers.testFailed')) + '</span>';
+        }
+      }
+      return '<label class="model-item"><input type="checkbox" value="' + esc(m) + '"' + (isChecked ? ' checked' : '') + '> <span class="mono grow">' + esc(m) + '</span>' + badge + '</label>';
     }).join('') : '<span class="muted small">' + t('providers.noMatchModels', { count: state.fetched.length }) + '</span>';
   }
   $('#p-fetch-q').addEventListener('input', renderFetched);
@@ -907,6 +929,117 @@
   $('#p-fetch-all').addEventListener('click', function () { $$('#p-fetch-list input').forEach(function (c) { c.checked = true; }); syncFetched(); });
   $('#p-fetch-none').addEventListener('click', function () { $$('#p-fetch-list input').forEach(function (c) { c.checked = false; }); syncFetched(); });
   $('#p-models').addEventListener('input', function () { if (!$('#p-fetch-box').classList.contains('hidden')) renderFetched(); });
+
+  // 停止测试
+  $('#p-test-stop').addEventListener('click', function () {
+    state.testingActive = false;
+  });
+
+  // 测试模型
+  $('#p-fetch-test').addEventListener('click', async function () {
+    if (state.testingActive) {
+      state.testingActive = false;
+      return;
+    }
+    var baseUrl = $('#p-url').value.trim();
+    if (!baseUrl) {
+      $('#prov-err').textContent = t('providers.urlRequired');
+      return;
+    }
+    var q = $('#p-fetch-q').value.trim().toLowerCase();
+    var targets = (state.fetched || []).filter(function (m) { return !q || m.toLowerCase().indexOf(q) >= 0; });
+    if (!targets.length) {
+      targets = currentModels();
+    }
+    if (!targets.length) {
+      toast(t('providers.noModelsToTest'));
+      return;
+    }
+
+    if (!state.testResults) state.testResults = {};
+    state.testingActive = true;
+    var testBtn = $('#p-fetch-test');
+    testBtn.textContent = t('providers.testStop');
+    var statusBox = $('#p-test-status');
+    var infoSpan = $('#p-test-info');
+    statusBox.classList.remove('hidden');
+
+    var total = targets.length;
+    var done = 0, okCount = 0, failCount = 0;
+    infoSpan.textContent = t('providers.testRunning', { done: 0, total: total, ok: 0, fail: 0 });
+
+    var protocol = $('#p-protocol').value;
+    var apiKey = $('#p-key').value.trim();
+    var provId = state.editing;
+
+    var concurrency = 4;
+    var index = 0;
+
+    async function worker() {
+      while (index < targets.length && state.testingActive) {
+        var m = targets[index++];
+        state.testResults[m] = { testing: true };
+        renderFetched();
+        try {
+          var res = await api('/admin/api/providers/test-model', {
+            body: { id: provId, protocol: protocol, baseUrl: baseUrl, apiKey: apiKey, model: m }
+          });
+          state.testResults[m] = res;
+          if (res.ok) okCount++; else failCount++;
+        } catch (e) {
+          state.testResults[m] = { ok: false, status: 0, error: e.message || String(e) };
+          failCount++;
+        }
+        done++;
+        if (state.testingActive) {
+          infoSpan.textContent = t('providers.testRunning', { done: done, total: total, ok: okCount, fail: failCount });
+          renderFetched();
+        }
+      }
+    }
+
+    var workers = [];
+    for (var i = 0; i < Math.min(concurrency, targets.length); i++) {
+      workers.push(worker());
+    }
+    await Promise.all(workers);
+
+    state.testingActive = false;
+    testBtn.textContent = t('providers.testModels');
+    renderFetched();
+    infoSpan.textContent = t('providers.testDone', { total: done, ok: okCount, fail: failCount });
+    toast(t('providers.testDone', { total: done, ok: okCount, fail: failCount }));
+  });
+
+  // 只选可用
+  $('#p-fetch-avail').addEventListener('click', function () {
+    if (!state.testResults || !Object.keys(state.testResults).length) {
+      toast(t('providers.testNoResults'));
+      return;
+    }
+    var selectedCount = 0;
+    $$('#p-fetch-list input').forEach(function (c) {
+      var m = c.value;
+      var res = state.testResults[m];
+      if (res && res.ok) {
+        c.checked = true;
+        selectedCount++;
+      } else {
+        c.checked = false;
+      }
+    });
+
+    syncFetched();
+    if (selectedCount > 0) {
+      toast(t('providers.testSelectedCount', { count: selectedCount }));
+    } else {
+      toast(t('providers.testNoneAvailable'));
+    }
+  });
+
+  $('#dlg-prov').addEventListener('close', function () {
+    state.testingActive = false;
+  });
 
   // ---- 容灾链 ----
   var chainDraft = [];

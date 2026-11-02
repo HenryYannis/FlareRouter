@@ -283,10 +283,16 @@
         </div>
         <textarea id="p-models" spellcheck="false" style="margin-top:6px;min-height:80px"></textarea>
         <div id="p-fetch-box" class="hidden">
-          <div class="row" style="margin-top:6px">
-            <input type="text" id="p-fetch-q" data-i18n-placeholder="providers.searchModels" placeholder="搜索…" class="grow">
+          <div class="row" style="margin-top:6px;gap:6px;align-items:center;flex-wrap:wrap">
+            <input type="text" id="p-fetch-q" data-i18n-placeholder="providers.searchModels" placeholder="搜索…" class="grow" style="min-width:120px">
             <button class="btn sm" type="button" id="p-fetch-all" data-i18n="providers.selectAll">全选可见</button>
             <button class="btn sm" type="button" id="p-fetch-none" data-i18n="providers.selectNone">取消可见</button>
+            <button class="btn sm" type="button" id="p-fetch-avail" data-i18n="providers.selectAvailable" data-i18n-title="providers.selectAvailableTip" title="只选中测试成功的可用模型">只选可用</button>
+            <button class="btn sm" type="button" id="p-fetch-test" data-i18n="providers.testModels">测试模型</button>
+          </div>
+          <div id="p-test-status" class="muted small hidden" style="margin-top:6px;display:flex;align-items:center;justify-content:space-between">
+            <span id="p-test-info"></span>
+            <button class="btn sm text-btn" type="button" id="p-test-stop" style="padding:0 4px;height:auto" data-i18n="providers.testStop">停止</button>
           </div>
           <div class="models-box" id="p-fetch-list"></div>
         </div>

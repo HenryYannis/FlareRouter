@@ -230,6 +230,81 @@ export async function handleAdminApi(request, env, ctx, path) {
     return json(r);
   }
 
+  if (path === '/admin/api/providers/test-model' && method === 'POST') {
+    const b = await readJson(request);
+    let { id, baseUrl, apiKey, protocol, model } = b;
+    if (id && (!apiKey || !baseUrl || !protocol)) {
+      const cfg = await getConfig(env);
+      const p = cfg.providers.find((x) => x.id === id);
+      if (p) {
+        apiKey = apiKey || p.apiKey;
+        baseUrl = baseUrl || p.baseUrl;
+        protocol = protocol || p.protocol;
+      }
+    }
+    if (!baseUrl) return err('缺少 Base URL');
+    if (!model) return err('缺少模型名称');
+
+    const isAnth = protocol === 'anthropic';
+    const url = isAnth
+      ? anthropicUrl(baseUrl, 'messages')
+      : `${String(baseUrl || '').replace(/\/+$/, '').replace(/\/(chat\/completions|models)$/, '')}/chat/completions`;
+
+    const isReasoning = typeof model === 'string' && /^o[13]/i.test(model);
+    const body = isAnth
+      ? JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: 'hi' }],
+          max_tokens: 1,
+        })
+      : JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: 'hi' }],
+          ...(isReasoning ? { max_completion_tokens: 1 } : { max_tokens: 1 }),
+          stream: false,
+        });
+
+    const headers = isAnth
+      ? anthropicHeaders(apiKey || '')
+      : {
+          'Content-Type': 'application/json',
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    const start = Date.now();
+    try {
+      const res = await fetch(url, { method: 'POST', headers, body, signal: controller.signal });
+      clearTimeout(timer);
+      const latencyMs = Date.now() - start;
+      const text = await res.text();
+      let parsed = null;
+      try { parsed = JSON.parse(text); } catch (_) {}
+
+      if (res.ok) {
+        if (parsed && parsed.error) {
+          const errMsg = typeof parsed.error === 'string' ? parsed.error : (parsed.error.message || JSON.stringify(parsed.error));
+          return json({ ok: false, status: res.status, error: String(errMsg).slice(0, 300), latencyMs });
+        }
+        return json({ ok: true, status: res.status, latencyMs });
+      } else {
+        let errMsg = `HTTP ${res.status}`;
+        if (parsed && parsed.error) {
+          errMsg = typeof parsed.error === 'string' ? parsed.error : (parsed.error.message || JSON.stringify(parsed.error));
+        } else if (text) {
+          errMsg = text.slice(0, 300);
+        }
+        return json({ ok: false, status: res.status, error: String(errMsg).slice(0, 300), latencyMs });
+      }
+    } catch (e) {
+      clearTimeout(timer);
+      const latencyMs = Date.now() - start;
+      const errorMsg = controller.signal.aborted ? '请求超时（10秒）' : errText(e);
+      return json({ ok: false, status: 0, error: errorMsg, latencyMs });
+    }
+  }
+
   if (path === '/admin/api/settings' && method === 'POST') {
     const b = await readJson(request);
     const cfg = await getConfig(env);

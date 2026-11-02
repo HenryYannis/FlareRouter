@@ -470,6 +470,47 @@ dialog .df {
   background: var(--code);
 }
 .models-box label { display: block; font-size: 13px; padding: 2px 0; }
+.model-item {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.model-item:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.04));
+}
+.model-badge {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+  line-height: 1.5;
+}
+.model-badge.testing {
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.12);
+  animation: pulse-badge 1.2s infinite ease-in-out;
+}
+.model-badge.success {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  font-weight: 500;
+}
+.model-badge.fail {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 
 /* 容灾链批量选择器样式 */
 .chain-picker-group {
