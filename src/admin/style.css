@@ -259,6 +259,7 @@ nav button.on:hover {
   justify-content: center;
   gap: 6px;
   user-select: none;
+  text-decoration: none;
   background-image: none !important;
   transition: var(--transition);
 }

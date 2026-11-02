@@ -40,6 +40,14 @@ export function parseModels(models) {
   return out;
 }
 
+export function normalizeConsoleUrl(raw) {
+  const u = String(raw || '').trim();
+  if (!u) return '';
+  if (/^https?:\/\//i.test(u)) return u;
+  if (/^[a-zA-Z0-9_-]+:/.test(u)) return '';
+  return 'https://' + u;
+}
+
 export function normalizeProvider(p) {
   if (!p || typeof p !== 'object') return null;
   const id = String(p.id || '').trim();
@@ -51,6 +59,7 @@ export function normalizeProvider(p) {
     protocol: p.protocol === 'anthropic' ? 'anthropic' : 'openai',
     baseUrl: String(p.baseUrl || '').trim().replace(/\/+$/, ''),
     apiKey: String(p.apiKey || ''),
+    consoleUrl: normalizeConsoleUrl(p.consoleUrl),
     models: parseModels(p.models),
     enabled: p.enabled !== false,
     timeoutMs: Number(p.timeoutMs) > 0 ? Math.min(Number(p.timeoutMs), 300000) : 60000,

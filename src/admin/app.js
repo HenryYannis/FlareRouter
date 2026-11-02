@@ -33,6 +33,7 @@
         delConfirm: '删除服务商「{name}」？它在容灾链里的条目也会一并移除。', deleted: '已删除',
         dialogAdd: '添加服务商', dialogEdit: '编辑服务商', labelName: '名称', labelId: 'ID（用于「ID/模型」寻址）',
         labelProto: '协议类型', protoOpenAI: 'OpenAI 兼容（/chat/completions，Bearer 鉴权）', protoAnthropic: 'Anthropic Messages（/v1/messages，x-api-key 鉴权）',
+        labelConsole: '控制台地址', consolePlaceholder: '可选，例如：https://cloud.siliconflow.cn', visit: '访问', noConsoleUrl: '未配置控制台地址',
         tipAnthropic: 'Base URL 写到域名即可（带不带 /v1 都行），请求发往 /v1/messages，模型列表取 /v1/models；也适用于提供 Anthropic 兼容接口的服务商。',
         tipOpenAI: 'Base URL 一般以 /v1 结尾，请求发往 /chat/completions，模型列表取 /models。',
         keyEmptyTag: '未填', keyPlaceholderEdit: '留空则清除已保存的 Key', keyPlaceholderNew: '必填（部分本地服务可留空）',
@@ -143,6 +144,7 @@
         delConfirm: '刪除服務商「{name}」？它在容災鏈裡的條目也會一併移除。', deleted: '已刪除',
         dialogAdd: '新增服務商', dialogEdit: '編輯服務商', labelName: '名稱', labelId: 'ID（用於「ID/模型」定址）',
         labelProto: '協議類型', protoOpenAI: 'OpenAI 相容（/chat/completions，Bearer 鑑權）', protoAnthropic: 'Anthropic Messages（/v1/messages，x-api-key 鑑權）',
+        labelConsole: '主控台地址', consolePlaceholder: '可選，例如：https://cloud.siliconflow.cn', visit: '造訪', noConsoleUrl: '未設定主控台地址',
         tipAnthropic: 'Base URL 寫到網域即可（帶不帶 /v1 都行），請求發往 /v1/messages，模型列表取 /v1/models；也適用於提供 Anthropic 相容介面的服務商。',
         tipOpenAI: 'Base URL 一般以 /v1 結尾，請求發往 /chat/completions，模型列表取 /models。',
         keyEmptyTag: '未填', keyPlaceholderEdit: '留空則清除已儲存的 Key', keyPlaceholderNew: '必填（部分本地服務可留空）',
@@ -253,6 +255,7 @@
         delConfirm: 'Delete provider "{name}"? Entries in failover chain will also be removed.', deleted: 'Deleted',
         dialogAdd: 'Add Provider', dialogEdit: 'Edit Provider', labelName: 'Name', labelId: 'ID (for "id/model" addressing)',
         labelProto: 'Protocol Type', protoOpenAI: 'OpenAI Compatible (/chat/completions, Bearer auth)', protoAnthropic: 'Anthropic Messages (/v1/messages, x-api-key auth)',
+        labelConsole: 'Console URL', consolePlaceholder: 'Optional, e.g. https://platform.openai.com', visit: 'Visit', noConsoleUrl: 'No console URL configured',
         tipAnthropic: 'Base URL can be just the domain (with or without /v1). Requests go to /v1/messages, models to /v1/models; also works with Anthropic-compatible proxies.',
         tipOpenAI: 'Base URL usually ends in /v1. Requests go to /chat/completions, models to /models.',
         keyEmptyTag: 'None', keyPlaceholderEdit: 'Leave empty to clear saved Key', keyPlaceholderNew: 'Required (can be empty for local)',
@@ -690,7 +693,12 @@
         '<td class="mono small">' + (p.hasKey ? esc(p.apiKeyPreview) : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') + '</td>' +
         '<td class="small" title="' + esc(p.models.join(', ')) + '">' + p.models.length + '<div class="muted mono">' + esc(p.models[0] || '') + '</div></td>' +
         '<td><label class="switch"><input type="checkbox" data-toggle="' + esc(p.id) + '"' + (p.enabled ? ' checked' : '') + '><span></span></label></td>' +
-        '<td class="col-actions" style="white-space:nowrap"><button class="btn sm" data-edit="' + i + '">' + t('providers.edit') + '</button> <button class="btn sm danger" data-del="' + esc(p.id) + '">' + t('providers.del') + '</button></td>' +
+        '<td class="col-actions" style="white-space:nowrap">' +
+          (p.consoleUrl ?
+            '<a class="btn sm" href="' + esc(p.consoleUrl) + '" target="_blank" rel="noopener noreferrer">' + t('providers.visit') + '</a> ' :
+            '<button class="btn sm" disabled title="' + t('providers.noConsoleUrl') + '">' + t('providers.visit') + '</button> ') +
+          '<button class="btn sm" data-edit="' + i + '">' + t('providers.edit') + '</button> ' +
+          '<button class="btn sm danger" data-del="' + esc(p.id) + '">' + t('providers.del') + '</button></td>' +
         '</tr>';
     });
     $('#prov-table').innerHTML = h;
@@ -811,6 +819,7 @@
     $('#p-protocol').value = p && p.protocol === 'anthropic' ? 'anthropic' : 'openai';
     syncProtocol();
     $('#p-url').value = p ? p.baseUrl : '';
+    $('#p-console').value = p ? (p.consoleUrl || '') : '';
     $('#p-key').value = p && p.apiKey ? p.apiKey : '';
     $('#p-key').type = 'password';
     $('#p-key-toggle').textContent = '👁';
@@ -871,6 +880,7 @@
       clearKey: !!(editingId && !keyVal),
       provider: {
         id: $('#p-id').value.trim(), name: $('#p-name').value.trim(), protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(),
+        consoleUrl: $('#p-console').value.trim(),
         apiKey: keyVal, models: $('#p-models').value, timeoutMs: +$('#p-timeout').value || 60000,
         note: $('#p-note').value.trim(), streamUsage: $('#p-usage').checked,
         enabled: prev ? !!prev.enabled : true
