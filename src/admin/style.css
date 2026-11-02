@@ -182,6 +182,7 @@ nav {
   -webkit-backdrop-filter: var(--background-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 nav button {
   border: 1px solid transparent;
