@@ -70,6 +70,14 @@ async function route(request, env, ctx) {
   if (!caller) {
     return protocolError(proto, '调用密钥无效或已吊销：请在请求头带 Authorization: Bearer sk-gw-... 或 x-api-key: sk-gw-...（在管理页生成）', 401, 'authentication_error');
   }
+  if (caller.quotaExceeded) {
+    return protocolError(
+      proto,
+      `调用密钥额度已耗尽（已消耗 ${caller.quotaUsed} Tokens，上限 ${caller.quotaLimit} Tokens）`,
+      429,
+      'insufficient_quota'
+    );
+  }
 
   if (isModels) {
     if (request.method !== 'GET') return apiError('Method Not Allowed', 405);

@@ -1054,3 +1054,34 @@ html.night-theme .chat-messages { background: rgba(255, 255, 255, 0.04); }
     scroll-behavior: auto !important;
   }
 }
+
+/* 密钥额度单元格样式 */
+.quota-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 110px;
+}
+.quota-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.quota-bar-bg {
+  width: 100%;
+  max-width: 120px;
+  height: 4px;
+  background: rgba(125, 125, 125, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.quota-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+.quota-bar-fill.normal { background: #10b981; }
+.quota-bar-fill.warning { background: #f59e0b; }
+.quota-bar-fill.danger { background: #ef4444; }

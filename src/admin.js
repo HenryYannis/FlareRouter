@@ -1,7 +1,7 @@
 // 管理接口：管理员密码登录（Worker secret ADMIN_PASSWORD），HMAC 签名的会话 Cookie
 
 import { getConfig, saveConfig, normalizeProvider, parseModels } from './config.js';
-import { createKey, deleteKey, listKeys, renameKey, revokeKey } from './keys.js';
+import { createKey, deleteKey, listKeys, renameKey, revokeKey, rotateKey, setKeyQuota } from './keys.js';
 import { clearLogs, queryLogs, statsSummary } from './logs.js';
 import { handleProxy, listModels } from './gateway.js';
 import { anthropicHeaders, anthropicUrl } from './anthropic.js';
@@ -422,6 +422,22 @@ export async function handleAdminApi(request, env, ctx, path) {
     const { id } = await readJson(request);
     await revokeKey(env, id);
     return json({ ok: true, items: await listKeys(env) });
+  }
+  if (path === '/admin/api/keys/rotate' && method === 'POST') {
+    const { id } = await readJson(request);
+    try {
+      return json(await rotateKey(env, id));
+    } catch (e) {
+      return err((e && e.message) || String(e));
+    }
+  }
+  if (path === '/admin/api/keys/quota' && method === 'POST') {
+    const b = await readJson(request);
+    try {
+      return json(await setKeyQuota(env, b.id, b));
+    } catch (e) {
+      return err((e && e.message) || String(e));
+    }
   }
   if (path === '/admin/api/keys/delete' && method === 'POST') {
     const { id } = await readJson(request);

@@ -76,6 +76,14 @@ export function writeLog(env, ctx, entry) {
     entry.cacheReadTokens ?? null,
     ...baseLegacy.slice(15),
   ];
+  if (entry.keyId && entry.keyId !== 'admin' && Number(entry.totalTokens) > 0) {
+    ctx.waitUntil(
+      env.DB.prepare('UPDATE api_keys SET quota_used = COALESCE(quota_used, 0) + ? WHERE id = ?')
+        .bind(Number(entry.totalTokens), entry.keyId)
+        .run()
+        .catch(() => {})
+    );
+  }
   const proto = [entry.clientProtocol || null, entry.upstreamProtocol || null];
   p = env.DB.prepare(`INSERT INTO call_logs (${COLS}, client_protocol, upstream_protocol) VALUES (${Array(23).fill('?').join(', ')})`)
     .bind(...base, ...proto)

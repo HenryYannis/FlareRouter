@@ -18,10 +18,23 @@ export async function verifyApiKey(env, ctx, token) {
   if (hit && now - hit.at < AUTH_CACHE_TTL_MS) {
     row = hit.key;
   } else {
-    row = await env.DB.prepare('SELECT id, name, revoked FROM api_keys WHERE key_hash = ?').bind(hash).first();
+    try {
+      row = await env.DB.prepare('SELECT id, name, revoked, quota_limit, quota_used FROM api_keys WHERE key_hash = ?').bind(hash).first();
+    } catch (e) {
+      if (/no column|no such column/i.test((e && e.message) || '')) {
+        row = await env.DB.prepare('SELECT id, name, revoked FROM api_keys WHERE key_hash = ?').bind(hash).first();
+      } else {
+        throw e;
+      }
+    }
     authCache.set(hash, { key: row || null, at: now });
   }
   if (!row || row.revoked) return null;
+  const quotaLimit = Number(row.quota_limit) || 0;
+  const quotaUsed = Number(row.quota_used) || 0;
+  if (quotaLimit > 0 && quotaUsed >= quotaLimit) {
+    return { id: row.id, name: row.name, quotaExceeded: true, quotaUsed, quotaLimit };
+  }
   // 异步更新最近使用时间，不拖慢请求
   ctx.waitUntil(
     env.DB.prepare('UPDATE api_keys SET last_used_at = ? WHERE id = ?').bind(now, row.id).run().catch(() => {})
@@ -32,15 +45,22 @@ export async function verifyApiKey(env, ctx, token) {
 export async function listKeys(env) {
   try {
     const { results } = await env.DB.prepare(
-      'SELECT id, name, preview, raw_key, created_at, last_used_at, revoked FROM api_keys ORDER BY created_at DESC'
+      'SELECT id, name, preview, raw_key, created_at, last_used_at, revoked, quota_limit, quota_used FROM api_keys ORDER BY created_at DESC'
     ).all();
     return results || [];
   } catch (e) {
     if (/no column|no such column/i.test((e && e.message) || '')) {
-      const { results } = await env.DB.prepare(
-        'SELECT id, name, preview, created_at, last_used_at, revoked FROM api_keys ORDER BY created_at DESC'
-      ).all();
-      return results || [];
+      try {
+        const { results } = await env.DB.prepare(
+          'SELECT id, name, preview, raw_key, created_at, last_used_at, revoked FROM api_keys ORDER BY created_at DESC'
+        ).all();
+        return results || [];
+      } catch (e2) {
+        const { results } = await env.DB.prepare(
+          'SELECT id, name, preview, created_at, last_used_at, revoked FROM api_keys ORDER BY created_at DESC'
+        ).all();
+        return results || [];
+      }
     }
     throw e;
   }
@@ -88,4 +108,49 @@ export async function revokeKey(env, id) {
 export async function deleteKey(env, id) {
   await env.DB.prepare('DELETE FROM api_keys WHERE id = ?').bind(id).run();
   authCache.clear();
+}
+
+export async function rotateKey(env, id) {
+  if (!id) throw new Error('缺少密钥 id');
+  const key = `sk-gw-${randomHex(24)}`;
+  const hash = await sha256Hex(key);
+  const preview = `${key.slice(0, 9)}…${key.slice(-4)}`;
+  try {
+    const r = await env.DB.prepare(
+      'UPDATE api_keys SET key_hash = ?, preview = ?, raw_key = ?, revoked = 0 WHERE id = ?'
+    ).bind(hash, preview, key, id).run();
+    if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
+  } catch (e) {
+    if (/no column|no such column/i.test((e && e.message) || '')) {
+      const r = await env.DB.prepare(
+        'UPDATE api_keys SET key_hash = ?, preview = ?, revoked = 0 WHERE id = ?'
+      ).bind(hash, preview, id).run();
+      if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
+    } else {
+      throw e;
+    }
+  }
+  authCache.clear();
+  return { id, key, raw_key: key, preview };
+}
+
+export async function setKeyQuota(env, id, { quotaLimit, resetUsed } = {}) {
+  if (!id) throw new Error('缺少密钥 id');
+  const limit = Math.max(0, parseInt(quotaLimit, 10) || 0);
+  try {
+    if (resetUsed) {
+      const r = await env.DB.prepare('UPDATE api_keys SET quota_limit = ?, quota_used = 0 WHERE id = ?').bind(limit, id).run();
+      if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
+    } else {
+      const r = await env.DB.prepare('UPDATE api_keys SET quota_limit = ? WHERE id = ?').bind(limit, id).run();
+      if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
+    }
+  } catch (e) {
+    if (/no column|no such column/i.test((e && e.message) || '')) {
+      throw new Error('请先执行数据库迁移 0005_key_quota.sql');
+    }
+    throw e;
+  }
+  authCache.clear();
+  return { id, quotaLimit: limit, resetUsed: !!resetUsed };
 }

@@ -56,15 +56,22 @@
       },
       keys: {
         title: '调用密钥', namePlaceholder: '名称，例如：笔记本 / Cherry Studio', generate: '生成新密钥',
+        generating: '生成中…',
         newKeyTitle: '密钥已生成',
         newKeyNotice: '已为「{name}」生成密钥，已自动复制到剪贴板，并保存至列表：', copy: '复制',
         nameRequired: '请先填写名称',
         showHide: '显示 / 隐藏明文', legacyNoRaw: '旧密钥无明文', thName: '名称', thKey: '密钥',
-        thCreated: '创建', thLastUsed: '最近使用', thStatus: '状态', thActions: '操作',
-        active: '有效', revoked: '已吊销', rename: '改名', revoke: '吊销', delete: '删除',
+        thQuota: '额度 (已用 / 限额)', thCreated: '创建', thLastUsed: '最近使用', thActions: '操作',
+        rename: '改名', rotate: '轮换', delete: '删除', quota: '限额',
         renamePrompt: '新的密钥名称',
-        revokeConfirm: '吊销后该密钥立即失效（最长 30 秒缓存），继续？', delConfirm: '彻底删除该密钥记录？', empty: '还没有调用密钥。',
-        unnamed: '未命名'
+        rotateConfirm: '确定轮换密钥「{name}」？原密钥将立即失效，系统将为此记录生成全新的 API 密钥。',
+        rotateTitle: '密钥已轮换',
+        rotateNotice: '已为「{name}」轮换密钥，原密钥已作废。新密钥已自动复制到剪贴板：',
+        delConfirm: '彻底删除该密钥记录？', empty: '还没有调用密钥。',
+        unnamed: '未命名',
+        quotaTitle: '设置密钥额度与限额', labelQuotaLimit: 'Token 限额（0 或留空为无限制）',
+        resetUsedOption: '重置当前已用额度为 0', curUsedTokens: '当前已消耗：{tokens} Tokens',
+        unlimited: '无限制', quotaExceeded: '已超额', quotaSaved: '限额已更新'
       },
       logs: {
         allStatus: '全部状态', success: '成功', fail: '失败', onlyFallback: '仅容灾',
@@ -972,7 +979,7 @@
     var apiKey = $('#p-key').value.trim();
     var provId = state.editing;
 
-    var concurrency = 4;
+    var concurrency = 6;
     var index = 0;
 
     async function worker() {
@@ -1259,9 +1266,16 @@
   $('#stats-days').addEventListener('change', loadStats);
 
   // ---- 密钥 ----
+  function fmtTokens(n) {
+    var v = Number(n) || 0;
+    if (v >= 1000000) return (v / 1000000).toFixed(v % 1000000 === 0 ? 0 : 1) + 'M';
+    if (v >= 1000) return (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'K';
+    return String(v);
+  }
+
   function renderKeys(items) {
     state.keys = items || [];
-    $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th>' + t('keys.thStatus') + '</th><th class="col-actions">' + t('keys.thActions') + '</th></tr>' +
+    $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thQuota') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th class="col-actions">' + t('keys.thActions') + '</th></tr>' +
       (state.keys.length ? state.keys.map(function (k) {
         var hasRaw = !!k.raw_key;
         var isUnmasked = !!state.unmaskedKeys[k.id];
@@ -1270,28 +1284,50 @@
           '<span class="mono small key-val' + (hasRaw ? ' click' : '') + '"' + (hasRaw ? ' data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '"' : '') + '>' + esc(displayKey) + '</span>' +
           (hasRaw ? ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isUnmasked ? '🙈' : '👁') + '</button>' : ' <span class="muted small" title="' + t('keys.legacyNoRaw') + '">(' + t('keys.legacyNoRaw') + ')</span>') +
           '</span>';
+        var used = Number(k.quota_used) || 0;
+        var limit = Number(k.quota_limit) || 0;
+        var isExceeded = limit > 0 && used >= limit;
+        var pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+        var barClass = pct >= 100 ? 'danger' : pct >= 80 ? 'warning' : 'normal';
+        var quotaHtml = '<div class="quota-cell">' +
+          '<div class="quota-text"><span>' + fmtTokens(used) + ' / ' + (limit > 0 ? fmtTokens(limit) : t('keys.unlimited')) + '</span>' +
+          (isExceeded ? '<span class="tag bad" style="margin-left:4px">' + t('keys.quotaExceeded') + '</span>' : '') + '</div>' +
+          (limit > 0 ? '<div class="quota-bar-bg"><div class="quota-bar-fill ' + barClass + '" style="width:' + pct + '%"></div></div>' : '') +
+          '</div>';
+
         return '<tr><td><b>' + esc(k.name) + '</b></td>' +
           '<td>' + keyHtml + '</td>' +
+          '<td>' + quotaHtml + '</td>' +
           '<td class="small">' + fmtTime(k.created_at) + '</td>' +
           '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
-          '<td><span class="tag ' + (k.revoked ? 'bad' : 'ok') + '">' + (k.revoked ? t('keys.revoked') : t('keys.active')) + '</span></td>' +
-          '<td class="col-actions" style="white-space:nowrap">' + (hasRaw ? '<button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button> ' : '') + '<button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' + (k.revoked ? '' : '<button class="btn sm" data-revoke="' + esc(k.id) + '">' + t('keys.revoke') + '</button> ') + '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
+          '<td class="col-actions" style="white-space:nowrap">' +
+          (hasRaw ? '<button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button> ' : '') +
+          '<button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' +
+          '<button class="btn sm" data-quota="' + esc(k.id) + '">' + t('keys.quota') + '</button> ' +
+          '<button class="btn sm" data-rotate="' + esc(k.id) + '">' + t('keys.rotate') + '</button> ' +
+          '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
       }).join('') : '<tr><td colspan="6" class="muted">' + t('keys.empty') + '</td></tr>');
     $('#lf-key').innerHTML = '<option value="">' + t('logs.allKeys') + '</option><option value="admin">' + t('logs.adminTest') + '</option>' + state.keys.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join('');
   }
+
   async function loadKeys() {
     try {
       var r = await api('/admin/api/keys');
       renderKeys(r.items);
     } catch (err) { $('#key-table').innerHTML = '<tr><td class="err">' + esc(err.message) + '</td></tr>'; }
   }
+
   $('#key-create').addEventListener('click', async function () {
+    var createBtn = $('#key-create');
+    if (createBtn.disabled) return;
     var name = $('#key-name').value.trim();
     if (!name) {
       toast(t('keys.nameRequired'));
       $('#key-name').focus();
       return;
     }
+    createBtn.disabled = true;
+    createBtn.textContent = t('keys.generating');
     try {
       var k = await api('/admin/api/keys', { body: { name: name } });
       $('#key-name').value = '';
@@ -1305,10 +1341,16 @@
         title: t('keys.newKeyTitle'),
         message: t('keys.newKeyNotice', { name: name }) + '\n\n' + k.key
       });
-    } catch (err) { await showAlert({ message: err.message }); }
+    } catch (err) {
+      await showAlert({ message: err.message });
+    } finally {
+      createBtn.disabled = false;
+      createBtn.textContent = t('keys.generate');
+    }
   });
+
   $('#key-table').addEventListener('click', async function (e) {
-    var b = e.target.closest('[data-ktoggle], [data-kcopy], [data-rename], [data-revoke], [data-kdel]'); if (!b) return;
+    var b = e.target.closest('[data-ktoggle], [data-kcopy], [data-rename], [data-quota], [data-rotate], [data-kdel]'); if (!b) return;
     try {
       if (b.dataset.ktoggle) {
         var id = b.dataset.ktoggle;
@@ -1336,28 +1378,80 @@
         } catch (err) { renderKeys(prevRen); throw err; }
         return;
       }
-      if (b.dataset.revoke) {
-        if (!(await showConfirm({ message: t('keys.revokeConfirm'), danger: true }))) return;
-        var revId = b.dataset.revoke;
-        var prevRev = state.keys.slice();
-        renderKeys(state.keys.map(function (k) { return k.id === revId ? Object.assign({}, k, { revoked: 1 }) : k; }));
+      if (b.dataset.quota) {
+        var qId = b.dataset.quota;
+        var qK = state.keys.find(function (k) { return k.id === qId; });
+        if (!qK) return;
+        state.quotaKeyId = qId;
+        $('#kq-name').textContent = qK.name || qId;
+        $('#kq-cur-used').textContent = t('keys.curUsedTokens', { tokens: Number(qK.quota_used || 0).toLocaleString() });
+        $('#kq-limit').value = qK.quota_limit > 0 ? qK.quota_limit : '';
+        $('#kq-reset-used').checked = false;
+        $('#kq-err').textContent = '';
+        $('#dlg-key-quota').showModal();
+        return;
+      }
+      if (b.dataset.rotate) {
+        var rotId = b.dataset.rotate;
+        var targetK = state.keys.find(function (k) { return k.id === rotId; });
+        var targetName = targetK ? targetK.name : rotId;
+        if (!(await showConfirm({ message: t('keys.rotateConfirm', { name: targetName }), danger: true }))) return;
         try {
-          var revRes = await api('/admin/api/keys/revoke', { body: { id: revId } });
-          if (revRes.items) renderKeys(revRes.items);
-        } catch (err) { renderKeys(prevRev); throw err; }
+          var rotRes = await api('/admin/api/keys/rotate', { body: { id: rotId } });
+          loadKeys();
+          try {
+            await navigator.clipboard.writeText(rotRes.key);
+            toast(t('header.copied'));
+          } catch (e) {}
+          await showAlert({
+            type: 'success',
+            title: t('keys.rotateTitle'),
+            message: t('keys.rotateNotice', { name: targetName }) + '\n\n' + rotRes.key
+          });
+        } catch (err) { await showAlert({ message: err.message }); }
         return;
       }
       if (b.dataset.kdel) {
-        if (!(await showConfirm({ message: t('keys.delConfirm'), danger: true }))) return;
         var delId = b.dataset.kdel;
+        if (!(await showConfirm({ message: t('keys.delConfirm'), danger: true }))) return;
         var prevDel = state.keys.slice();
         renderKeys(state.keys.filter(function (k) { return k.id !== delId; }));
         try {
           var delRes = await api('/admin/api/keys/delete', { body: { id: delId } });
           if (delRes.items) renderKeys(delRes.items);
         } catch (err) { renderKeys(prevDel); throw err; }
+        return;
       }
     } catch (err) { await showAlert({ message: err.message }); }
+  });
+
+  // 限额设置弹窗逻辑
+  $$('#dlg-key-quota [data-kq-preset]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var val = this.dataset.kqPreset;
+      $('#kq-limit').value = val === '0' ? '' : val;
+    });
+  });
+
+  $('#kq-save').addEventListener('click', async function () {
+    var saveBtn = $('#kq-save');
+    if (saveBtn.disabled) return;
+    var id = state.quotaKeyId;
+    if (!id) return;
+    var limitVal = parseInt($('#kq-limit').value, 10);
+    var limit = isNaN(limitVal) || limitVal < 0 ? 0 : limitVal;
+    var resetUsed = $('#kq-reset-used').checked;
+    saveBtn.disabled = true;
+    try {
+      await api('/admin/api/keys/quota', { body: { id: id, quotaLimit: limit, resetUsed: resetUsed } });
+      $('#dlg-key-quota').close();
+      loadKeys();
+      toast(t('keys.quotaSaved'));
+    } catch (err) {
+      $('#kq-err').textContent = err.message;
+    } finally {
+      saveBtn.disabled = false;
+    }
   });
 
   // ---- 日志 ----

@@ -343,6 +343,35 @@
   </div>
 </dialog>
 
+<!-- 密钥限额设置 -->
+<dialog id="dlg-key-quota">
+  <form method="dialog" id="quota-form">
+    <div class="dh" data-i18n="keys.quotaTitle">设置密钥额度与限额</div>
+    <div class="db">
+      <div id="kq-name" class="bold" style="margin-bottom:6px"></div>
+      <div class="muted small" id="kq-cur-used" style="margin-bottom:12px"></div>
+      <label class="f" for="kq-limit" data-i18n="keys.labelQuotaLimit">Token 限额（0 或留空为无限制）</label>
+      <input type="number" id="kq-limit" min="0" step="1000" placeholder="例如：1000000" style="width:100%">
+      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
+        <button type="button" class="btn sm" data-kq-preset="0" data-i18n="keys.unlimited">无限制</button>
+        <button type="button" class="btn sm" data-kq-preset="100000">100K</button>
+        <button type="button" class="btn sm" data-kq-preset="500000">500K</button>
+        <button type="button" class="btn sm" data-kq-preset="1000000">1M</button>
+        <button type="button" class="btn sm" data-kq-preset="5000000">5M</button>
+        <button type="button" class="btn sm" data-kq-preset="10000000">10M</button>
+      </div>
+      <label class="row small" style="margin-top:14px;cursor:pointer">
+        <input type="checkbox" id="kq-reset-used"> <span data-i18n="keys.resetUsedOption">重置当前已用额度为 0</span>
+      </label>
+      <div id="kq-err" class="err small" style="margin-top:8px"></div>
+    </div>
+    <div class="df">
+      <button class="btn" value="cancel" formnovalidate data-i18n="common.cancel">取消</button>
+      <button class="btn primary" type="button" id="kq-save" data-i18n="common.save">保存</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- 日志详情 -->
 <dialog id="dlg-log">
   <div class="dh" data-i18n="logs.detailTitle">调用详情</div>
