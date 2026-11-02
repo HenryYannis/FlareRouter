@@ -52,7 +52,7 @@
         batchAdd: '批量选择...', pickerTitle: '批量选择模型加入容灾链',
         pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
         pickerSelectedCount: '已选 {count} 个模型', pickerConfirm: '加入容灾链', pickerCancel: '取消',
-        pickerToastAdded: '已更新容灾链（共 {count} 个模型）', groupAll: '全选', groupNone: '清空'
+        pickerToastAdded: '已导入容灾链（共 {count} 个模型），请点击「保存设置」生效', groupAll: '全选', groupNone: '清空'
       },
       keys: {
         title: '调用密钥', namePlaceholder: '名称，例如：笔记本 / Cherry Studio', generate: '生成新密钥',
@@ -162,7 +162,7 @@
         batchAdd: '批量選擇...', pickerTitle: '批量選擇模型加入容災鏈',
         pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
         pickerSelectedCount: '已選 {count} 個模型', pickerConfirm: '加入容災鏈', pickerCancel: '取消',
-        pickerToastAdded: '已更新容災鏈（共 {count} 個模型）', groupAll: '全選', groupNone: '清空'
+        pickerToastAdded: '已匯入容災鏈（共 {count} 個模型），請點擊「儲存設定」生效', groupAll: '全選', groupNone: '清空'
       },
       keys: {
         title: '調用密鑰', namePlaceholder: '名稱，例如：筆記本 / Cherry Studio', generate: '生成新密鑰',
@@ -272,7 +272,7 @@
         batchAdd: 'Batch Select...', pickerTitle: 'Select Models for Failover Chain',
         pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
         pickerSelectedCount: '{count} models selected', pickerConfirm: 'Apply to Chain', pickerCancel: 'Cancel',
-        pickerToastAdded: 'Updated failover chain ({count} models)', groupAll: 'Select All', groupNone: 'Clear'
+        pickerToastAdded: 'Added to failover chain ({count} models), click "Save Settings" to apply', groupAll: 'Select All', groupNone: 'Clear'
       },
       keys: {
         title: 'API Keys', namePlaceholder: 'Name, e.g. Laptop / Cursor', generate: 'Generate Key',
