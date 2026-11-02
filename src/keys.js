@@ -36,7 +36,7 @@ export async function verifyApiKey(env, ctx, token) {
     return { id: row.id, name: row.name, quotaExceeded: true, quotaUsed, quotaLimit };
   }
   // 异步更新最近使用时间，不拖慢请求
-  ctx.waitUntil(
+  if (ctx && ctx.waitUntil) ctx.waitUntil(
     env.DB.prepare('UPDATE api_keys SET last_used_at = ? WHERE id = ?').bind(now, row.id).run().catch(() => {})
   );
   return { id: row.id, name: row.name };

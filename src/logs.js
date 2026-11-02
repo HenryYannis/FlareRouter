@@ -76,7 +76,7 @@ export function writeLog(env, ctx, entry) {
     entry.cacheReadTokens ?? null,
     ...baseLegacy.slice(15),
   ];
-  if (entry.keyId && entry.keyId !== 'admin' && Number(entry.totalTokens) > 0) {
+  if (ctx && ctx.waitUntil && entry.keyId && entry.keyId !== 'admin' && Number(entry.totalTokens) > 0) {
     ctx.waitUntil(
       env.DB.prepare('UPDATE api_keys SET quota_used = COALESCE(quota_used, 0) + ? WHERE id = ?')
         .bind(Number(entry.totalTokens), entry.keyId)

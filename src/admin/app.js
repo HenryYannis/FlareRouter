@@ -166,15 +166,22 @@
       },
       keys: {
         title: '調用密鑰', namePlaceholder: '名稱，例如：筆記本 / Cherry Studio', generate: '生成新密鑰',
+        generating: '生成中…',
         newKeyTitle: '密鑰已產生',
         newKeyNotice: '已為「{name}」產生密鑰，已自動複製到剪貼簿，並儲存至列表：', copy: '複製',
         nameRequired: '請先填寫名稱',
         showHide: '顯示 / 隱藏明文', legacyNoRaw: '舊密鑰無明文', thName: '名稱', thKey: '密鑰',
-        thCreated: '建立', thLastUsed: '最近使用', thStatus: '狀態', thActions: '操作',
-        active: '有效', revoked: '已吊銷', rename: '改名', revoke: '吊銷', delete: '刪除',
+        thQuota: '額度 (已用 / 限額)', thCreated: '建立', thLastUsed: '最近使用', thActions: '操作',
+        rename: '改名', rotate: '輪換', delete: '刪除', quota: '限額',
         renamePrompt: '新的密鑰名稱',
-        revokeConfirm: '吊銷後該密鑰立即失效（最長 30 秒快取），繼續？', delConfirm: '徹底刪除該密鑰記錄？', empty: '還沒有調用密鑰。',
-        unnamed: '未命名'
+        rotateConfirm: '確定輪換密鑰「{name}」？原密鑰將立即失效，系統將為此記錄生成全新的 API 密鑰。',
+        rotateTitle: '密鑰已輪換',
+        rotateNotice: '已為「{name}」輪換密鑰，原密鑰已作廢。新密鑰已自動複製到剪貼簿：',
+        delConfirm: '徹底刪除該密鑰記錄？', empty: '還沒有調用密鑰。',
+        unnamed: '未命名',
+        quotaTitle: '設定密鑰額度與限額', labelQuotaLimit: 'Token 限額（0 或留空為無限制）',
+        resetUsedOption: '重置當前已用額度為 0', curUsedTokens: '當前已消耗：{tokens} Tokens',
+        unlimited: '無限制', quotaExceeded: '已超額', quotaSaved: '限額已更新'
       },
       logs: {
         allStatus: '全部狀態', success: '成功', fail: '失敗', onlyFallback: '僅容災',
@@ -269,15 +276,22 @@
       },
       keys: {
         title: 'API Keys', namePlaceholder: 'Name, e.g. Laptop / Cursor', generate: 'Generate Key',
+        generating: 'Generating…',
         newKeyTitle: 'Key Created',
         newKeyNotice: 'Key created for "{name}", copied to clipboard, and saved to the list:', copy: 'Copy',
         nameRequired: 'Please enter a name first',
         showHide: 'Show / Hide Key', legacyNoRaw: 'Legacy (no raw key)', thName: 'Name', thKey: 'Key',
-        thCreated: 'Created', thLastUsed: 'Last Used', thStatus: 'Status', thActions: 'Actions',
-        active: 'Active', revoked: 'Revoked', rename: 'Rename', revoke: 'Revoke', delete: 'Delete',
+        thQuota: 'Quota (Used / Limit)', thCreated: 'Created', thLastUsed: 'Last Used', thActions: 'Actions',
+        rename: 'Rename', rotate: 'Rotate', delete: 'Delete', quota: 'Quota',
         renamePrompt: 'New key name',
-        revokeConfirm: 'Key will become invalid immediately upon revocation (up to 30s cache). Continue?', delConfirm: 'Permanently delete this key record?', empty: 'No API keys yet.',
-        unnamed: 'Unnamed'
+        rotateConfirm: 'Are you sure you want to rotate key "{name}"? The existing key will be invalidated immediately and a new API key will be generated.',
+        rotateTitle: 'Key Rotated',
+        rotateNotice: 'Key has been rotated for "{name}". The old key is now invalid. The new key has been copied to your clipboard:',
+        delConfirm: 'Permanently delete this key record?', empty: 'No API keys yet.',
+        unnamed: 'Unnamed',
+        quotaTitle: 'Set API Key Quota & Limit', labelQuotaLimit: 'Token Limit (0 or blank for unlimited)',
+        resetUsedOption: 'Reset current used tokens to 0', curUsedTokens: 'Current usage: {tokens} Tokens',
+        unlimited: 'Unlimited', quotaExceeded: 'Exceeded', quotaSaved: 'Quota updated'
       },
       logs: {
         allStatus: 'All Status', success: 'Success', fail: 'Failed', onlyFallback: 'Failover Only',
@@ -1431,6 +1445,11 @@
       var val = this.dataset.kqPreset;
       $('#kq-limit').value = val === '0' ? '' : val;
     });
+  });
+
+  $('#quota-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('#kq-save').click();
   });
 
   $('#kq-save').addEventListener('click', async function () {
