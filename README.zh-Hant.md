@@ -23,11 +23,11 @@
 - **OpenAI 相容介面**：`/v1/chat/completions`（串流 SSE 原樣轉送）、`/v1/embeddings`、`/v1/models`；圖片與語音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；對齊控制台閘道並補充合成，依模型找到服務商後原樣轉送）
 - **Anthropic 介面**：`/v1/messages`（含串流）、`/v1/messages/count_tokens`，Claude Code 可直接接入
 - **協定互轉**：兩種入口都能呼叫兩種協定的服務商，請求、回應、串流事件、工具呼叫自動轉換
-- **模型定址**：`服務商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只寫模型名稱（在已啟用服務商的模型清單中尋找，不分大小寫）；寫 `auto` 則依容災鏈從頭嘗試
-- **容災切換**：失敗（網路錯誤、逾時、任何非 2xx）就依容災鏈換下一個；串流請求只在上游開始回傳之前切換；請求標頭 `x-gateway-fallback: off` 可單次關閉，設定中也可整體關閉
+- **模型定址**：`服務商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只寫模型名稱（在已啟用服務商的模型清單中尋找，不分大小寫）；提供 `FlareRouter/auto`（兼任 `auto`），依容災鏈從頭嘗試
+- **容災切換與智慧熔斷**：失敗（網路錯誤、逾時、任何非 2xx）就依容災鏈換下一個；同服務商遇 401/402/403/429 或欠費/配額用盡等帳號級故障時自動 0ms 快速熔斷跳過該商剩餘模型；串流請求只在上游開始回傳之前切換；請求標頭 `x-gateway-fallback: off` 可單次關閉，設定中也可整體關閉
 - **呼叫密鑰**：以 `Authorization: Bearer`、`x-api-key` 或 `api-key` 驗證；管理頁可產生多把、隨時查看明文、一鍵複製、撤銷、刪除；D1 儲存明文與雜湊
 - **呼叫日誌**：存在 D1，以 `ctx.waitUntil` 非同步寫入；可依狀態、容災、協定、服務商、密鑰、模型、錯誤關鍵字篩選，可清空；失敗的每次嘗試都記錄上游原始錯誤
-- **管理頁**：同一個 Worker 的 `/admin`，以管理員密碼登入；概覽、上游、密鑰、測試、日誌、設定（含容災）；原始碼在 `src/admin/`（`index.html`、`style.css`、`app.js`）；支援簡體/繁體/English 三語切換；日夜模式預設跟隨系統（與 FlarePanel 一致），可手動切換，含玻璃風格；「測試」支援多輪串流、思考過程摺疊與 Markdown（僅存本機瀏覽器）
+- **管理頁**：同一個 Worker 的 `/admin`，以管理員密碼登入；概覽（含 HTTP 常見錯誤 400~504 速查表）、上游、密鑰、測試、日誌、設定（含容災）；模組化原始碼位於 `src/admin/`（`app.js`、`chat.js`、`i18n.js`、`style.css`、`chat.css`、`index.html`）；支援簡體/繁體/English 三語切換；日夜模式預設跟隨系統（與 FlarePanel 一致），可手動切換，含玻璃風格；「測試」支援多輪串流、思考過程摺疊與 Markdown（僅存本機瀏覽器）
 
 ## 部署
 

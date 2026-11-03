@@ -23,11 +23,11 @@
 - **OpenAI 兼容接口**：`/v1/chat/completions`（流式 SSE 原样透传）、`/v1/embeddings`、`/v1/models`；图片与语音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；对齐控制台网关并补充合成，按模型找到服务商后原样转发）
 - **Anthropic 接口**：`/v1/messages`（含流式）、`/v1/messages/count_tokens`，Claude Code 可直接接入
 - **协议互转**：两种入口都能调两种协议的服务商，请求、响应、流式事件、工具调用自动转换
-- **模型寻址**：`服务商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只写模型名（在已启用服务商的模型列表里找，不区分大小写）；写 `auto` 按容灾链从头尝试
-- **容灾切换**：失败（网络错误、超时、任何非 2xx）就按容灾链换下一个；流式请求只在上游开始返回之前切换；请求头 `x-gateway-fallback: off` 可单次关闭，设置里也可整体关闭
+- **模型寻址**：`服务商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只写模型名（在已启用服务商的模型列表里找，不区分大小写）；提供 `FlareRouter/auto`（兼任 `auto`），按容灾链从头尝试
+- **容灾切换与智能熔断**：失败（网络错误、超时、任何非 2xx）就按容灾链换下一个；同服务商遇 401/402/403/429 或欠费/额度耗尽等账号级故障时自动 0ms 快速熔断跳过该商剩余模型；流式请求只在上游开始返回之前切换；请求头 `x-gateway-fallback: off` 可单次关闭，设置里也可整体关闭
 - **调用密钥**：`Authorization: Bearer`、`x-api-key` 或 `api-key` 鉴权；管理页可生成多个、随时查看明文、一键复制、吊销、删除；D1 存储明文与哈希
 - **调用日志**：存 D1，`ctx.waitUntil` 异步写；可按状态、容灾、协议、服务商、密钥、模型、错误关键词筛选，可清空；失败的每次尝试都记录上游原始报错
-- **管理页**：同一个 Worker 的 `/admin`，管理员密码登录；概览、上游、密钥、测试、日志、设置（含容灾）；源码在 `src/admin/`（`index.html`、`style.css`、`app.js`）；支持简体/繁體/English 三语切换；日夜模式默认跟随系统（与 FlarePanel 一致），可手动切换，含玻璃风格；「测试」支持多轮流式试聊、思考过程折叠与 Markdown（会话仅存本机浏览器）
+- **管理页**：同一个 Worker 的 `/admin`，管理员密码登录；概览（含 HTTP 常见错误 400~504 速查表）、上游、密钥、测试、日志、设置（含容灾）；模块化源码位于 `src/admin/`（`app.js`、`chat.js`、`i18n.js`、`style.css`、`chat.css`、`index.html`）；支持简体/繁体/English 三语切换；日夜模式默认跟随系统（与 FlarePanel 一致），可手动切换，含玻璃风格；「测试」支持多轮流式试聊、思考过程折叠与 Markdown（会话仅存本机浏览器）
 
 ## 部署
 
