@@ -13,7 +13,7 @@ workers_dev = true
 # 管理页 HTML/CSS/前端 JS 作为文本模块打包进 Worker（勿把全局 **/*.js 标成 Text）
 [[rules]]
 type = "Text"
-globs = ["**/*.html", "**/*.css", "**/admin/*.js"]
+globs = ["**/*.html", "**/*.css", "**/admin/app.js", "**/admin/chat.js", "**/admin/i18n.js"]
 fallthrough = false
 
 # 每天 UTC 19:00（北京时间 03:00）按「日志保留天数」清理旧日志
