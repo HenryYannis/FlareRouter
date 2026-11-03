@@ -110,6 +110,25 @@
         <h3 class="usage-h3" data-i18n="overview.usageCurlLabel">示例</h3>
         <pre id="curl-example"></pre>
       </div>
+      <div class="card">
+        <div class="row" style="margin-bottom:8px">
+          <h2 style="margin:0" data-i18n="overview.errorsTitle">常见错误速查</h2>
+        </div>
+        <p class="muted small" style="margin:0 0 12px 0" data-i18n="overview.errorsDesc">调用网关或上游服务商时的常见 HTTP 状态码、产生原因与排查方案</p>
+        <div class="scroll-x">
+          <table class="error-table">
+            <thead>
+              <tr>
+                <th style="width:85px" data-i18n="overview.errColCode">状态码</th>
+                <th style="width:165px" data-i18n="overview.errColName">类型</th>
+                <th style="min-width:220px" data-i18n="overview.errColCause">常见原因</th>
+                <th style="min-width:260px" data-i18n="overview.errColSolution">排查与解决方案</th>
+              </tr>
+            </thead>
+            <tbody id="error-table-body"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- 服务商 -->

@@ -24,6 +24,8 @@
         usageAuth: '鉴权：在「密钥」页生成 Key，请求头带 Authorization: Bearer <key> 或 x-api-key: <key>。',
         usageModelHint: '模型写成「服务商 ID/模型」，写 auto 则按容灾链从头尝试；请求头 x-gateway-fallback: off 可临时关闭本次容灾。',
         usageCurlLabel: '示例',
+        errorsTitle: '常见错误速查', errorsDesc: '调用网关或上游服务商时的常见 HTTP 状态码、产生原因与排查方案',
+        errColCode: '状态码', errColName: '类型', errColCause: '常见原因', errColSolution: '排查与解决方案',
         thProvider: '服务商', thCalls: '调用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暂无调用', unhit: '（未命中）'
       },
       providers: {
@@ -136,6 +138,8 @@
         usageAuth: '鑑權：在「密鑰」頁產生 Key，請求頭帶 Authorization: Bearer <key> 或 x-api-key: <key>。',
         usageModelHint: '模型寫成「服務商 ID/模型」，寫 auto 則按容災鏈從頭嘗試；請求頭 x-gateway-fallback: off 可臨時關閉本次容災。',
         usageCurlLabel: '範例',
+        errorsTitle: '常見錯誤速查', errorsDesc: '調用網關或上游服務商時的常見 HTTP 狀態碼、產生原因與排查方案',
+        errColCode: '狀態碼', errColName: '類型', errColCause: '常見原因', errColSolution: '排查與解決方案',
         thProvider: '服務商', thCalls: '調用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暫無調用', unhit: '（未命中）'
       },
       providers: {
@@ -248,6 +252,8 @@
         usageAuth: 'Auth: create a key on the Keys page; send Authorization: Bearer <key> or x-api-key: <key>.',
         usageModelHint: 'Model format: provider/model, or auto to walk the failover chain. Header x-gateway-fallback: off disables failover for one request.',
         usageCurlLabel: 'Example',
+        errorsTitle: 'Common Errors & Troubleshooting', errorsDesc: 'Quick reference for HTTP status codes, probable causes, and troubleshooting tips',
+        errColCode: 'Status', errColName: 'Type', errColCause: 'Probable Causes', errColSolution: 'Solutions & Tips',
         thProvider: 'Provider', thCalls: 'Calls', thSuccess: 'Success', thTokens: 'Tokens', noStats: 'No calls yet', unhit: '(Unhit)'
       },
       providers: {
@@ -386,6 +392,7 @@
     updateThemeButtons(isDark);
     syncProtocol();
     renderUsageDocs();
+    renderErrorTable();
     if ($('#c-messages') && chatState && Array.isArray(chatState.messages)) renderChatMessages();
   }
 
@@ -606,6 +613,162 @@
       ' <button type="button" class="btn sm" data-ucopy="' + esc(url) + '">' + t('keys.copy') + '</button>' +
       '</div></div>';
   }
+  
+  var ERROR_CODES_DATA = [
+    {
+      code: 400,
+      name: 'Bad Request',
+      cls: 'c4xx',
+      causes: {
+        zh: '请求体 JSON 格式非法；缺少必填参数；上下文长度超出模型窗口（context length exceeded）；模型不支持传入的参数。',
+        'zh-Hant': '請求體 JSON 格式非法；缺少必填參數；上下文長度超出模型上限；模型不支援傳入的參數。',
+        en: 'Malformed JSON payload, missing required parameters, context length exceeded, or unsupported parameters.'
+      },
+      solutions: {
+        zh: '检查客户端请求体与参数格式；适当截断历史对话开启滑窗；核对该模型文档规范。',
+        'zh-Hant': '檢查客戶端請求體與參數格式；適當截斷歷史對話；核對該模型文檔規範。',
+        en: 'Check request body syntax; truncate chat history; verify parameter compatibility against model docs.'
+      }
+    },
+    {
+      code: 401,
+      name: 'Unauthorized',
+      cls: 'c4xx',
+      causes: {
+        zh: '网关 API Key 错误或未传（缺少 Authorization 请求头）；上游服务商 API Key 无效、已失效或填写错误。',
+        'zh-Hant': '網關 API Key 錯誤或未攜帶；上游服務商 API Key 無效、已過期或填錯。',
+        en: 'Missing or invalid gateway API key (Authorization header); or upstream provider API key is invalid/expired.'
+      },
+      solutions: {
+        zh: '检查客户端是否携带 Authorization: Bearer <key>；在后台「上游」编辑窗口核对服务商 Key 并重新测活。',
+        'zh-Hant': '檢查客戶端是否攜帶 Authorization: Bearer <key>；在「上游」編輯視窗核對 Key 並重新測活。',
+        en: 'Verify Authorization header in client; re-check and test provider API key under "Providers".'
+      }
+    },
+    {
+      code: 402,
+      name: 'Payment Required',
+      cls: 'c4xx',
+      causes: {
+        zh: '对应上游服务商账户欠费或可用余额不足。',
+        'zh-Hant': '對應上游服務商帳戶欠費或可用餘額不足。',
+        en: 'Upstream provider account out of credits, balance exhausted, or payment required.'
+      },
+      solutions: {
+        zh: '前往服务商控制台充值。<div class="muted small" style="margin-top:3px">💡 <b>网关特性：</b>开启容灾链时，网关遇到 402 会自动 0ms 快速熔断跳过该服务商，尝试后续服务商。</div>',
+        'zh-Hant': '前往服務商控制台儲值。<div class="muted small" style="margin-top:3px">💡 <b>網關特性：</b>開啟容災鏈時，遇到 402 會自動 0ms 快速熔斷跳過該商並嘗試下一家。</div>',
+        en: 'Top up credits in upstream console.<div class="muted small" style="margin-top:3px">💡 <b>Gateway:</b> Automatically fast-fails over (0ms) to next provider if failover chain is enabled.</div>'
+      }
+    },
+    {
+      code: 404,
+      name: 'Not Found',
+      cls: 'c4xx',
+      causes: {
+        zh: '请求的模型名称不存在或拼写错误；Base URL 缺少 /v1；指定的服务商未配置该模型。',
+        'zh-Hant': '請求的模型名稱不存在或拼寫錯誤；Base URL 缺少 /v1；指定的服務商未配置該模型。',
+        en: 'Model name not found or misspelled; Base URL missing /v1 path; model not registered under provider.'
+      },
+      solutions: {
+        zh: '访问 GET /v1/models 查看可用模型列表；按「服务商ID/模型」或 auto 调用；确认 Base URL 为 https://域名/v1。',
+        'zh-Hant': '訪問 GET /v1/models 查看可用模型列表；按「服務商ID/模型」或 auto 調用；確認 Base URL 為 https://網域名稱/v1。',
+        en: 'Query GET /v1/models for available list; use "provider/model" or "auto"; ensure Base URL ends with /v1.'
+      }
+    },
+    {
+      code: 429,
+      name: 'Too Many Requests',
+      cls: 'c4xx',
+      causes: {
+        zh: '① <b>网关限额超限</b>：当前 Key 消耗达到后台设置的 Token 限额（可在「密钥」页查看红色已超额标识）；② <b>上游限流/欠费</b>：上游并发超频（RPM/TPM）或配额耗尽。',
+        'zh-Hant': '① <b>網關限額超額</b>：目前 Key 消耗達到後台設置的 Token 上限（可在「密鑰」頁檢視紅色已超額標記）；② <b>上游限流/超額</b>：上游併發超頻或配額用盡。',
+        en: '① <b>Gateway Quota</b>: Key hit Token limit (marked red in "Keys"); ② <b>Upstream Rate Limit</b>: Provider RPM/TPM limit or credit exhausted.'
+      },
+      solutions: {
+        zh: '若是网关限额，在「密钥」页提高上限或重置已用额度为 0；若是上游问题，网关会自动熔断并尝试容灾链下一家。<div class="muted small" style="margin-top:3px">💡 <b>提示：</b>网关密钥超额时，模型列表（/v1/models）仍保持可正常拉取。</div>',
+        'zh-Hant': '若為網關密鑰超額，在「密鑰」頁調高限額或重置已用額度為 0；若為上游問題，網關會自動熔斷並嘗試容災鏈下一家。<div class="muted small" style="margin-top:3px">💡 <b>提示：</b>網關密鑰超額時，模型列表（/v1/models）仍可正常取得。</div>',
+        en: 'If gateway quota, raise limit or reset usage in "Keys"; if upstream, gateway automatically failovers to the next provider.<div class="muted small" style="margin-top:3px">💡 <b>Tip:</b> GET /v1/models remains accessible even when quota is exceeded.</div>'
+      }
+    },
+    {
+      code: 500,
+      name: 'Internal Server Error',
+      cls: 'c5xx',
+      causes: {
+        zh: '上游服务商临时服务故障、模型端异常或解析异常。',
+        'zh-Hant': '上游服務商暫時性故障、模型端異常或伺服器崩潰。',
+        en: 'Upstream provider internal error, model server crash, or server overload.'
+      },
+      solutions: {
+        zh: '在后台「日志」查看具体错误响应与堆栈；开启容灾链时网关会自动尝试后续备用服务商。',
+        'zh-Hant': '在後台「日誌」查看具體錯誤訊息與堆疊；開啟容災鏈時網關會自動嘗試備用服務商。',
+        en: 'Inspect upstream error details in "Logs" tab; gateway will automatically try fallback providers.'
+      }
+    },
+    {
+      code: 502,
+      name: 'Bad Gateway',
+      cls: 'c5xx',
+      causes: {
+        zh: '无法连接上游 Base URL；域名解析失败（DNS）；网络被阻断或反向代理服务下线。',
+        'zh-Hant': '無法連線至上游 Base URL；DNS 解析失敗；網路阻斷或反向代理下線。',
+        en: 'Unable to connect to upstream Base URL, DNS resolution failed, connection blocked, or proxy offline.'
+      },
+      solutions: {
+        zh: '检查后台「上游」服务商的 Base URL 是否正确并包含 https://；在服务商编辑窗口测试模型连通性。',
+        'zh-Hant': '檢查後台「上游」服務商的 Base URL 是否正確並包含 https://；在編輯視窗測試模型連通性。',
+        en: 'Check provider Base URL and ensure https:// prefix; use test button under "Providers" to check connectivity.'
+      }
+    },
+    {
+      code: 503,
+      name: 'Service Unavailable',
+      cls: 'c5xx',
+      causes: {
+        zh: '网关未添加启用的服务商或模型为空；或容灾链中所有候选服务商依次尝试后全部失败。',
+        'zh-Hant': '網關未添加啟用的服務商或模型為空；或容災鏈中所有候選服務商嘗試後全部失敗。',
+        en: 'No enabled providers or models configured; or all candidates in failover chain were exhausted and failed.'
+      },
+      solutions: {
+        zh: '前往「上游」启用服务商并配置模型；若为全链失败，在「日志」中查看每家服务商的失败明细。',
+        'zh-Hant': '前往「上游」啟用服務商並配置模型；若為全鏈失敗，在「日誌」查看各家失敗原因。',
+        en: 'Enable at least one provider with models in "Providers"; check "Logs" for root cause across providers.'
+      }
+    },
+    {
+      code: 504,
+      name: 'Gateway Timeout',
+      cls: 'c5xx',
+      causes: {
+        zh: '上游生成响应时间过长，超过 Cloudflare Workers 最大执行超时限制（通常约 100 秒）；上游无响应挂起。',
+        'zh-Hant': '上游回應時間過長，超出 Cloudflare Workers 執行時間上限（通常約 100 秒）；上游無回應。',
+        en: 'Upstream response exceeded Cloudflare Workers execution timeout (~100s); network stall.'
+      },
+      solutions: {
+        zh: '在客户端开启流式传输（"stream": true）保持连接心跳；精简提示词或换用响应更快的模型。',
+        'zh-Hant': '在客戶端開啟串流傳輸（"stream": true）保持心跳；精簡提示詞或換用更快的模型。',
+        en: 'Enable streaming ("stream": true) to maintain active connection; reduce prompt tokens; use faster models.'
+      }
+    }
+  ];
+
+  function renderErrorTable() {
+    var tbody = $('#error-table-body');
+    if (!tbody) return;
+    var lang = state.lang || 'zh';
+    var l = (lang === 'zh-Hant' || lang === 'en') ? lang : 'zh';
+    tbody.innerHTML = ERROR_CODES_DATA.map(function (item) {
+      var cause = (item.causes && item.causes[l]) || item.causes.zh || '';
+      var sol = (item.solutions && item.solutions[l]) || item.solutions.zh || '';
+      return '<tr>' +
+        '<td><span class="code-badge ' + esc(item.cls) + '">' + esc(String(item.code)) + '</span></td>' +
+        '<td><code class="mono" style="font-weight:600;font-size:12.5px">' + esc(item.name) + '</code></td>' +
+        '<td>' + cause + '</td>' +
+        '<td>' + sol + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
   function renderUsageDocs() {
     var box = $('#usage-docs');
     if (!box) return;

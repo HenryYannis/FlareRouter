@@ -36,7 +36,7 @@ export function listModels(cfg) {
   const data = [item('auto', 'FlareRouter', 'FlareRouter')];
   for (const p of cfg.providers) {
     if (!p.enabled) continue;
-    for (const m of p.models) data.push(item(`${p.id}/${m}`, p.id, p.id));
+    for (const m of (p.models || [])) data.push(item(`${p.id}/${m}`, p.id, p.id));
   }
   return { object: 'list', data, has_more: false, first_id: data[0].id, last_id: data[data.length - 1].id };
 }
