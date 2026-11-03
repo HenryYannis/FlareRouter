@@ -68,7 +68,21 @@ export function normalizeProvider(p) {
     note: String(p.note || ''),
     // 各模型的输出上限（从上游模型列表拉取时记下），OpenAI 入口转 Anthropic 上游且没传 max_tokens 时用
     modelLimits: parseModelLimits(p.modelLimits),
+    // 各模型真实测试嗅探到的能力（tools, thinking, vision 等）
+    modelCaps: parseModelCaps(p.modelCaps),
   };
+}
+
+export function parseModelCaps(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [k, v] of Object.entries(raw)) {
+    if (k && Array.isArray(v)) {
+      const list = v.map((x) => String(x).trim().toLowerCase()).filter(Boolean);
+      if (list.length) out[String(k)] = list;
+    }
+  }
+  return out;
 }
 
 export function parseModelLimits(raw) {

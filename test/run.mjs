@@ -213,7 +213,7 @@ const mf = new Miniflare({
   modules: true,
   scriptPath: 'src/index.js',
   modulesRules: [
-    { type: 'Text', include: ['**/*.html', '**/*.css', '*app.js', '*chat.js', '*i18n.js', '*caps.js', '**/admin/app.js', '**/admin/chat.js', '**/admin/i18n.js', '**/admin/caps.js'] },
+    { type: 'Text', include: ['**/*.html', '**/*.css', '*app.js', '*chat.js', '*i18n.js', '**/admin/app.js', '**/admin/chat.js', '**/admin/i18n.js'] },
     { type: 'ESModule', include: ['**/*.js'] },
   ],
   compatibilityDate: '2026-03-15',
@@ -910,17 +910,6 @@ try {
   {
     const chatJs = readFileSync('src/admin/chat.js', 'utf8');
     ok(/Array\.isArray\(dl\.tool_calls\)/.test(chatJs) && /out\.reasoning_content = m\.reasoning/.test(chatJs) && /if \(o\.error\)/.test(chatJs), '管理页对话会拼接工具调用、显示流内错误，并把思考带回下一轮');
-  }
-  {
-    const capsJs = readFileSync('src/admin/caps.js', 'utf8');
-    const fn = new Function(`${capsJs}; return { detectCaps, cleanModelName };`)();
-    ok(fn.detectCaps('spark-x2.6').tools && fn.detectCaps('spark-x2.6').text, '识别模型能力：spark-x2.6 支持工具与文本');
-    ok(fn.detectCaps('u2-flash').tools && fn.detectCaps('u2-flash').text, '识别模型能力：u2-flash 支持工具与文本');
-    ok(fn.detectCaps('minimax-code/MiniMax-M3').tools && fn.detectCaps('minimax-code/MiniMax-M3').text, '识别模型能力：minimax-code/MiniMax-M3 支持工具与文本');
-    ok(fn.detectCaps('Atria-Dawn-Preview').tools && fn.detectCaps('Atria-Dawn-Preview').text, '识别模型能力：Atria-Dawn-Preview 支持工具与文本');
-    ok(fn.detectCaps('gemini-3.8-flash').vision && fn.detectCaps('gemini-3.8-flash').tools, '识别模型能力：gemini-3.8-flash 支持视觉与工具');
-    ok(fn.detectCaps('deepseek-r1').thinking && !fn.detectCaps('deepseek-r1').tools, '识别模型能力：deepseek-r1 具备思考且排除原生工具调用');
-    ok(fn.detectCaps('flux-schnell').imageGen && !fn.detectCaps('flux-schnell').text, '识别模型能力：flux-schnell 为专用生图');
   }
 
   // ---- 日志 ----

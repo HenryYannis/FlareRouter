@@ -251,18 +251,27 @@ export async function handleAdminApi(request, env, ctx, path) {
       : `${String(baseUrl || '').replace(/\/+$/, '').replace(/\/(chat\/completions|models)$/, '')}/chat/completions`;
 
     const isReasoning = typeof model === 'string' && /^o[13]/i.test(model);
-    const body = isAnth
-      ? JSON.stringify({
+    const testTool = isAnth
+      ? [{ name: 'probe_test', description: 'probe', input_schema: { type: 'object', properties: {} } }]
+      : [{ type: 'function', function: { name: 'probe_test', description: 'probe', parameters: { type: 'object', properties: {} } } }];
+
+    const makeBody = (withTools) => {
+      if (isAnth) {
+        return JSON.stringify({
           model,
           messages: [{ role: 'user', content: 'hi' }],
           max_tokens: 1,
-        })
-      : JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: 'hi' }],
-          ...(isReasoning ? { max_completion_tokens: 1 } : { max_tokens: 1 }),
-          stream: false,
+          ...(withTools ? { tools: testTool } : {}),
         });
+      }
+      return JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'hi' }],
+        ...(isReasoning ? { max_completion_tokens: 1 } : { max_tokens: 1 }),
+        stream: false,
+        ...(withTools ? { tools: testTool } : {}),
+      });
+    };
 
     const headers = isAnth
       ? anthropicHeaders(apiKey || '')
@@ -275,19 +284,43 @@ export async function handleAdminApi(request, env, ctx, path) {
     const timer = setTimeout(() => controller.abort(), 10000);
     const start = Date.now();
     try {
-      const res = await fetch(url, { method: 'POST', headers, body, signal: controller.signal });
-      clearTimeout(timer);
-      const latencyMs = Date.now() - start;
-      const text = await res.text();
+      let res = await fetch(url, { method: 'POST', headers, body: makeBody(true), signal: controller.signal });
+      let text = await res.text();
       let parsed = null;
       try { parsed = JSON.parse(text); } catch (_) {}
 
-      if (res.ok) {
-        if (parsed && parsed.error) {
-          const errMsg = typeof parsed.error === 'string' ? parsed.error : (parsed.error.message || JSON.stringify(parsed.error));
-          return json({ ok: false, status: res.status, error: String(errMsg).slice(0, 300), latencyMs });
+      let caps = [];
+      let isOk = res.ok && !(parsed && parsed.error);
+
+      // 若带 tools 报 400，重发一次无 tools 纯文本请求验证基础连通性
+      if (!isOk && res.status === 400) {
+        try {
+          const fallbackRes = await fetch(url, { method: 'POST', headers, body: makeBody(false), signal: controller.signal });
+          const fbText = await fallbackRes.text();
+          let fbParsed = null;
+          try { fbParsed = JSON.parse(fbText); } catch (_) {}
+          if (fallbackRes.ok && !(fbParsed && fbParsed.error)) {
+            res = fallbackRes;
+            text = fbText;
+            parsed = fbParsed;
+            isOk = true;
+          }
+        } catch (_) {}
+      } else if (isOk) {
+        caps.push('tools');
+      }
+
+      clearTimeout(timer);
+      const latencyMs = Date.now() - start;
+
+      if (isOk) {
+        const msg = parsed?.choices?.[0]?.message || parsed?.content?.[0] || {};
+        const reasoning = msg.reasoning_content || msg.reasoning || msg.thinking || '';
+        const contentStr = typeof msg.content === 'string' ? msg.content : (typeof msg.text === 'string' ? msg.text : '');
+        if (reasoning || (typeof contentStr === 'string' && contentStr.includes('<think>'))) {
+          caps.push('thinking');
         }
-        return json({ ok: true, status: res.status, latencyMs });
+        return json({ ok: true, status: res.status, latencyMs, caps });
       } else {
         let errMsg = `HTTP ${res.status}`;
         if (parsed && parsed.error) {

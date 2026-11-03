@@ -1,3 +1,13 @@
+function capsBadgeHtml(caps) {
+  if (!Array.isArray(caps) || !caps.length) return '';
+  var out = '';
+  if (caps.indexOf('vision') >= 0) out += '<span class="cap-badge vision" title="' + t('fallback.capVision') + '">👁 ' + t('fallback.capVision') + '</span>';
+  if (caps.indexOf('tools') >= 0) out += '<span class="cap-badge tools" title="' + t('fallback.capTools') + '">🛠 ' + t('fallback.capTools') + '</span>';
+  if (caps.indexOf('thinking') >= 0) out += '<span class="cap-badge thinking" title="' + t('fallback.capThinking') + '">🧠 ' + t('fallback.capThinking') + '</span>';
+  if (caps.indexOf('image') >= 0 || caps.indexOf('imageGen') >= 0) out += '<span class="cap-badge image" title="' + t('fallback.capImage') + '">🎨 ' + t('fallback.capImage') + '</span>';
+  return out;
+}
+
 // FlareRouter 管理页面主干逻辑
 
 var $ = function (s) { return document.querySelector(s); };
@@ -806,6 +816,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       }
     };
     if (state.fetchedLimits && Object.keys(state.fetchedLimits).length) body.provider.modelLimits = Object.assign({}, prev && prev.modelLimits, state.fetchedLimits);
+    if (state.editingModelCaps && Object.keys(state.editingModelCaps).length) body.provider.modelCaps = Object.assign({}, prev && prev.modelCaps, state.editingModelCaps);
     try {
       var res = await api('/admin/api/providers', { body: body });
       setCfg(res); $('#dlg-prov').close();
@@ -863,7 +874,10 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           badge = '<span class="model-badge fail" title="' + esc(errDesc + (res.latencyMs ? ' (' + res.latencyMs + 'ms)' : '')) + '">✕ ' + esc(res.status ? String(res.status) : t('providers.testFailed')) + '</span>';
         }
       }
-      return '<label class="model-item"><input type="checkbox" value="' + esc(m) + '"' + (isChecked ? ' checked' : '') + '> <span class="mono grow">' + esc(m) + '</span>' + capsBadgeHtml(m) + badge + '</label>';
+      var editingId = state.editing || '';
+      var prev = editingId ? (state.cfg.providers || []).find(function (x) { return x.id === editingId; }) : null;
+      var caps = (state.editingModelCaps && state.editingModelCaps[m]) || (prev && prev.modelCaps && prev.modelCaps[m]);
+      return '<label class="model-item"><input type="checkbox" value="' + esc(m) + '"' + (isChecked ? ' checked' : '') + '> <span class="mono grow">' + esc(m) + '</span>' + capsBadgeHtml(caps) + badge + '</label>';
     }).join('') : '<span class="muted small">' + t('providers.noMatchModels', { count: state.fetched.length }) + '</span>';
   }
   $('#p-fetch-q').addEventListener('input', renderFetched);
@@ -936,7 +950,15 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
             body: { id: provId, protocol: protocol, baseUrl: baseUrl, apiKey: apiKey, model: m }
           });
           state.testResults[m] = res;
-          if (res.ok) okCount++; else failCount++;
+          if (res.ok) {
+            okCount++;
+            if (Array.isArray(res.caps)) {
+              if (!state.editingModelCaps) state.editingModelCaps = {};
+              state.editingModelCaps[m] = res.caps;
+            }
+          } else {
+            failCount++;
+          }
         } catch (e) {
           state.testResults[m] = { ok: false, status: 0, error: e.message || String(e) };
           failCount++;
@@ -1054,9 +1076,10 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
             visibleCount++;
             var isChecked = pickerSelected.has(fullKey);
             if (isChecked) visibleSelectedCount++;
+            var caps = p.modelCaps && p.modelCaps[m];
             modelsHtml += '<label class="chain-picker-item" title="' + esc(fullKey) + '">' +
               '<input type="checkbox" data-pk="' + esc(fullKey) + '"' + (isChecked ? ' checked' : '') + '> ' +
-              '<span class="mono" style="word-break:break-all">' + esc(m) + '</span>' + capsBadgeHtml(m) +
+              '<span class="mono" style="word-break:break-all">' + esc(m) + '</span>' + capsBadgeHtml(caps) +
               '</label>';
           }
         });
@@ -1126,7 +1149,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     state.cfg.providers.forEach(function (p) {
       if (p.enabled && p.models) {
         p.models.forEach(function (m) {
-          if (detectCaps(m).vision) pickerSelected.add(p.id + '/' + m);
+          if (p.modelCaps && Array.isArray(p.modelCaps[m]) && p.modelCaps[m].indexOf('vision') >= 0) pickerSelected.add(p.id + '/' + m);
         });
       }
     });
@@ -1137,7 +1160,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     state.cfg.providers.forEach(function (p) {
       if (p.enabled && p.models) {
         p.models.forEach(function (m) {
-          if (detectCaps(m).tools) pickerSelected.add(p.id + '/' + m);
+          if (p.modelCaps && Array.isArray(p.modelCaps[m]) && p.modelCaps[m].indexOf('tools') >= 0) pickerSelected.add(p.id + '/' + m);
         });
       }
     });
@@ -1148,7 +1171,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     state.cfg.providers.forEach(function (p) {
       if (p.enabled && p.models) {
         p.models.forEach(function (m) {
-          if (detectCaps(m).imageGen) pickerSelected.add(p.id + '/' + m);
+          if (p.modelCaps && Array.isArray(p.modelCaps[m]) && (p.modelCaps[m].indexOf('image') >= 0 || p.modelCaps[m].indexOf('imageGen') >= 0)) pickerSelected.add(p.id + '/' + m);
         });
       }
     });
