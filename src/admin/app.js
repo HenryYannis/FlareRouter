@@ -519,7 +519,9 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     ps.forEach(function (p, i) {
       h += '<tr class="provider-row" draggable="true" data-drag-idx="' + i + '">' +
         '<td class="mono col-order">' +
-          '<span class="drag-handle" title="' + esc(t('providers.dragOrder')) + '" aria-label="' + esc(t('providers.dragOrder')) + '">⋮⋮</span>' +
+          '<span class="drag-handle" title="' + esc(t('providers.dragOrder')) + '" aria-label="' + esc(t('providers.dragOrder')) + '">' +
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>' +
+          '</span>' +
           '<button class="btn sm" data-up="' + i + '"' + (i === 0 ? ' disabled' : '') + '>↑</button> ' +
           '<button class="btn sm" data-down="' + i + '"' + (i === ps.length - 1 ? ' disabled' : '') + '>↓</button>' +
         '</td>' +

@@ -377,15 +377,18 @@ tr.click:hover td { background: var(--soft); }
   justify-content: center;
   cursor: grab;
   color: var(--muted);
-  padding: 2px 4px;
-  margin-right: 4px;
-  font-size: 13px;
-  line-height: 1;
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
   user-select: none;
   border-radius: var(--radius-sm);
   transition: color 0.15s, background 0.15s, opacity 0.15s;
   opacity: 0.55;
   vertical-align: middle;
+}
+.drag-handle svg {
+  display: block;
+  pointer-events: none;
 }
 tr.provider-row:hover .drag-handle { opacity: 1; }
 .drag-handle:hover { color: var(--primary); background: rgba(var(--primary-rgb), 0.12); }
@@ -834,6 +837,12 @@ footer a:hover { color: var(--primary); }
   select:not(.lang-select),
   textarea {
     font-size: 16px !important;
+  }
+  .drag-handle {
+    opacity: 0.8;
+    width: 26px;
+    height: 26px;
+    margin-right: 4px;
   }
 }
 
