@@ -863,7 +863,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           badge = '<span class="model-badge fail" title="' + esc(errDesc + (res.latencyMs ? ' (' + res.latencyMs + 'ms)' : '')) + '">✕ ' + esc(res.status ? String(res.status) : t('providers.testFailed')) + '</span>';
         }
       }
-      return '<label class="model-item"><input type="checkbox" value="' + esc(m) + '"' + (isChecked ? ' checked' : '') + '> <span class="mono grow">' + esc(m) + '</span>' + badge + '</label>';
+      return '<label class="model-item"><input type="checkbox" value="' + esc(m) + '"' + (isChecked ? ' checked' : '') + '> <span class="mono grow">' + esc(m) + '</span>' + capsBadgeHtml(m) + badge + '</label>';
     }).join('') : '<span class="muted small">' + t('providers.noMatchModels', { count: state.fetched.length }) + '</span>';
   }
   $('#p-fetch-q').addEventListener('input', renderFetched);
@@ -1056,7 +1056,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
             if (isChecked) visibleSelectedCount++;
             modelsHtml += '<label class="chain-picker-item" title="' + esc(fullKey) + '">' +
               '<input type="checkbox" data-pk="' + esc(fullKey) + '"' + (isChecked ? ' checked' : '') + '> ' +
-              '<span class="mono" style="word-break:break-all">' + esc(m) + '</span>' +
+              '<span class="mono" style="word-break:break-all">' + esc(m) + '</span>' + capsBadgeHtml(m) +
               '</label>';
           }
         });
@@ -1117,6 +1117,39 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     state.cfg.providers.forEach(function (p) {
       if (p.enabled && p.models && p.models.length) {
         pickerSelected.add(p.id + '/' + p.models[0]);
+      }
+    });
+    renderChainPickerGroups();
+  });
+
+  $('#chain-picker-vision').addEventListener('click', function () {
+    state.cfg.providers.forEach(function (p) {
+      if (p.enabled && p.models) {
+        p.models.forEach(function (m) {
+          if (detectCaps(m).vision) pickerSelected.add(p.id + '/' + m);
+        });
+      }
+    });
+    renderChainPickerGroups();
+  });
+
+  $('#chain-picker-tools').addEventListener('click', function () {
+    state.cfg.providers.forEach(function (p) {
+      if (p.enabled && p.models) {
+        p.models.forEach(function (m) {
+          if (detectCaps(m).tools) pickerSelected.add(p.id + '/' + m);
+        });
+      }
+    });
+    renderChainPickerGroups();
+  });
+
+  $('#chain-picker-image').addEventListener('click', function () {
+    state.cfg.providers.forEach(function (p) {
+      if (p.enabled && p.models) {
+        p.models.forEach(function (m) {
+          if (detectCaps(m).imageGen) pickerSelected.add(p.id + '/' + m);
+        });
       }
     });
     renderChainPickerGroups();

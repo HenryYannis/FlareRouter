@@ -48,7 +48,8 @@ var I18N = {
         chainInvalid: '服务商已停用或模型不存在，会被跳过',
         chainEmpty: '（空）按服务商顺序取每家第一个模型：{models}', chainNone: '暂无',
         batchAdd: '批量选择...', pickerTitle: '批量选择模型加入容灾链',
-        pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
+        pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerPickVision: '只选视觉', pickerPickTools: '只选工具', pickerPickImage: '只选生图', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
+        capText: '文本', capVision: '视觉', capImage: '生图', capTools: '工具', capThinking: '思考', capAudio: '音频', capEmbedding: '嵌入', capRerank: '重排',
         pickerSelectedCount: '已选 {count} 个模型', pickerConfirm: '加入容灾链', pickerCancel: '取消',
         pickerToastAdded: '已导入容灾链（共 {count} 个模型），请点击「保存设置」生效', groupAll: '全选', groupNone: '清空'
       },
@@ -161,7 +162,8 @@ var I18N = {
         chainInvalid: '服務商已停用或模型不存在，會被跳過',
         chainEmpty: '（空）按服務商順序取每家第一個模型：{models}', chainNone: '暫無',
         batchAdd: '批量選擇...', pickerTitle: '批量選擇模型加入容災鏈',
-        pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
+        pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerPickVision: '只選視覺', pickerPickTools: '只選工具', pickerPickImage: '只選生圖', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
+        capText: '文本', capVision: '視覺', capImage: '生圖', capTools: '工具', capThinking: '思考', capAudio: '音頻', capEmbedding: '嵌入', capRerank: '重排',
         pickerSelectedCount: '已選 {count} 個模型', pickerConfirm: '加入容災鏈', pickerCancel: '取消',
         pickerToastAdded: '已匯入容災鏈（共 {count} 個模型），請點擊「儲存設定」生效', groupAll: '全選', groupNone: '清空'
       },
@@ -274,7 +276,8 @@ var I18N = {
         chainInvalid: 'Provider disabled or model missing, will be skipped',
         chainEmpty: '(Empty) Tries 1st model of each provider: {models}', chainNone: 'None',
         batchAdd: 'Batch Select...', pickerTitle: 'Select Models for Failover Chain',
-        pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
+        pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerPickVision: 'Vision Only', pickerPickTools: 'Tools Only', pickerPickImage: 'Image Only', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
+        capText: 'Text', capVision: 'Vision', capImage: 'Image', capTools: 'Tools', capThinking: 'Thinking', capAudio: 'Audio', capEmbedding: 'Embedding', capRerank: 'Rerank',
         pickerSelectedCount: '{count} models selected', pickerConfirm: 'Apply to Chain', pickerCancel: 'Cancel',
         pickerToastAdded: 'Added to failover chain ({count} models), click "Save Settings" to apply', groupAll: 'Select All', groupNone: 'Clear'
       },
