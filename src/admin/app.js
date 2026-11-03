@@ -507,8 +507,12 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     var h = '<tr><th>' + t('providers.thOrder') + '</th><th>' + t('providers.thNameId') + '</th><th class="hide-sm">' + t('providers.thBase') + '</th><th>' + t('providers.thKey') + '</th><th>' + t('providers.thModels') + '</th><th>' + t('providers.thEnable') + '</th><th class="col-actions">' + t('providers.thActions') + '</th></tr>';
     if (!ps.length) h += '<tr><td colspan="7" class="muted">' + t('providers.empty') + '</td></tr>';
     ps.forEach(function (p, i) {
-      h += '<tr>' +
-        '<td class="mono"><button class="btn sm" data-up="' + i + '"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn sm" data-down="' + i + '"' + (i === ps.length - 1 ? ' disabled' : '') + '>↓</button></td>' +
+      h += '<tr class="provider-row" draggable="true" data-drag-idx="' + i + '">' +
+        '<td class="mono col-order">' +
+          '<span class="drag-handle" title="' + esc(t('providers.dragOrder')) + '" aria-label="' + esc(t('providers.dragOrder')) + '">⋮⋮</span>' +
+          '<button class="btn sm" data-up="' + i + '"' + (i === 0 ? ' disabled' : '') + '>↑</button> ' +
+          '<button class="btn sm" data-down="' + i + '"' + (i === ps.length - 1 ? ' disabled' : '') + '>↓</button>' +
+        '</td>' +
         '<td><div>' + esc(p.name) + '</div><div class="muted mono small">' + esc(p.id) + '</div>' + (p.note ? '<div class="muted small">' + esc(p.note) + '</div>' : '') + '</td>' +
         '<td class="hide-sm mono small" style="word-break:break-all">' + esc(p.baseUrl) + (p.protocol === 'anthropic' ? ' <span class="tag">Anthropic</span>' : '') + '</td>' +
         '<td class="mono small">' + (p.hasKey ? esc(p.apiKeyPreview) : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') + '</td>' +
@@ -560,6 +564,100 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       }
     }, 400);
   }
+
+  var draggedProvIdx = null;
+
+  function clearDragOverClasses() {
+    $$('#prov-table tr.provider-row').forEach(function (r) {
+      r.classList.remove('drag-over-top', 'drag-over-bottom', 'is-dragging');
+    });
+  }
+
+  function reorderProvider(fromIdx, toIdx, insertAfter) {
+    if (fromIdx === toIdx) return;
+    var targetId = state.cfg.providers[toIdx].id;
+    var item = state.cfg.providers.splice(fromIdx, 1)[0];
+    var newToIdx = state.cfg.providers.findIndex(function (p) { return p.id === targetId; });
+    var finalIdx = insertAfter ? newToIdx + 1 : newToIdx;
+    state.cfg.providers.splice(finalIdx, 0, item);
+    state.cfg.models = modelsFrom(state.cfg.providers);
+    renderProviders();
+    renderModelSelects();
+    scheduleReorderSync();
+  }
+
+  var provTable = $('#prov-table');
+  provTable.addEventListener('dragstart', function (e) {
+    if (e.target.closest('button, input, label, a')) {
+      e.preventDefault();
+      return;
+    }
+    var row = e.target.closest('tr.provider-row');
+    if (!row) return;
+    draggedProvIdx = +row.dataset.dragIdx;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(draggedProvIdx));
+    setTimeout(function () {
+      if (row) row.classList.add('is-dragging');
+    }, 0);
+  });
+
+  provTable.addEventListener('dragover', function (e) {
+    if (draggedProvIdx === null) return;
+    var targetRow = e.target.closest('tr.provider-row');
+    if (!targetRow) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var targetIdx = +targetRow.dataset.dragIdx;
+    if (targetIdx === draggedProvIdx) {
+      clearDragOverClasses();
+      targetRow.classList.add('is-dragging');
+      return;
+    }
+    var rect = targetRow.getBoundingClientRect();
+    var isBelow = e.clientY >= (rect.top + rect.height / 2);
+    $$('#prov-table tr.provider-row').forEach(function (r) {
+      if (r !== targetRow) r.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    if (isBelow) {
+      targetRow.classList.remove('drag-over-top');
+      targetRow.classList.add('drag-over-bottom');
+    } else {
+      targetRow.classList.remove('drag-over-bottom');
+      targetRow.classList.add('drag-over-top');
+    }
+  });
+
+  provTable.addEventListener('dragleave', function (e) {
+    var related = e.relatedTarget;
+    if (!related || !provTable.contains(related)) {
+      clearDragOverClasses();
+      if (draggedProvIdx !== null) {
+        var dr = $('#prov-table tr.provider-row[data-drag-idx="' + draggedProvIdx + '"]');
+        if (dr) dr.classList.add('is-dragging');
+      }
+    }
+  });
+
+  provTable.addEventListener('drop', function (e) {
+    if (draggedProvIdx === null) return;
+    e.preventDefault();
+    var targetRow = e.target.closest('tr.provider-row');
+    var fromIdx = draggedProvIdx;
+    draggedProvIdx = null;
+    clearDragOverClasses();
+    if (!targetRow) return;
+    var toIdx = +targetRow.dataset.dragIdx;
+    if (fromIdx === toIdx) return;
+    var rect = targetRow.getBoundingClientRect();
+    var isBelow = e.clientY >= (rect.top + rect.height / 2);
+    reorderProvider(fromIdx, toIdx, isBelow);
+  });
+
+  provTable.addEventListener('dragend', function () {
+    draggedProvIdx = null;
+    clearDragOverClasses();
+  });
 
   $('#prov-table').addEventListener('click', async function (e) {
     var b = e.target.closest('button'); if (!b) return;

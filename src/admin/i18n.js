@@ -25,7 +25,7 @@ var I18N = {
       },
       providers: {
         title: '上游', desc: '顺序即 auto 默认容灾顺序（未自定义容灾链时）', add: '添加服务商',
-        thOrder: '顺序', thNameId: '名称 / ID', thBase: 'Base URL', thKey: 'Key', thModels: '模型', thEnable: '启用', thActions: '操作',
+        thOrder: '顺序', dragOrder: '按住拖拽排序', thNameId: '名称 / ID', thBase: 'Base URL', thKey: 'Key', thModels: '模型', thEnable: '启用', thActions: '操作',
         empty: '还没有服务商，点右上角「添加服务商」。', edit: '编辑', del: '删除',
         delConfirm: '删除服务商「{name}」？它在容灾链里的条目也会一并移除。', deleted: '已删除',
         dialogAdd: '添加服务商', dialogEdit: '编辑服务商', labelName: '名称', labelId: 'ID（用于「ID/模型」寻址）',
@@ -138,7 +138,7 @@ var I18N = {
       },
       providers: {
         title: '上游', desc: '順序即 auto 預設容災順序（未自訂容災鏈時）', add: '新增服務商',
-        thOrder: '順序', thNameId: '名稱 / ID', thBase: 'Base URL', thKey: 'Key', thModels: '模型', thEnable: '啟用', thActions: '操作',
+        thOrder: '順序', dragOrder: '按住拖曳排序', thNameId: '名稱 / ID', thBase: 'Base URL', thKey: 'Key', thModels: '模型', thEnable: '啟用', thActions: '操作',
         empty: '還沒有服務商，點右上角「新增服務商」。', edit: '編輯', del: '刪除',
         delConfirm: '刪除服務商「{name}」？它在容災鏈裡的條目也會一併移除。', deleted: '已刪除',
         dialogAdd: '新增服務商', dialogEdit: '編輯服務商', labelName: '名稱', labelId: 'ID（用於「ID/模型」定址）',
@@ -251,7 +251,7 @@ var I18N = {
       },
       providers: {
         title: 'Upstream', desc: 'Order defines default failover when chain is unset', add: 'Add Provider',
-        thOrder: 'Order', thNameId: 'Name / ID', thBase: 'Base URL', thKey: 'Key', thModels: 'Models', thEnable: 'Enabled', thActions: 'Actions',
+        thOrder: 'Order', dragOrder: 'Drag to reorder', thNameId: 'Name / ID', thBase: 'Base URL', thKey: 'Key', thModels: 'Models', thEnable: 'Enabled', thActions: 'Actions',
         empty: 'No providers yet. Click "Add Provider" above to start.', edit: 'Edit', del: 'Delete',
         delConfirm: 'Delete provider "{name}"? Entries in failover chain will also be removed.', deleted: 'Deleted',
         dialogAdd: 'Add Provider', dialogEdit: 'Edit Provider', labelName: 'Name', labelId: 'ID (for "id/model" addressing)',
