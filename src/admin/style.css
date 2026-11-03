@@ -622,6 +622,28 @@ dialog .df {
 }
 .chain { list-style: none; padding: 0; margin: 0 0 10px; }
 
+/* 卡片头部与尾部操作区 */
+.card-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.card-head-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.card-actions-end {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* 容灾链控制区 */
 .chain-controls {
   display: flex;
@@ -884,6 +906,9 @@ footer a:hover { color: var(--primary); }
     white-space: nowrap;
     text-align: center;
     font-size: 13px;
+  }
+  .card-head-row #add-prov {
+    margin-left: auto;
   }
 }
 

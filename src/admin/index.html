@@ -134,10 +134,11 @@
     <!-- 服务商 -->
     <section data-pane="providers" class="hidden">
       <div class="card">
-        <div class="row" style="margin-bottom:10px">
-          <h2 style="margin:0" data-i18n="providers.title">上游</h2>
-          <span class="muted small" data-i18n="providers.desc">顺序即 auto 默认容灾顺序（未自定义容灾链时）</span>
-          <span class="grow"></span>
+        <div class="card-head-row" style="margin-bottom:10px">
+          <div class="card-head-left">
+            <h2 style="margin:0" data-i18n="providers.title">上游</h2>
+            <span class="muted small" data-i18n="providers.desc">顺序即 auto 默认容灾顺序（未自定义容灾链时）</span>
+          </div>
           <button class="btn primary" id="add-prov" data-i18n="providers.add">添加服务商</button>
         </div>
         <div class="scroll-x"><table id="prov-table"></table></div>
@@ -242,12 +243,12 @@
           <label class="switch"><input type="checkbox" id="s-prompts"><span></span></label>
           <span data-i18n="settings.logPromptsLabel">记录最后一条用户消息原文（默认关，只记元数据）</span>
         </div>
-        <div class="row" style="margin-top:12px"><button class="btn primary" id="s-save" data-i18n="settings.save">保存</button></div>
+        <div class="card-actions-end" style="margin-top:12px"><button class="btn primary" id="s-save" data-i18n="settings.save">保存</button></div>
       </div>
       <div class="card">
         <h2 data-i18n="settings.backupTitle">备份</h2>
         <p class="muted small" style="margin-top:0" data-i18n="settings.backupDesc">导出文件包含上游 API Key 明文，请妥善保存。导入会整体覆盖当前服务商与设置。</p>
-        <div class="row">
+        <div class="card-actions-end">
           <button class="btn" id="s-export" data-i18n="settings.exportBtn">导出配置</button>
           <label class="btn"><span data-i18n="settings.importBtn">导入配置</span><input type="file" id="s-import" accept="application/json" class="hidden"></label>
         </div>
