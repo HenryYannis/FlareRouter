@@ -621,6 +621,24 @@ dialog .df {
   border-bottom: 1px solid var(--border);
 }
 .chain { list-style: none; padding: 0; margin: 0 0 10px; }
+
+/* 容灾链控制区 */
+.chain-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.chain-add-select {
+  flex: 1;
+  min-width: 200px;
+}
+.chain-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
 .login {
   position: fixed;
   inset: 0;
@@ -843,6 +861,29 @@ footer a:hover { color: var(--primary); }
     width: 26px;
     height: 26px;
     margin-right: 4px;
+  }
+  /* 移动端容灾链控制：下拉满宽独占一行，三按钮并排均分第二行 */
+  .chain-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .chain-add-select {
+    width: 100%;
+    min-width: 0;
+  }
+  .chain-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+  .chain-actions .btn {
+    padding: 0 4px;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 13px;
   }
 }
 

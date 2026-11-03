@@ -222,11 +222,13 @@
         </div>
         <p class="muted small" data-i18n="fallback.desc">失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。</p>
         <ul class="chain" id="chain"></ul>
-        <div class="row" style="gap:8px;flex-wrap:wrap">
-          <select id="chain-add" class="grow" style="min-width:200px"></select>
-          <button class="btn" id="chain-add-btn" type="button" data-i18n="fallback.addToChain">加入容灾链</button>
-          <button class="btn" id="chain-batch-btn" type="button" data-i18n="fallback.batchAdd">批量选择...</button>
-          <button class="btn primary" id="chain-save" type="button" data-i18n="fallback.save">保存设置</button>
+        <div class="chain-controls">
+          <select id="chain-add" class="chain-add-select"></select>
+          <div class="chain-actions">
+            <button class="btn" id="chain-add-btn" type="button" data-i18n="fallback.addToChain">加入容灾链</button>
+            <button class="btn" id="chain-batch-btn" type="button" data-i18n="fallback.batchAdd">批量选择...</button>
+            <button class="btn primary" id="chain-save" type="button" data-i18n="fallback.save">保存设置</button>
+          </div>
         </div>
       </div>
       <div class="card">
@@ -311,9 +313,8 @@
             <button class="btn sm" type="button" id="p-fetch-avail" data-i18n="providers.selectAvailable" data-i18n-title="providers.selectAvailableTip" title="只选中测试成功的可用模型">只选可用</button>
             <button class="btn sm" type="button" id="p-fetch-test" data-i18n="providers.testModels">测试模型</button>
           </div>
-          <div id="p-test-status" class="muted small hidden" style="margin-top:6px;display:flex;align-items:center;justify-content:space-between">
+          <div id="p-test-status" class="muted small hidden" style="margin-top:6px">
             <span id="p-test-info"></span>
-            <button class="btn sm text-btn" type="button" id="p-test-stop" style="padding:0 4px;height:auto" data-i18n="providers.testStop">停止</button>
           </div>
           <div class="models-box" id="p-fetch-list"></div>
         </div>

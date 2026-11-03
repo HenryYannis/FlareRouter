@@ -769,6 +769,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#p-test-status').classList.add('hidden');
     $('#p-test-info').textContent = '';
     $('#p-fetch-test').textContent = t('providers.testModels');
+    $('#p-fetch-test').classList.remove('danger');
     $('#p-fetch-test').disabled = false;
     $('#p-fetch-box').classList.add('hidden');
     $('#dlg-prov').showModal();
@@ -898,9 +899,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   $('#p-models').addEventListener('input', function () { if (!$('#p-fetch-box').classList.contains('hidden')) renderFetched(); });
 
   // 停止测试
-  $('#p-test-stop').addEventListener('click', function () {
-    state.testingActive = false;
-  });
+  if ($('#p-test-stop')) {
+    $('#p-test-stop').addEventListener('click', function () {
+      state.testingActive = false;
+    });
+  }
 
   // 测试模型
   $('#p-fetch-test').addEventListener('click', async function () {
@@ -927,6 +930,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     state.testingActive = true;
     var testBtn = $('#p-fetch-test');
     testBtn.textContent = t('providers.testStop');
+    testBtn.classList.add('danger');
     var statusBox = $('#p-test-status');
     var infoSpan = $('#p-test-info');
     statusBox.classList.remove('hidden');
@@ -981,6 +985,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
     state.testingActive = false;
     testBtn.textContent = t('providers.testModels');
+    testBtn.classList.remove('danger');
     renderFetched();
     infoSpan.textContent = t('providers.testDone', { total: done, ok: okCount, fail: failCount });
     toast(t('providers.testDone', { total: done, ok: okCount, fail: failCount }));
@@ -1014,6 +1019,8 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   $('#dlg-prov').addEventListener('close', function () {
     state.testingActive = false;
+    $('#p-fetch-test').textContent = t('providers.testModels');
+    $('#p-fetch-test').classList.remove('danger');
   });
 
   // ---- 容灾链 ----
