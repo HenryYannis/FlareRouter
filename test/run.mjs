@@ -213,7 +213,7 @@ const mf = new Miniflare({
   modules: true,
   scriptPath: 'src/index.js',
   modulesRules: [
-    { type: 'Text', include: ['**/*.html', '**/*.css', '**/admin/app.js'] },
+    { type: 'Text', include: ['**/*.html', '**/*.css', '**/admin/*.js'] },
     { type: 'ESModule', include: ['**/*.js'] },
   ],
   compatibilityDate: '2026-03-15',
@@ -908,8 +908,8 @@ try {
   // app.js 内嵌于页面脚本；断言不再调用系统弹窗
   ok(!/\balert\s*\(/.test(t) && !/\bconfirm\s*\(/.test(t) && !/window\.prompt\s*\(/.test(t), '管理页不再使用系统 alert/confirm/prompt');
   {
-    const appJs = readFileSync('src/admin/app.js', 'utf8');
-    ok(/Array\.isArray\(dl\.tool_calls\)/.test(appJs) && /out\.reasoning_content = m\.reasoning/.test(appJs) && /if \(o\.error\)/.test(appJs), '管理页对话会拼接工具调用、显示流内错误，并把思考带回下一轮');
+    const chatJs = readFileSync('src/admin/chat.js', 'utf8');
+    ok(/Array\.isArray\(dl\.tool_calls\)/.test(chatJs) && /out\.reasoning_content = m\.reasoning/.test(chatJs) && /if \(o\.error\)/.test(chatJs), '管理页对话会拼接工具调用、显示流内错误，并把思考带回下一轮');
   }
 
   // ---- 日志 ----
