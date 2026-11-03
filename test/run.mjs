@@ -213,7 +213,7 @@ const mf = new Miniflare({
   modules: true,
   scriptPath: 'src/index.js',
   modulesRules: [
-    { type: 'Text', include: ['**/*.html', '**/*.css', '**/admin/*.js'] },
+    { type: 'Text', include: ['**/*.html', '**/*.css', '*app.js', '*chat.js', '*i18n.js', '**/admin/app.js', '**/admin/chat.js', '**/admin/i18n.js'] },
     { type: 'ESModule', include: ['**/*.js'] },
   ],
   compatibilityDate: '2026-03-15',
@@ -322,7 +322,7 @@ try {
   r = await req('/v1/models', { headers: H });
   d = await j(r);
   const ids = d.data.map((m) => m.id);
-  ok(r.status === 200 && ids.includes('good/m1') && ids.includes('good/vendor/m3') && !ids.some((i) => i.startsWith('off/')) && ids.includes('auto'), '/v1/models 只列启用服务商，带前缀', ids.join(','));
+  ok(r.status === 200 && ids.includes('good/m1') && ids.includes('good/vendor/m3') && !ids.some((i) => i.startsWith('off/')) && ids.includes('FlareRouter/auto'), '/v1/models 只列启用服务商，带前缀', ids.join(','));
 
   // ---- 转发 ----
   r = await chat({ model: 'good/m1', messages: [{ role: 'user', content: 'hi' }], temperature: 0.2, tools: [{ type: 'function' }], custom_field: 'keep' });
