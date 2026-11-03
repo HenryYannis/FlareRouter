@@ -51,7 +51,8 @@
         chainInvalid: '服务商已停用或模型不存在，会被跳过',
         chainEmpty: '（空）按服务商顺序取每家第一个模型：{models}', chainNone: '暂无',
         batchAdd: '批量选择...', pickerTitle: '批量选择模型加入容灾链',
-        pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
+        pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerPickVision: '只选视觉', pickerPickTools: '只选工具', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
+        capVision: '视觉', capTools: '工具', capThinking: '思考',
         pickerSelectedCount: '已选 {count} 个模型', pickerConfirm: '加入容灾链', pickerCancel: '取消',
         pickerToastAdded: '已导入容灾链（共 {count} 个模型），请点击「保存设置」生效', groupAll: '全选', groupNone: '清空'
       },
@@ -162,7 +163,8 @@
         chainInvalid: '服務商已停用或模型不存在，會被跳過',
         chainEmpty: '（空）按服務商順序取每家第一個模型：{models}', chainNone: '暫無',
         batchAdd: '批量選擇...', pickerTitle: '批量選擇模型加入容災鏈',
-        pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
+        pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerPickVision: '只選視覺', pickerPickTools: '只選工具', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
+        capVision: '視覺', capTools: '工具', capThinking: '思考',
         pickerSelectedCount: '已選 {count} 個模型', pickerConfirm: '加入容災鏈', pickerCancel: '取消',
         pickerToastAdded: '已匯入容災鏈（共 {count} 個模型），請點擊「儲存設定」生效', groupAll: '全選', groupNone: '清空'
       },
@@ -273,7 +275,8 @@
         chainInvalid: 'Provider disabled or model missing, will be skipped',
         chainEmpty: '(Empty) Tries 1st model of each provider: {models}', chainNone: 'None',
         batchAdd: 'Batch Select...', pickerTitle: 'Select Models for Failover Chain',
-        pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
+        pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerPickVision: 'Vision Only', pickerPickTools: 'Tools Only', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
+        capVision: 'Vision', capTools: 'Tools', capThinking: 'Thinking',
         pickerSelectedCount: '{count} models selected', pickerConfirm: 'Apply to Chain', pickerCancel: 'Cancel',
         pickerToastAdded: 'Added to failover chain ({count} models), click "Save Settings" to apply', groupAll: 'Select All', groupNone: 'Clear'
       },
@@ -926,6 +929,24 @@
     }
   });
   function currentModels() { return $('#p-models').value.split(/[,\n]/).map(function (s) { return s.trim(); }).filter(Boolean); }
+  function detectCaps(modelId) {
+    var s = String(modelId || '').toLowerCase();
+    var isVision = /(-vl\b|vl-|_vl\b|-vision\b|-v-\b|4v\b|4o\b|claude-3|gemini-|pixtral|llava|omni|minicpm-v|internvl)/i.test(s);
+    var isThinking = /(\br1\b|-r1\b|_r1\b|reasoner|thinking|\bo1\b|-o1\b|\bo3\b|-o3\b|qwq)/i.test(s);
+    var notTools = /(embedding|rerank|whisper|tts|speech|dall-e|flux|stable-diffusion|-base\b|babbage|davinci|deepseek-reasoner|deepseek-r1)/i.test(s);
+    var isTools = !notTools;
+    return { vision: isVision, tools: isTools, thinking: isThinking };
+  }
+
+  function capsBadgeHtml(modelId) {
+    var c = detectCaps(modelId);
+    var out = '';
+    if (c.vision) out += '<span class="cap-badge vision" title="' + t('fallback.capVision') + '">👁 ' + t('fallback.capVision') + '</span>';
+    if (c.tools) out += '<span class="cap-badge tools" title="' + t('fallback.capTools') + '">🛠 ' + t('fallback.capTools') + '</span>';
+    if (c.thinking) out += '<span class="cap-badge thinking" title="' + t('fallback.capThinking') + '">🧠 ' + t('fallback.capThinking') + '</span>';
+    return out;
+  }
+
   function renderFetched() {
     var q = $('#p-fetch-q').value.trim().toLowerCase(), cur = currentModels();
     var list = state.fetched.filter(function (m) { return !q || m.toLowerCase().indexOf(q) >= 0; });
@@ -943,7 +964,7 @@
           badge = '<span class="model-badge fail" title="' + esc(errDesc + (res.latencyMs ? ' (' + res.latencyMs + 'ms)' : '')) + '">✕ ' + esc(res.status ? String(res.status) : t('providers.testFailed')) + '</span>';
         }
       }
-      return '<label class="model-item"><input type="checkbox" value="' + esc(m) + '"' + (isChecked ? ' checked' : '') + '> <span class="mono grow">' + esc(m) + '</span>' + badge + '</label>';
+      return '<label class="model-item"><input type="checkbox" value="' + esc(m) + '"' + (isChecked ? ' checked' : '') + '> <span class="mono grow">' + esc(m) + '</span>' + capsBadgeHtml(m) + badge + '</label>';
     }).join('') : '<span class="muted small">' + t('providers.noMatchModels', { count: state.fetched.length }) + '</span>';
   }
   $('#p-fetch-q').addEventListener('input', renderFetched);
@@ -1137,6 +1158,7 @@
             modelsHtml += '<label class="chain-picker-item" title="' + esc(fullKey) + '">' +
               '<input type="checkbox" data-pk="' + esc(fullKey) + '"' + (isChecked ? ' checked' : '') + '> ' +
               '<span class="mono" style="word-break:break-all">' + esc(m) + '</span>' +
+              capsBadgeHtml(m) +
               '</label>';
           }
         });
@@ -1197,6 +1219,28 @@
     state.cfg.providers.forEach(function (p) {
       if (p.enabled && p.models && p.models.length) {
         pickerSelected.add(p.id + '/' + p.models[0]);
+      }
+    });
+    renderChainPickerGroups();
+  });
+
+  $('#chain-picker-vision').addEventListener('click', function () {
+    state.cfg.providers.forEach(function (p) {
+      if (p.enabled && p.models) {
+        p.models.forEach(function (m) {
+          if (detectCaps(m).vision) pickerSelected.add(p.id + '/' + m);
+        });
+      }
+    });
+    renderChainPickerGroups();
+  });
+
+  $('#chain-picker-tools').addEventListener('click', function () {
+    state.cfg.providers.forEach(function (p) {
+      if (p.enabled && p.models) {
+        p.models.forEach(function (m) {
+          if (detectCaps(m).tools) pickerSelected.add(p.id + '/' + m);
+        });
       }
     });
     renderChainPickerGroups();

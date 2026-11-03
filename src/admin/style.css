@@ -1095,3 +1095,24 @@ html.night-theme .chat-messages { background: rgba(255, 255, 255, 0.04); }
 .quota-bar-fill.normal { background: #10b981; }
 .quota-bar-fill.warning { background: #f59e0b; }
 .quota-bar-fill.danger { background: #ef4444; }
+
+/* 模型特性徽章 */
+.cap-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-weight: 500;
+  user-select: none;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.cap-badge.vision { background: rgba(14, 165, 233, 0.12); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.25); }
+.cap-badge.tools  { background: rgba(168, 85, 247, 0.12); color: #9333ea; border: 1px solid rgba(168, 85, 247, 0.25); }
+.cap-badge.thinking { background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.25); }
+
+html.night-theme .cap-badge.vision { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); }
+html.night-theme .cap-badge.tools  { background: rgba(168, 85, 247, 0.2); color: #c084fc; border-color: rgba(192, 132, 252, 0.35); }
+html.night-theme .cap-badge.thinking { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); }

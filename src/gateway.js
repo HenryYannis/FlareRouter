@@ -23,11 +23,20 @@ const ERROR_TEXT_LIMIT = 2000;
 export function listModels(cfg) {
   const now = Math.floor(Date.now() / 1000);
   const iso = new Date(now * 1000).toISOString();
-  const item = (id, owner) => ({ id, object: 'model', type: 'model', display_name: id, created: now, created_at: iso, owned_by: owner });
-  const data = [item('auto', 'gateway')];
+  const item = (id, owner, group) => ({
+    id,
+    object: 'model',
+    type: 'model',
+    display_name: id,
+    created: now,
+    created_at: iso,
+    owned_by: owner,
+    group: group || owner,
+  });
+  const data = [item('auto', 'FlareRouter', 'FlareRouter')];
   for (const p of cfg.providers) {
     if (!p.enabled) continue;
-    for (const m of p.models) data.push(item(`${p.id}/${m}`, p.id));
+    for (const m of p.models) data.push(item(`${p.id}/${m}`, p.id, p.id));
   }
   return { object: 'list', data, has_more: false, first_id: data[0].id, last_id: data[data.length - 1].id };
 }
@@ -75,7 +84,8 @@ export function resolveTargets(cfg, requestedModel, { allowFallback = true } = {
   const fallbackOn = allowFallback && cfg.settings.fallbackEnabled !== false;
   let primary = [];
 
-  if (!req || req.toLowerCase() === 'auto') {
+  const lowReq = req.toLowerCase();
+  if (!req || lowReq === 'auto' || lowReq === 'flarerouter/auto' || lowReq === 'gateway/auto') {
     const chain = resolveChain(cfg);
     if (!chain.length) return { targets: [], error: { status: 503, message: '没有可用的服务商：请先在管理页添加并启用服务商、填写模型列表。' } };
     return { targets: fallbackOn ? chain : chain.slice(0, 1) };
