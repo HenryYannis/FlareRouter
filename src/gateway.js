@@ -112,6 +112,33 @@ export function resolveTargets(cfg, requestedModel, { allowFallback = true } = {
   return { targets };
 }
 
+export function isProviderFatal(status, text) {
+  if (status === 401 || status === 402 || status === 403 || status === 429) return true;
+  if (typeof text === 'string') {
+    const low = text.toLowerCase();
+    if (
+      low.includes('insufficient_quota') ||
+      low.includes('quota_exceeded') ||
+      low.includes('exceeded your current quota') ||
+      low.includes('out of balance') ||
+      low.includes('billing_not_active') ||
+      low.includes('credit_exhausted') ||
+      low.includes('invalid_api_key') ||
+      low.includes('account_deactivated') ||
+      low.includes('service_busy') ||
+      text.includes('欠费') ||
+      text.includes('余额不足') ||
+      text.includes('额度不足') ||
+      text.includes('额度耗尽') ||
+      text.includes('账户停用') ||
+      text.includes('并发繁忙')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function lastUserText(messages) {
   if (!Array.isArray(messages)) return null;
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -254,6 +281,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
   }
 
   const trail = [];
+  const deadProviders = new Set();
   let lastStatus = 502;
 
   for (let i = 0; i < targets.length; i++) {
@@ -261,6 +289,19 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
     const tA = Date.now();
     const upProto = upstreamProtocolOf(provider);
     const fail1 = (status, msg) => trail.push({ provider: provider.id, providerName: provider.name, model, protocol: upProto, status, error: msg, ms: Date.now() - tA });
+
+    if (deadProviders.has(provider.id)) {
+      trail.push({
+        provider: provider.id,
+        providerName: provider.name,
+        model,
+        protocol: upProto,
+        status: 0,
+        error: '同服务商此前已返回额度不足/账号级错误，跳过该商名下剩余模型',
+        ms: 0,
+      });
+      continue;
+    }
 
     if (!provider.baseUrl) { fail1(0, '服务商未填写 Base URL'); continue; }
     const up = buildUpstream({ clientProtocol, endpoint, provider, model, body, request, stream });
@@ -285,6 +326,9 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       try { text = await res.text(); } catch (e) { text = `读取错误响应失败：${errText(e)}`; }
       fail1(res.status, `HTTP ${res.status} ${res.statusText || ''} ${text}`.trim().slice(0, ERROR_TEXT_LIMIT));
       lastStatus = res.status;
+      if (isProviderFatal(res.status, text)) {
+        deadProviders.add(provider.id);
+      }
       continue;
     }
 
@@ -325,6 +369,9 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
           : `上游返回 200 但不是 SSE：${String(prefetchedText).slice(0, 1000)}`;
         fail1(502, msg.slice(0, ERROR_TEXT_LIMIT));
         lastStatus = 502;
+        if (streamErr && isProviderFatal(200, streamErr)) {
+          deadProviders.add(provider.id);
+        }
         continue;
       }
     }
@@ -336,6 +383,9 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
     if (bodyErr) {
       fail1(502, `上游返回 HTTP 200 但正文是错误：${bodyErr}`.slice(0, ERROR_TEXT_LIMIT));
       lastStatus = 502;
+      if (isProviderFatal(200, bodyErr)) {
+        deadProviders.add(provider.id);
+      }
       continue;
     }
     let outText = text;

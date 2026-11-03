@@ -3,7 +3,7 @@
 // 仅 OpenAI 兼容上游；按模型解析服务商后原样转发（支持容灾）
 
 import { getConfig } from './config.js';
-import { resolveTargets, protocolError } from './gateway.js';
+import { resolveTargets, protocolError, isProviderFatal } from './gateway.js';
 import { writeLog } from './logs.js';
 import { CORS_HEADERS, errText, maxBodyBytes } from './util.js';
 
@@ -120,6 +120,7 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
   }
 
   const trail = [];
+  const deadProviders = new Set();
   let lastStatus = 502;
 
   for (let i = 0; i < targets.length; i++) {
@@ -128,6 +129,19 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
     const fail1 = (status, msg) => trail.push({
       provider: provider.id, providerName: provider.name, model, protocol: 'openai', status, error: msg, ms: Date.now() - tA,
     });
+
+    if (deadProviders.has(provider.id)) {
+      trail.push({
+        provider: provider.id,
+        providerName: provider.name,
+        model,
+        protocol: 'openai',
+        status: 0,
+        error: '同服务商此前已返回额度不足/账号级错误，跳过该商名下剩余模型',
+        ms: 0,
+      });
+      continue;
+    }
 
     if (provider.protocol === 'anthropic') {
       fail1(0, 'Anthropic 协议的服务商不支持图片/语音接口，已跳过');
@@ -167,6 +181,9 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
       try { text = await res.text(); } catch (e) { text = `读取错误响应失败：${errText(e)}`; }
       fail1(res.status, `HTTP ${res.status} ${res.statusText || ''} ${text}`.trim().slice(0, ERROR_TEXT_LIMIT));
       lastStatus = res.status;
+      if (isProviderFatal(res.status, text)) {
+        deadProviders.add(provider.id);
+      }
       continue;
     }
 
