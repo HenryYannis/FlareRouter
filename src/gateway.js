@@ -33,7 +33,10 @@ export function listModels(cfg) {
     owned_by: owner,
     group: group || owner,
   });
-  const data = [item('auto', 'FlareRouter', 'FlareRouter')];
+  const data = [
+    item('FlareRouter/auto', 'FlareRouter', 'FlareRouter'),
+    item('auto', 'FlareRouter', 'FlareRouter')
+  ];
   for (const p of cfg.providers) {
     if (!p.enabled) continue;
     for (const m of (p.models || [])) data.push(item(`${p.id}/${m}`, p.id, p.id));
