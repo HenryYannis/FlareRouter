@@ -34,8 +34,7 @@ export function listModels(cfg) {
     group: group || owner,
   });
   const data = [
-    item('FlareRouter/auto', 'FlareRouter', 'FlareRouter'),
-    item('auto', 'FlareRouter', 'FlareRouter')
+    item('FlareRouter/auto', 'FlareRouter', 'FlareRouter')
   ];
   for (const p of cfg.providers) {
     if (!p.enabled) continue;
