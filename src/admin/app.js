@@ -53,8 +53,7 @@
         chainInvalid: '服务商已停用或模型不存在，会被跳过',
         chainEmpty: '（空）按服务商顺序取每家第一个模型：{models}', chainNone: '暂无',
         batchAdd: '批量选择...', pickerTitle: '批量选择模型加入容灾链',
-        pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerPickVision: '只选视觉', pickerPickTools: '只选工具', pickerPickImage: '只选生图', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
-        capText: '文本', capVision: '视觉', capImage: '生图', capTools: '工具', capThinking: '思考', capAudio: '音频', capEmbedding: '嵌入', capRerank: '重排',
+        pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
         pickerSelectedCount: '已选 {count} 个模型', pickerConfirm: '加入容灾链', pickerCancel: '取消',
         pickerToastAdded: '已导入容灾链（共 {count} 个模型），请点击「保存设置」生效', groupAll: '全选', groupNone: '清空'
       },
@@ -167,8 +166,7 @@
         chainInvalid: '服務商已停用或模型不存在，會被跳過',
         chainEmpty: '（空）按服務商順序取每家第一個模型：{models}', chainNone: '暫無',
         batchAdd: '批量選擇...', pickerTitle: '批量選擇模型加入容災鏈',
-        pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerPickVision: '只選視覺', pickerPickTools: '只選工具', pickerPickImage: '只選生圖', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
-        capText: '文本', capVision: '視覺', capImage: '生圖', capTools: '工具', capThinking: '思考', capAudio: '音頻', capEmbedding: '嵌入', capRerank: '重排',
+        pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
         pickerSelectedCount: '已選 {count} 個模型', pickerConfirm: '加入容災鏈', pickerCancel: '取消',
         pickerToastAdded: '已匯入容災鏈（共 {count} 個模型），請點擊「儲存設定」生效', groupAll: '全選', groupNone: '清空'
       },
@@ -281,8 +279,7 @@
         chainInvalid: 'Provider disabled or model missing, will be skipped',
         chainEmpty: '(Empty) Tries 1st model of each provider: {models}', chainNone: 'None',
         batchAdd: 'Batch Select...', pickerTitle: 'Select Models for Failover Chain',
-        pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerPickVision: 'Vision Only', pickerPickTools: 'Tools Only', pickerPickImage: 'Image Only', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
-        capText: 'Text', capVision: 'Vision', capImage: 'Image', capTools: 'Tools', capThinking: 'Thinking', capAudio: 'Audio', capEmbedding: 'Embedding', capRerank: 'Rerank',
+        pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
         pickerSelectedCount: '{count} models selected', pickerConfirm: 'Apply to Chain', pickerCancel: 'Cancel',
         pickerToastAdded: 'Added to failover chain ({count} models), click "Save Settings" to apply', groupAll: 'Select All', groupNone: 'Clear'
       },
@@ -1092,50 +1089,6 @@
     }
   });
   function currentModels() { return $('#p-models').value.split(/[,\n]/).map(function (s) { return s.trim(); }).filter(Boolean); }
-  function detectCaps(modelId) {
-    var s = String(modelId || '').toLowerCase();
-    var isImageGen = /(dall-e|flux|stable-diffusion|sdxl|midjourney|imagen|cogview|kolors)/i.test(s);
-    var isAudio = /(whisper|tts|speech|cosyvoice|sensevoice)/i.test(s);
-    var isEmbedding = /(embedding|bge-m3|bge-large|bce-)/i.test(s);
-    var isRerank = /(rerank|bge-reranker)/i.test(s);
-    var isVision = /(-vl\b|vl-|_vl\b|-vision\b|-v-\b|4v\b|4o\b|claude-3|gemini-|pixtral|llava|omni|minicpm-v|internvl)/i.test(s);
-    var isThinking = /(\br1\b|-r1\b|_r1\b|reasoner|thinking|\bo1\b|-o1\b|\bo3\b|-o3\b|qwq)/i.test(s);
-
-    var nonTool = isImageGen || isAudio || isEmbedding || isRerank;
-    var isPureReasoner = /(deepseek-reasoner|deepseek-r1)/i.test(s);
-    var isBase = /(-base\b|babbage|davinci)/i.test(s);
-    var knownTool = /(gpt-4|gpt-3\.5|claude-3|gemini|qwen|glm-4|internlm|llama-3|mistral|deepseek-chat)/i.test(s);
-    var isTools = !nonTool && !isPureReasoner && !isBase && knownTool;
-
-    var isText = !isImageGen && !isAudio && !isEmbedding && !isRerank;
-
-    return {
-      text: isText,
-      vision: isVision,
-      imageGen: isImageGen,
-      tools: isTools,
-      thinking: isThinking,
-      audio: isAudio,
-      embedding: isEmbedding,
-      rerank: isRerank
-    };
-  }
-
-  function capsBadgeHtml(modelId) {
-    var c = detectCaps(modelId);
-    var out = '';
-    if (c.vision) out += '<span class="cap-badge vision" title="' + t('fallback.capVision') + '">👁 ' + t('fallback.capVision') + '</span>';
-    if (c.imageGen) out += '<span class="cap-badge image" title="' + t('fallback.capImage') + '">🎨 ' + t('fallback.capImage') + '</span>';
-    if (c.tools) out += '<span class="cap-badge tools" title="' + t('fallback.capTools') + '">🛠 ' + t('fallback.capTools') + '</span>';
-    if (c.thinking) out += '<span class="cap-badge thinking" title="' + t('fallback.capThinking') + '">🧠 ' + t('fallback.capThinking') + '</span>';
-    if (c.audio) out += '<span class="cap-badge audio" title="' + t('fallback.capAudio') + '">🎙 ' + t('fallback.capAudio') + '</span>';
-    if (c.embedding) out += '<span class="cap-badge embedding" title="' + t('fallback.capEmbedding') + '">🔢 ' + t('fallback.capEmbedding') + '</span>';
-    if (c.rerank) out += '<span class="cap-badge rerank" title="' + t('fallback.capRerank') + '">🔀 ' + t('fallback.capRerank') + '</span>';
-    if (!out && c.text) {
-      out = '<span class="cap-badge text" title="' + t('fallback.capText') + '">📝 ' + t('fallback.capText') + '</span>';
-    }
-    return out;
-  }
 
   function renderFetched() {
     var q = $('#p-fetch-q').value.trim().toLowerCase(), cur = currentModels();
@@ -1154,7 +1107,7 @@
           badge = '<span class="model-badge fail" title="' + esc(errDesc + (res.latencyMs ? ' (' + res.latencyMs + 'ms)' : '')) + '">✕ ' + esc(res.status ? String(res.status) : t('providers.testFailed')) + '</span>';
         }
       }
-      return '<label class="model-item"><input type="checkbox" value="' + esc(m) + '"' + (isChecked ? ' checked' : '') + '> <span class="mono grow">' + esc(m) + '</span>' + capsBadgeHtml(m) + badge + '</label>';
+      return '<label class="model-item"><input type="checkbox" value="' + esc(m) + '"' + (isChecked ? ' checked' : '') + '> <span class="mono grow">' + esc(m) + '</span>' + badge + '</label>';
     }).join('') : '<span class="muted small">' + t('providers.noMatchModels', { count: state.fetched.length }) + '</span>';
   }
   $('#p-fetch-q').addEventListener('input', renderFetched);
@@ -1348,7 +1301,6 @@
             modelsHtml += '<label class="chain-picker-item" title="' + esc(fullKey) + '">' +
               '<input type="checkbox" data-pk="' + esc(fullKey) + '"' + (isChecked ? ' checked' : '') + '> ' +
               '<span class="mono" style="word-break:break-all">' + esc(m) + '</span>' +
-              capsBadgeHtml(m) +
               '</label>';
           }
         });
@@ -1409,39 +1361,6 @@
     state.cfg.providers.forEach(function (p) {
       if (p.enabled && p.models && p.models.length) {
         pickerSelected.add(p.id + '/' + p.models[0]);
-      }
-    });
-    renderChainPickerGroups();
-  });
-
-  $('#chain-picker-vision').addEventListener('click', function () {
-    state.cfg.providers.forEach(function (p) {
-      if (p.enabled && p.models) {
-        p.models.forEach(function (m) {
-          if (detectCaps(m).vision) pickerSelected.add(p.id + '/' + m);
-        });
-      }
-    });
-    renderChainPickerGroups();
-  });
-
-  $('#chain-picker-tools').addEventListener('click', function () {
-    state.cfg.providers.forEach(function (p) {
-      if (p.enabled && p.models) {
-        p.models.forEach(function (m) {
-          if (detectCaps(m).tools) pickerSelected.add(p.id + '/' + m);
-        });
-      }
-    });
-    renderChainPickerGroups();
-  });
-
-  $('#chain-picker-image').addEventListener('click', function () {
-    state.cfg.providers.forEach(function (p) {
-      if (p.enabled && p.models) {
-        p.models.forEach(function (m) {
-          if (detectCaps(m).imageGen) pickerSelected.add(p.id + '/' + m);
-        });
       }
     });
     renderChainPickerGroups();
