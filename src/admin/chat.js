@@ -1,9 +1,9 @@
 // ---- 对话（多轮 + 流式 + Markdown，会话存本机）----
-  var CHAT_LS_KEY = 'gw_chat_v2';
-  var CHAT_LS_KEY_LEGACY = 'gw_chat_v1';
+  var CHAT_LS_KEY = 'gw_chat_v3';
+  var CHAT_LS_KEY_LEGACY = 'gw_chat_v2';
   var CHAT_MAX_ATTACH = 5;
   var CHAT_MAX_ATTACH_BYTES = 4 * 1024 * 1024;
-  var chatState = { model: 'auto', noFallback: false, messages: [] };
+  var chatState = { model: 'auto', noFallback: true, messages: [] };
   var chatAbort = null;
   var chatBusy = false;
   var pendingAttachments = [];
@@ -70,12 +70,19 @@
   function loadChatState() {
     try {
       var raw = localStorage.getItem(CHAT_LS_KEY);
-      if (!raw) raw = localStorage.getItem(CHAT_LS_KEY_LEGACY);
+      var isLegacy = false;
+      if (!raw) {
+        raw = localStorage.getItem(CHAT_LS_KEY_LEGACY);
+        isLegacy = true;
+      }
+      if (!raw) raw = localStorage.getItem('gw_chat_v1');
       if (!raw) return;
       var o = JSON.parse(raw);
       if (!o || typeof o !== 'object') return;
       chatState.model = typeof o.model === 'string' ? o.model : 'auto';
-      chatState.noFallback = !!o.noFallback;
+      if (!isLegacy && typeof o.noFallback === 'boolean') {
+        chatState.noFallback = o.noFallback;
+      }
       chatState.messages = Array.isArray(o.messages) ? o.messages.filter(isValidChatMessage).map(function (m) {
         return {
           role: m.role,
