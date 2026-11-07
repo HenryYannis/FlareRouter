@@ -191,6 +191,8 @@ nav button {
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
   font-family: inherit;
   font-size: var(--fs-nav);
   transition: var(--transition);
