@@ -310,7 +310,7 @@ try {
   ok(r.status === 401, '错误调用密钥 -> 401');
   r = await admin('/admin/api/keys', { name: '笔记本' });
   const key = (await j(r)).key;
-  ok(/^sk-fr-[0-9a-f]{32}$/.test(key), '生成调用密钥');
+  ok(/^sk-fr-[0-9a-f]{48}$/.test(key), '生成调用密钥');
   const keyRow = await db.prepare('SELECT * FROM api_keys').first();
   ok(keyRow && keyRow.raw_key === key, 'D1 记录明文密钥供自用随时查看');
   const listKeysRes = await admin('/admin/api/keys');

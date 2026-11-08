@@ -67,7 +67,7 @@ export async function listKeys(env) {
 }
 
 export async function createKey(env, name) {
-  const key = `sk-fr-${randomHex(16)}`;
+  const key = `sk-fr-${randomHex(24)}`;
   const id = `key_${randomHex(6)}`;
   const hash = await sha256Hex(key);
   const preview = `${key.slice(0, 9)}…${key.slice(-4)}`;
@@ -112,7 +112,7 @@ export async function deleteKey(env, id) {
 
 export async function rotateKey(env, id) {
   if (!id) throw new Error('缺少密钥 id');
-  const key = `sk-fr-${randomHex(16)}`;
+  const key = `sk-fr-${randomHex(24)}`;
   const hash = await sha256Hex(key);
   const preview = `${key.slice(0, 9)}…${key.slice(-4)}`;
   try {
