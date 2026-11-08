@@ -335,7 +335,7 @@
       <div id="prov-err" class="err small" style="margin-top:8px"></div>
     </div>
     <div class="df">
-      <button class="btn" value="cancel" formnovalidate data-i18n="providers.cancel">取消</button>
+      <button type="button" class="btn" onclick="this.closest('dialog').close()" data-i18n="providers.cancel">取消</button>
       <button class="btn primary" type="button" id="prov-save" data-i18n="providers.save">保存</button>
     </div>
   </form>
@@ -402,7 +402,7 @@
 <dialog id="dlg-log">
   <div class="dh" data-i18n="logs.detailTitle">调用详情</div>
   <div class="db" id="log-detail"></div>
-  <div class="df"><button class="btn" onclick="this.closest('dialog').close()" data-i18n="logs.close">关闭</button></div>
+  <div class="df"><button type="button" class="btn" onclick="this.closest('dialog').close()" data-i18n="logs.close">关闭</button></div>
 </dialog>
 
 <!--INJECT_JS-->
