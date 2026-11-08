@@ -306,11 +306,11 @@ try {
   // ---- 调用密钥 ----
   r = await req('/v1/models');
   ok(r.status === 401, '无调用密钥 -> 401');
-  r = await req('/v1/models', { headers: { Authorization: 'Bearer sk-gw-nope' } });
+  r = await req('/v1/models', { headers: { Authorization: 'Bearer sk-fr-nope' } });
   ok(r.status === 401, '错误调用密钥 -> 401');
   r = await admin('/admin/api/keys', { name: '笔记本' });
   const key = (await j(r)).key;
-  ok(/^sk-gw-[0-9a-f]{48}$/.test(key), '生成调用密钥');
+  ok(/^sk-fr-[0-9a-f]{32}$/.test(key), '生成调用密钥');
   const keyRow = await db.prepare('SELECT * FROM api_keys').first();
   ok(keyRow && keyRow.raw_key === key, 'D1 记录明文密钥供自用随时查看');
   const listKeysRes = await admin('/admin/api/keys');
@@ -503,7 +503,7 @@ try {
   r = await req('/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   d = await j(r);
   ok(r.status === 401 && d.type === 'error' && d.error.type === 'authentication_error', '/v1/messages 无密钥 -> 401（Anthropic 错误格式）', JSON.stringify(d));
-  r = await req('/v1/messages', { method: 'POST', headers: { ...XH, 'x-api-key': 'sk-gw-wrong' }, body: '{}' });
+  r = await req('/v1/messages', { method: 'POST', headers: { ...XH, 'x-api-key': 'sk-fr-wrong' }, body: '{}' });
   ok(r.status === 401, '/v1/messages 错误 x-api-key -> 401');
 
   // 透传（非流式）

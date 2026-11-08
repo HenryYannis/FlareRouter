@@ -108,7 +108,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     dialogOverlay = document.createElement('div');
     dialogOverlay.className = 'custom-dialog-overlay';
     dialogOverlay.addEventListener('click', function (e) {
-      if (e.target === dialogOverlay) closeDialog(null);
+      if (e.target === dialogOverlay) {
+        var input = dialogOverlay.querySelector('input, textarea, select');
+        if (input) { input.focus(); return; }
+        closeDialog(null);
+      }
     });
     document.addEventListener('keydown', function (e) {
       if (!dialogOverlay || !dialogOverlay.classList.contains('active')) return;
@@ -1220,7 +1224,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#lf-provider').innerHTML = '<option value="">' + t('logs.allProviders') + '</option>' + state.cfg.providers.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('');
     var ex = ms[1] || 'auto';
     $('#curl-example').textContent =
-      'curl ' + base + '/chat/completions \\\n  -H "Authorization: Bearer sk-gw-xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"model":"' + ex + '","stream":true,"messages":[{"role":"user","content":"Hello"}]}\'';
+      'curl ' + base + '/chat/completions \\\n  -H "Authorization: Bearer sk-fr-xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"model":"' + ex + '","stream":true,"messages":[{"role":"user","content":"Hello"}]}\'';
   }
 
   function renderSettings() {
@@ -1304,7 +1308,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           (limit > 0 ? '<div class="quota-bar-bg"><div class="quota-bar-fill ' + barClass + '" style="width:' + pct + '%"></div></div>' : '') +
           '</div>';
 
-        return '<tr><td><b>' + esc(k.name) + '</b></td>' +
+        return '<tr><td class="col-key-name"><b>' + esc(k.name) + '</b></td>' +
           '<td>' + keyHtml + '</td>' +
           '<td>' + quotaHtml + '</td>' +
           '<td class="small">' + fmtTime(k.created_at) + '</td>' +

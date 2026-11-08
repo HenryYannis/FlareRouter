@@ -113,7 +113,7 @@ Providers, the failover chain and these settings are stored in KV and edited in 
 ### OpenAI-compatible API
 
 ```bash
-export GATEWAY_KEY=sk-gw-...   # a gateway key created in the admin page
+export GATEWAY_KEY=sk-fr-...   # a gateway key created in the admin page
 
 # List models
 curl https://ai.example.com/v1/models \
@@ -139,7 +139,7 @@ curl https://ai.example.com/v1/chat/completions \
   -d '{"model":"gemini/gemini-2.5-flash","messages":[{"role":"user","content":"hi"}]}'
 ```
 
-In Cherry Studio, Chatbox, Cursor and similar clients: base URL `https://ai.example.com/v1`, key `sk-gw-...`, model `providerId/model` or `auto`.
+In Cherry Studio, Chatbox, Cursor and similar clients: base URL `https://ai.example.com/v1`, key `sk-fr-...`, model `providerId/model` or `auto`.
 
 Response headers `x-gateway-provider`, `x-gateway-model`, `x-gateway-attempts`, `x-gateway-fallback` and `x-gateway-protocol` show which provider actually served the request.
 When every candidate fails, the HTTP status is the last upstream's status (502 if there was none), and `error.message` and `error.attempts` carry the raw error of every attempt.
@@ -185,7 +185,7 @@ curl https://ai.example.com/v1/messages \
 
 ```bash
 export ANTHROPIC_BASE_URL=https://ai.example.com
-export ANTHROPIC_AUTH_TOKEN=sk-gw-your-gateway-key
+export ANTHROPIC_AUTH_TOKEN=sk-fr-your-gateway-key
 # Set a model (Claude Code sends official names like claude-sonnet-…; if the gateway can't find one it returns 404)
 export ANTHROPIC_MODEL=anthropic/claude-sonnet-4-5                # providerId/model, or auto
 export ANTHROPIC_DEFAULT_HAIKU_MODEL=anthropic/claude-haiku-4-5   # fast model for background tasks
@@ -198,7 +198,7 @@ Or put it in `~/.claude/settings.json`:
 {
   "env": {
     "ANTHROPIC_BASE_URL": "https://ai.example.com",
-    "ANTHROPIC_AUTH_TOKEN": "sk-gw-your-gateway-key",
+    "ANTHROPIC_AUTH_TOKEN": "sk-fr-your-gateway-key",
     "ANTHROPIC_MODEL": "anthropic/claude-sonnet-4-5",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "anthropic/claude-haiku-4-5"
   }

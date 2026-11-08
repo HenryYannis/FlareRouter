@@ -117,29 +117,29 @@ npx wrangler deploy
 ```bash
 # 列出模型
 curl https://ai.example.com/v1/models \
-  -H "Authorization: Bearer sk-gw-你的密鑰"
+  -H "Authorization: Bearer sk-fr-你的密鑰"
 
 # 非串流
 curl https://ai.example.com/v1/chat/completions \
-  -H "Authorization: Bearer sk-gw-你的密鑰" \
+  -H "Authorization: Bearer sk-fr-你的密鑰" \
   -H "Content-Type: application/json" \
   -d '{"model":"openrouter/google/gemini-2.5-pro","messages":[{"role":"user","content":"你好"}]}'
 
 # 串流
 curl -N https://ai.example.com/v1/chat/completions \
-  -H "Authorization: Bearer sk-gw-你的密鑰" \
+  -H "Authorization: Bearer sk-fr-你的密鑰" \
   -H "Content-Type: application/json" \
   -d '{"model":"auto","stream":true,"messages":[{"role":"user","content":"寫一句詩"}]}'
 
 # 本次不容災（失敗直接回傳上游原始錯誤）
 curl https://ai.example.com/v1/chat/completions \
-  -H "Authorization: Bearer sk-gw-你的密鑰" \
+  -H "Authorization: Bearer sk-fr-你的密鑰" \
   -H "x-gateway-fallback: off" \
   -H "Content-Type: application/json" \
   -d '{"model":"gemini/gemini-2.5-flash","messages":[{"role":"user","content":"hi"}]}'
 ```
 
-在 Cherry Studio、Chatbox、Cursor 等用戶端中：API 位址填 `https://ai.example.com/v1`，密鑰填 `sk-gw-...`，模型填 `服務商 ID/模型` 或 `auto`。
+在 Cherry Studio、Chatbox、Cursor 等用戶端中：API 位址填 `https://ai.example.com/v1`，密鑰填 `sk-fr-...`，模型填 `服務商 ID/模型` 或 `auto`。
 
 回應標頭會帶上 `x-gateway-provider`、`x-gateway-model`、`x-gateway-attempts`、`x-gateway-fallback`、`x-gateway-protocol`，方便查看這次實際走了哪一家。
 所有候選都失敗時，HTTP 狀態取最後一次上游的狀態碼（沒有則為 502），`error.message` 和 `error.attempts` 中有每一次嘗試的原始錯誤。
@@ -175,7 +175,7 @@ curl https://ai.example.com/v1/chat/completions \
 
 ```bash
 curl https://ai.example.com/v1/messages \
-  -H "x-api-key: sk-gw-你的密鑰" \
+  -H "x-api-key: sk-fr-你的密鑰" \
   -H "anthropic-version: 2023-06-01" \
   -H "Content-Type: application/json" \
   -d '{"model":"auto","max_tokens":256,"messages":[{"role":"user","content":"你好"}]}'
@@ -185,7 +185,7 @@ curl https://ai.example.com/v1/messages \
 
 ```bash
 export ANTHROPIC_BASE_URL=https://ai.example.com
-export ANTHROPIC_AUTH_TOKEN=sk-gw-你的呼叫密鑰
+export ANTHROPIC_AUTH_TOKEN=sk-fr-你的呼叫密鑰
 # 指定模型（Claude Code 預設會送出 claude-sonnet-… 這類官方名稱，閘道找不到就會回傳 404）
 export ANTHROPIC_MODEL=anthropic/claude-sonnet-4-5                # 服務商 ID/模型，或 auto
 export ANTHROPIC_DEFAULT_HAIKU_MODEL=anthropic/claude-haiku-4-5   # 背景小任務用的快速模型
@@ -198,7 +198,7 @@ claude
 {
   "env": {
     "ANTHROPIC_BASE_URL": "https://ai.example.com",
-    "ANTHROPIC_AUTH_TOKEN": "sk-gw-你的呼叫密鑰",
+    "ANTHROPIC_AUTH_TOKEN": "sk-fr-你的呼叫密鑰",
     "ANTHROPIC_MODEL": "anthropic/claude-sonnet-4-5",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "anthropic/claude-haiku-4-5"
   }

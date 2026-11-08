@@ -21,7 +21,7 @@ Only the latest version (`main` and the latest release) receives fixes.
 
 - `ADMIN_PASSWORD` 用 `wrangler secret put` 设置，选一个足够长的随机密码；改密码会让所有旧会话失效。
   Set `ADMIN_PASSWORD` with `wrangler secret put` and use a long random password. Changing it signs out every session.
-- 调用密钥（`sk-gw-...`）等同于你所有上游 Key 的使用权，只放在自己的设备上；泄露后在管理页吊销。
-  A gateway key (`sk-gw-...`) can spend every upstream key you added. Keep it on your own devices and revoke it in the admin page if it leaks.
+- 调用密钥（`sk-fr-...`）等同于你所有上游 Key 的使用权，只放在自己的设备上；泄露后在管理页吊销。
+  A gateway key (`sk-fr-...`) can spend every upstream key you added. Keep it on your own devices and revoke it in the admin page if it leaks.
 - 「设置 → 备份」导出的文件含上游 Key 明文，不要提交到任何仓库。
   The backup export contains upstream keys in plain text. Never commit it.

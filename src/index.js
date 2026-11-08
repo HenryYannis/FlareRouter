@@ -73,7 +73,7 @@ async function route(request, env, ctx) {
   // 鉴权：Authorization: Bearer 或 x-api-key（Claude Code 等 Anthropic 客户端用 x-api-key）
   const caller = await verifyApiKey(env, ctx, extractBearer(request));
   if (!caller) {
-    return protocolError(proto, '调用密钥无效或已吊销：请在请求头带 Authorization: Bearer sk-gw-... 或 x-api-key: sk-gw-...（在管理页生成）', 401, 'authentication_error');
+    return protocolError(proto, '调用密钥无效或已吊销：请在请求头带 Authorization: Bearer sk-fr-... 或 x-api-key: sk-fr-...（在管理页生成）', 401, 'authentication_error');
   }
   if (caller.quotaExceeded && !isModels) {
     return protocolError(
