@@ -329,7 +329,7 @@
           <div><label class="f" for="p-timeout" data-i18n="providers.labelTimeout">超时（毫秒）</label><input type="number" id="p-timeout" min="1000" step="1000" style="width:140px"></div>
           <div class="grow"><label class="f" for="p-note" data-i18n="providers.labelNote">备注</label><input type="text" id="p-note" style="width:100%" placeholder="可选备注信息"></div>
         </div>
-        <label class="row small" style="margin-top:8px"><input type="checkbox" id="p-usage"> <span data-i18n="providers.streamUsage">流式请求自动加 stream_options.include_usage</span></label>
+        <label class="row small" style="margin-top:8px" title="让上游模型在流式打字机结束时返回真实的官方 Token 消耗；主流服务商推荐开启，极少数报错的小众上游可取消勾选" data-i18n-title="providers.streamUsageTip"><input type="checkbox" id="p-usage"> <span data-i18n="providers.streamUsage">流式请求自动加 stream_options.include_usage</span></label>
       </div>
 
       <div id="prov-err" class="err small" style="margin-top:8px"></div>

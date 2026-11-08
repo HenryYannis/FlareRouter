@@ -37,7 +37,7 @@ var I18N = {
         labelModels: '模型列表（逗号或换行分隔，第一个为默认；留空可点「从服务商拉取」）', fetchModels: '从服务商拉取', fetching: '拉取中…',
         fetchPopulated: '已写入全部 {count} 个模型', fetchPruned: '已移除 {count} 个服务商不再提供的旧模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
         noMatchModels: '没有匹配的模型（共 {count} 个）', labelTimeout: '超时（毫秒，拿到响应头为止）', labelNote: '备注',
-        streamUsage: '流式请求自动加 stream_options.include_usage', cancel: '取消', save: '保存', saved: '已保存',
+        streamUsage: '流式请求自动加 stream_options.include_usage', streamUsageTip: '让上游模型在流式打字机结束时返回真实的官方 Token 消耗；主流服务商推荐开启，极少数报错的小众上游可取消勾选', cancel: '取消', save: '保存', saved: '已保存',
         savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」', saving: '保存中…', selectAvailable: '只选可用', selectAvailableTip: '只选中测试成功的可用模型', testModels: '测试模型', testStop: '停止', testRunning: '正在测试 ({done}/{total})… 可用: {ok}，失败: {fail}', testDone: '测试完成：共 {total} 个，可用 {ok} 个，失败 {fail} 个', testNoResults: '请先点击「测试模型」进行可用性测试', testSelectedCount: '已勾选 {count} 个可用模型', testNoneAvailable: '未找到测试可用的模型', testing: '测试中…', testFailed: '失败', urlRequired: 'Base URL 必填', noModelsToTest: '暂无模型可供测试',
         sectionBasic: '基础连接与鉴权', sectionModels: '模型列表配置', sectionAdvanced: '高级选项'
       },
@@ -151,7 +151,7 @@ var I18N = {
         labelModels: '模型列表（逗號或換行分隔，第一個為預設；留空可點「從服務商拉取」）', fetchModels: '從服務商拉取', fetching: '拉取中…',
         fetchPopulated: '已寫入全部 {count} 個模型', fetchPruned: '已移除 {count} 個服務商不再提供的舊模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
         noMatchModels: '沒有匹配的模型（共 {count} 個）', labelTimeout: '超時（毫秒，拿到回應頭為止）', labelNote: '備註',
-        streamUsage: '串流請求自動加 stream_options.include_usage', cancel: '取消', save: '儲存', saved: '已儲存',
+        streamUsage: '串流請求自動加 stream_options.include_usage', streamUsageTip: '讓上游模型在串流打字結束時回傳真實的官方 Token 消耗；主流服務商推薦開啟，極少數報錯的非標上游可取消勾選', cancel: '取消', save: '儲存', saved: '已儲存',
         savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」', saving: '儲存中…', selectAvailable: '只選可用', selectAvailableTip: '只選中測試成功的可用模型', testModels: '測試模型', testStop: '停止', testRunning: '正在測試 ({done}/{total})… 可用: {ok}，失敗: {fail}', testDone: '測試完成：共 {total} 個，可用 {ok} 個，失敗 {fail} 個', testNoResults: '請先點擊「測試模型」進行可用性測試', testSelectedCount: '已勾選 {count} 個可用模型', testNoneAvailable: '未找到測試可用的模型', testing: '測試中…', testFailed: '失敗', urlRequired: 'Base URL 必填', noModelsToTest: '暫無模型可供測試',
         sectionBasic: '基礎連接與鑒權', sectionModels: '模型列表配置', sectionAdvanced: '進階選項'
       },
@@ -265,7 +265,7 @@ var I18N = {
         labelModels: 'Models (comma or newline separated, 1st is default; leave empty and use Fetch from Provider)', fetchModels: 'Fetch from Provider', fetching: 'Fetching…',
         fetchPopulated: 'Populated all {count} models', fetchPruned: 'Removed {count} old models the provider no longer lists', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
         noMatchModels: 'No matching models ({count} total)', labelTimeout: 'Timeout (ms, until response headers)', labelNote: 'Note',
-        streamUsage: 'Auto add stream_options.include_usage to stream requests', cancel: 'Cancel', save: 'Save', saved: 'Saved',
+        streamUsage: 'Auto add stream_options.include_usage to stream requests', streamUsageTip: 'Instruct upstream models to return official Token usage in the final streaming chunk. Recommended for all standard providers; uncheck if an upstream fails with 400.', cancel: 'Cancel', save: 'Save', saved: 'Saved',
         savedEmptyModels: 'Saved. Models empty — use Fetch from Provider', saving: 'Saving…', selectAvailable: 'Select Available', selectAvailableTip: 'Select only tested and working models', testModels: 'Test Models', testStop: 'Stop', testRunning: 'Testing ({done}/{total})… OK: {ok}, Failed: {fail}', testDone: 'Testing done: {total} total, {ok} available, {fail} failed', testNoResults: 'Please click "Test Models" first to check availability', testSelectedCount: 'Selected {count} available models', testNoneAvailable: 'No available models found', testing: 'Testing…', testFailed: 'Failed', urlRequired: 'Base URL is required', noModelsToTest: 'No models to test',
         sectionBasic: 'Connection & Authentication', sectionModels: 'Model List Configuration', sectionAdvanced: 'Advanced Options'
       },
