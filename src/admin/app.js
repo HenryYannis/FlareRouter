@@ -151,8 +151,8 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         '<button type="button" class="custom-dialog-btn custom-dialog-btn-cancel">' + esc(opts.cancelText || t('common.cancel')) + '</button>' +
         '<button type="button" class="custom-dialog-btn custom-dialog-btn-confirm' + (isDanger ? ' danger' : '') + '">' + esc(opts.confirmText || t('common.confirm')) + '</button>' +
         '</div></div>';
-      dialogOverlay.querySelector('.custom-dialog-btn-cancel').onclick = function () { closeDialog(false); };
-      dialogOverlay.querySelector('.custom-dialog-btn-confirm').onclick = function () { closeDialog(true); };
+      dialogOverlay.querySelector('.custom-dialog-btn-cancel').onclick = function () { this.disabled = true; var b = dialogOverlay.querySelector('.custom-dialog-btn-confirm'); if (b) b.disabled = true; closeDialog(false); };
+      dialogOverlay.querySelector('.custom-dialog-btn-confirm').onclick = function () { this.disabled = true; var b = dialogOverlay.querySelector('.custom-dialog-btn-cancel'); if (b) b.disabled = true; closeDialog(true); };
       requestAnimationFrame(function () {
         dialogOverlay.classList.add('active');
         dialogOverlay.querySelector('.custom-dialog-btn-confirm').focus();
@@ -488,8 +488,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   // ---- 登录 ----
   $('#login-form').addEventListener('submit', async function (e) {
     e.preventDefault(); $('#login-err').textContent = '';
+    var submitBtn = this.querySelector('button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = t('login.submitting'); }
     try { await api('/admin/api/login', { body: { password: $('#pw').value } }); $('#pw').value = ''; boot(); }
     catch (err) { $('#login-err').textContent = err.message; }
+    finally { if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = t('login.submit'); } }
   });
   $('#logout').addEventListener('click', async function () { await api('/admin/api/logout', { body: {} }).catch(function () {}); show('login'); });
 
@@ -1057,8 +1060,13 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     var v = $('#chain-add').value; if (v && chainDraft.indexOf(v) < 0) { chainDraft.push(v); drawChain(); }
   });
   $('#chain-save').addEventListener('click', async function () {
+    var saveBtn = $('#chain-save');
+    if (saveBtn.disabled) return;
+    saveBtn.disabled = true;
+    saveBtn.textContent = t('common.saving');
     try { setCfg(await api('/admin/api/settings', { body: { fallbackEnabled: $('#fb-on').checked, fallbackChain: chainDraft } })); toast(t('fallback.saved')); }
     catch (err) { await showAlert({ message: err.message }); }
+    finally { saveBtn.disabled = false; saveBtn.textContent = t('fallback.save'); }
   });
 
   // ---- 批量选择模型加入容灾链 ----
@@ -1232,8 +1240,13 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#s-prompts').checked = !!state.cfg.settings.logPrompts;
   }
   $('#s-save').addEventListener('click', async function () {
+    var saveBtn = $('#s-save');
+    if (saveBtn.disabled) return;
+    saveBtn.disabled = true;
+    saveBtn.textContent = t('common.saving');
     try { setCfg(await api('/admin/api/settings', { body: { logRetentionDays: +$('#s-ret').value, logPrompts: $('#s-prompts').checked } })); toast(t('settings.saved')); }
     catch (err) { await showAlert({ message: err.message }); }
+    finally { saveBtn.disabled = false; saveBtn.textContent = t('settings.save'); }
   });
   $('#s-export').addEventListener('click', function () { location.href = '/admin/api/export'; });
   $('#s-import').addEventListener('change', async function () {
@@ -1276,7 +1289,14 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         (rows.length ? rows.map(function (r) { return '<tr><td>' + esc(r.provider_name || r.provider_id || t('overview.unhit')) + '</td><td>' + num(r.total) + '</td><td>' + num(r.ok) + '</td><td>' + num(r.tokens) + '</td></tr>'; }).join('') : '<tr><td colspan="4" class="muted">' + t('overview.noStats') + '</td></tr>');
     } catch (err) { $('#stats').innerHTML = '<div class="err">' + esc(err.message) + '</div>'; }
   }
-  $('#stats-refresh').addEventListener('click', loadStats);
+  $('#stats-refresh').addEventListener('click', async function () {
+    var btn = $('#stats-refresh');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = t('overview.refreshing');
+    try { await loadStats(); }
+    finally { btn.disabled = false; btn.textContent = t('overview.refresh'); }
+  });
   $('#stats-days').addEventListener('change', loadStats);
 
   // ---- 密钥 ----
@@ -1410,9 +1430,13 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         var targetK = state.keys.find(function (k) { return k.id === rotId; });
         var targetName = targetK ? targetK.name : rotId;
         if (!(await showConfirm({ message: t('keys.rotateConfirm', { name: targetName }), danger: true }))) return;
+        var row = b.closest('tr');
+        var rowBtns = row ? row.querySelectorAll('button') : [];
+        rowBtns.forEach(function (btn) { btn.disabled = true; });
+        b.textContent = t('keys.rotating');
         try {
           var rotRes = await api('/admin/api/keys/rotate', { body: { id: rotId } });
-          loadKeys();
+          await loadKeys();
           try {
             await navigator.clipboard.writeText(rotRes.key);
             toast(t('header.copied'));
@@ -1422,18 +1446,29 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
             title: t('keys.rotateTitle'),
             message: t('keys.rotateNotice', { name: targetName }) + '\n\n' + rotRes.key
           });
-        } catch (err) { await showAlert({ message: err.message }); }
+        } catch (err) {
+          b.disabled = false;
+          b.textContent = t('keys.rotate');
+          rowBtns.forEach(function (btn) { btn.disabled = false; });
+          await showAlert({ message: err.message });
+        }
         return;
       }
       if (b.dataset.kdel) {
         var delId = b.dataset.kdel;
         if (!(await showConfirm({ message: t('keys.delConfirm'), danger: true }))) return;
         var prevDel = state.keys.slice();
-        renderKeys(state.keys.filter(function (k) { return k.id !== delId; }));
+        state.keys = state.keys.filter(function (k) { return k.id !== delId; });
+        renderKeys(state.keys);
         try {
           var delRes = await api('/admin/api/keys/delete', { body: { id: delId } });
-          if (delRes.items) renderKeys(delRes.items);
-        } catch (err) { renderKeys(prevDel); throw err; }
+          toast(t('keys.deleted'));
+          if (delRes && delRes.items) renderKeys(delRes.items);
+        } catch (err) {
+          state.keys = prevDel;
+          renderKeys(prevDel);
+          await showAlert({ message: err.message });
+        }
         return;
       }
     } catch (err) { await showAlert({ message: err.message }); }
@@ -1517,11 +1552,21 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     if (!l.upstream_protocol || l.upstream_protocol === l.client_protocol) return l.client_protocol === 'anthropic' ? '<span class="tag">Anthropic</span>' : '';
     return '<span class="tag" title="' + esc(c) + ' → ' + esc(u) + '">' + esc(c) + '→' + esc(u) + '</span>';
   }
-  $('#lf-go').addEventListener('click', function () { state.logOffset = 0; loadLogs(); });
+  $('#lf-go').addEventListener('click', async function () {
+    var btn = $('#lf-go');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = t('logs.querying');
+    state.logOffset = 0;
+    try { await loadLogs(); }
+    finally { btn.disabled = false; btn.textContent = t('logs.query'); }
+  });
   $('#log-prev').addEventListener('click', function () { state.logOffset = Math.max(0, state.logOffset - state.logLimit); loadLogs(); });
   $('#log-next').addEventListener('click', function () { state.logOffset += state.logLimit; loadLogs(); });
   $('#lf-clear').addEventListener('click', async function () {
     if (!(await showConfirm({ message: t('logs.clearConfirm'), danger: true }))) return;
+    var btn = $('#lf-clear');
+    if (btn) btn.disabled = true;
     var prevItems = logItems.slice(), prevTotal = state.logTotal, prevOffset = state.logOffset;
     state.logOffset = 0;
     renderLogs({ items: [], total: 0, offset: 0 });
@@ -1532,6 +1577,8 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       state.logOffset = prevOffset;
       renderLogs({ items: prevItems, total: prevTotal, offset: prevOffset });
       await showAlert({ message: err.message });
+    } finally {
+      if (btn) btn.disabled = false;
     }
   });
   $('#log-table').addEventListener('click', function (e) {

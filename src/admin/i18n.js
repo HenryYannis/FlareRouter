@@ -4,9 +4,9 @@ var I18N = {
       title: 'FlareRouter 网关',
       header: { copied: '已复制', logout: '退出账号', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
       tabs: { overview: '概览', providers: '上游', fallback: '容灾', keys: '密钥', logs: '日志', chat: '测试', settings: '设置' },
-      login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', unauth: '未登录' },
+      login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', submitting: '登录中…', unauth: '未登录' },
       overview: {
-        statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
+        statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新', refreshing: '刷新中…',
         totalCalls: '调用次数', successRate: '成功率', failedCalls: '失败', fallbackTriggered: '触发容灾', totalTokens: 'Tokens', avgLatency: '平均耗时',
         cacheHit: '缓存命中',
         usageTitle: '调用方式',
@@ -61,7 +61,7 @@ var I18N = {
         nameRequired: '请先填写名称',
         showHide: '显示 / 隐藏明文', legacyNoRaw: '旧密钥无明文', thName: '名称', thKey: '密钥',
         thQuota: '额度 (已用 / 限额)', thCreated: '创建', thLastUsed: '最近使用', thActions: '操作',
-        rename: '改名', rotate: '轮换', delete: '删除', quota: '限额',
+        rename: '改名', rotate: '轮换', rotating: '轮换中…', delete: '删除', quota: '限额',
         renamePrompt: '新的密钥名称',
         rotateConfirm: '确定轮换密钥「{name}」？原密钥将立即失效，系统将为此记录生成全新的 API 密钥。',
         rotateTitle: '密钥已轮换',
@@ -75,7 +75,7 @@ var I18N = {
       logs: {
         allStatus: '全部状态', success: '成功', fail: '失败', onlyFallback: '仅容灾',
         allProviders: '全部服务商', allKeys: '全部密钥', adminTest: '管理页测试',
-        modelContains: '模型包含…', errKeyword: '错误关键词…', query: '查询', clearLogs: '清空日志',
+        modelContains: '模型包含…', errKeyword: '错误关键词…', query: '查询', querying: '查询中…', clearLogs: '清空日志',
         clearConfirm: '清空全部调用日志？此操作不可恢复。', deletedCount: '已删除 {count} 条',
         thTime: '时间', thKey: '密钥', thModel: '模型', thStatus: '状态', thLatency: '耗时 / 首包', thTokens: 'Tokens', thFallback: '容灾',
         empty: '暂无日志', prevPage: '上一页', nextPage: '下一页', pageInfo: '第 {start}–{end} 条，共 {total} 条',
@@ -110,7 +110,7 @@ var I18N = {
         backupTitle: '备份', backupDesc: '导出文件包含上游 API Key 明文，请妥善保存。导入会整体覆盖当前服务商与设置。',
         exportBtn: '导出配置', importBtn: '导入配置', importConfirm: '导入将覆盖当前全部服务商与设置（共 {count} 个服务商），继续？', importSuccess: '导入完成'
       },
-      common: { confirm: '确认', cancel: '取消', save: '保存' },
+      common: { confirm: '确认', cancel: '取消', save: '保存', saving: '保存中…' },
       dialog: { confirmTitle: '操作确认', alertTitle: '提示', alertOk: '我知道了', promptTitle: '请输入' },
       footer: { brand: 'FlareRouter', tagline: '基于 Cloudflare Workers 的轻量 AI 网关', github: 'GitHub' }
     },
@@ -118,9 +118,9 @@ var I18N = {
       title: 'FlareRouter 網關',
       header: { copied: '已複製', logout: '退出帳號', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
       tabs: { overview: '概覽', providers: '上游', fallback: '容災', keys: '密鑰', logs: '日誌', chat: '測試', settings: '設定' },
-      login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', unauth: '未登入' },
+      login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', submitting: '登入中…', unauth: '未登入' },
       overview: {
-        statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新',
+        statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新', refreshing: '重新整理中…',
         totalCalls: '調用次數', successRate: '成功率', failedCalls: '失敗', fallbackTriggered: '觸發容災', totalTokens: 'Tokens', avgLatency: '平均耗時',
         cacheHit: '快取命中',
         usageTitle: '調用方式',
@@ -175,7 +175,7 @@ var I18N = {
         nameRequired: '請先填寫名稱',
         showHide: '顯示 / 隱藏明文', legacyNoRaw: '舊密鑰無明文', thName: '名稱', thKey: '密鑰',
         thQuota: '額度 (已用 / 限額)', thCreated: '建立', thLastUsed: '最近使用', thActions: '操作',
-        rename: '改名', rotate: '輪換', delete: '刪除', quota: '限額',
+        rename: '改名', rotate: '輪換', rotating: '輪換中…', delete: '刪除', quota: '限額',
         renamePrompt: '新的密鑰名稱',
         rotateConfirm: '確定輪換密鑰「{name}」？原密鑰將立即失效，系統將為此記錄生成全新的 API 密鑰。',
         rotateTitle: '密鑰已輪換',
@@ -189,7 +189,7 @@ var I18N = {
       logs: {
         allStatus: '全部狀態', success: '成功', fail: '失敗', onlyFallback: '僅容災',
         allProviders: '全部服務商', allKeys: '全部密鑰', adminTest: '管理頁測試',
-        modelContains: '模型包含…', errKeyword: '錯誤關鍵詞…', query: '查詢', clearLogs: '清空日誌',
+        modelContains: '模型包含…', errKeyword: '錯誤關鍵詞…', query: '查詢', querying: '查詢中…', clearLogs: '清空日誌',
         clearConfirm: '清空全部調用日誌？此操作不可恢復。', deletedCount: '已刪除 {count} 條',
         thTime: '時間', thKey: '密鑰', thModel: '模型', thStatus: '狀態', thLatency: '耗時 / 首包', thTokens: 'Tokens', thFallback: '容災',
         empty: '暫無日誌', prevPage: '上一頁', nextPage: '下一頁', pageInfo: '第 {start}–{end} 條，共 {total} 條',
@@ -224,7 +224,7 @@ var I18N = {
         backupTitle: '備份', backupDesc: '匯出檔案包含上游 API Key 明文，請妥善保存。匯入會整體覆蓋當前服務商與設定。',
         exportBtn: '匯出設定', importBtn: '匯入設定', importConfirm: '匯入將覆蓋當前全部服務商與設定（共 {count} 個服務商），繼續？', importSuccess: '匯入完成'
       },
-      common: { confirm: '確認', cancel: '取消', save: '儲存' },
+      common: { confirm: '確認', cancel: '取消', save: '儲存', saving: '儲存中…' },
       dialog: { confirmTitle: '操作確認', alertTitle: '提示', alertOk: '我知道了', promptTitle: '請輸入' },
       footer: { brand: 'FlareRouter', tagline: '基於 Cloudflare Workers 的輕量 AI 網關', github: 'GitHub' }
     },
@@ -232,9 +232,9 @@ var I18N = {
       title: 'FlareRouter Gateway',
       header: { copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
       tabs: { overview: 'Overview', providers: 'Upstream', fallback: 'Failover', keys: 'Keys', logs: 'Logs', chat: 'Test', settings: 'Settings' },
-      login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', unauth: 'Not signed in' },
+      login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', submitting: 'Signing in…', unauth: 'Not signed in' },
       overview: {
-        statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh',
+        statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh', refreshing: 'Refreshing…',
         totalCalls: 'Total Calls', successRate: 'Success Rate', failedCalls: 'Failed', fallbackTriggered: 'Failovers', totalTokens: 'Tokens', avgLatency: 'Avg Latency',
         cacheHit: 'Cache Hit',
         usageTitle: 'Usage Guide',
@@ -289,7 +289,7 @@ var I18N = {
         nameRequired: 'Please enter a name first',
         showHide: 'Show / Hide Key', legacyNoRaw: 'Legacy (no raw key)', thName: 'Name', thKey: 'Key',
         thQuota: 'Quota (Used / Limit)', thCreated: 'Created', thLastUsed: 'Last Used', thActions: 'Actions',
-        rename: 'Rename', rotate: 'Rotate', delete: 'Delete', quota: 'Quota',
+        rename: 'Rename', rotate: 'Rotate', rotating: 'Rotating…', delete: 'Delete', quota: 'Quota',
         renamePrompt: 'New key name',
         rotateConfirm: 'Are you sure you want to rotate key "{name}"? The existing key will be invalidated immediately and a new API key will be generated.',
         rotateTitle: 'Key Rotated',
@@ -303,7 +303,7 @@ var I18N = {
       logs: {
         allStatus: 'All Status', success: 'Success', fail: 'Failed', onlyFallback: 'Failover Only',
         allProviders: 'All Providers', allKeys: 'All Keys', adminTest: 'Admin Test',
-        modelContains: 'Model contains…', errKeyword: 'Error keyword…', query: 'Filter', clearLogs: 'Clear Logs',
+        modelContains: 'Model contains…', errKeyword: 'Error keyword…', query: 'Filter', querying: 'Querying…', clearLogs: 'Clear Logs',
         clearConfirm: 'Clear all call logs? This cannot be undone.', deletedCount: 'Deleted {count} records',
         thTime: 'Time', thKey: 'Key', thModel: 'Model', thStatus: 'Status', thLatency: 'Latency / TTFB', thTokens: 'Tokens', thFallback: 'Failover',
         empty: 'No logs yet', prevPage: 'Prev', nextPage: 'Next', pageInfo: '{start}–{end} of {total}',
@@ -338,7 +338,7 @@ var I18N = {
         backupTitle: 'Backup', backupDesc: 'Export file contains raw upstream API keys; store safely. Import overwrites existing providers and settings.',
         exportBtn: 'Export Config', importBtn: 'Import Config', importConfirm: 'Import will overwrite all existing providers and settings ({count} providers), continue?', importSuccess: 'Import completed'
       },
-      common: { confirm: 'Confirm', cancel: 'Cancel', save: 'Save' },
+      common: { confirm: 'Confirm', cancel: 'Cancel', save: 'Save', saving: 'Saving…' },
       dialog: { confirmTitle: 'Please confirm', alertTitle: 'Notice', alertOk: 'OK', promptTitle: 'Input' },
       footer: { brand: 'FlareRouter', tagline: 'Lightweight AI gateway on Cloudflare Workers', github: 'GitHub' }
     }
