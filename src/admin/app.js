@@ -1448,6 +1448,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   $('#quota-form').addEventListener('submit', function (e) {
     e.preventDefault();
+    if (e.submitter && e.submitter.value === 'cancel') return;
     $('#kq-save').click();
   });
 

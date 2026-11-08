@@ -110,7 +110,7 @@ var I18N = {
         backupTitle: '备份', backupDesc: '导出文件包含上游 API Key 明文，请妥善保存。导入会整体覆盖当前服务商与设置。',
         exportBtn: '导出配置', importBtn: '导入配置', importConfirm: '导入将覆盖当前全部服务商与设置（共 {count} 个服务商），继续？', importSuccess: '导入完成'
       },
-      common: { confirm: '确认', cancel: '取消' },
+      common: { confirm: '确认', cancel: '取消', save: '保存' },
       dialog: { confirmTitle: '操作确认', alertTitle: '提示', alertOk: '我知道了', promptTitle: '请输入' },
       footer: { brand: 'FlareRouter', tagline: '基于 Cloudflare Workers 的轻量 AI 网关', github: 'GitHub' }
     },
@@ -224,7 +224,7 @@ var I18N = {
         backupTitle: '備份', backupDesc: '匯出檔案包含上游 API Key 明文，請妥善保存。匯入會整體覆蓋當前服務商與設定。',
         exportBtn: '匯出設定', importBtn: '匯入設定', importConfirm: '匯入將覆蓋當前全部服務商與設定（共 {count} 個服務商），繼續？', importSuccess: '匯入完成'
       },
-      common: { confirm: '確認', cancel: '取消' },
+      common: { confirm: '確認', cancel: '取消', save: '儲存' },
       dialog: { confirmTitle: '操作確認', alertTitle: '提示', alertOk: '我知道了', promptTitle: '請輸入' },
       footer: { brand: 'FlareRouter', tagline: '基於 Cloudflare Workers 的輕量 AI 網關', github: 'GitHub' }
     },
@@ -338,7 +338,7 @@ var I18N = {
         backupTitle: 'Backup', backupDesc: 'Export file contains raw upstream API keys; store safely. Import overwrites existing providers and settings.',
         exportBtn: 'Export Config', importBtn: 'Import Config', importConfirm: 'Import will overwrite all existing providers and settings ({count} providers), continue?', importSuccess: 'Import completed'
       },
-      common: { confirm: 'Confirm', cancel: 'Cancel' },
+      common: { confirm: 'Confirm', cancel: 'Cancel', save: 'Save' },
       dialog: { confirmTitle: 'Please confirm', alertTitle: 'Notice', alertOk: 'OK', promptTitle: 'Input' },
       footer: { brand: 'FlareRouter', tagline: 'Lightweight AI gateway on Cloudflare Workers', github: 'GitHub' }
     }

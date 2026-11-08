@@ -392,7 +392,7 @@
       <div id="kq-err" class="err small" style="margin-top:8px"></div>
     </div>
     <div class="df">
-      <button class="btn" value="cancel" formnovalidate data-i18n="common.cancel">取消</button>
+      <button type="button" class="btn" onclick="this.closest('dialog').close()" data-i18n="common.cancel">取消</button>
       <button class="btn primary" type="button" id="kq-save" data-i18n="common.save">保存</button>
     </div>
   </form>
