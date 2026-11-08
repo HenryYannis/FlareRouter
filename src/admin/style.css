@@ -433,7 +433,11 @@ tr.provider-row.drag-over-bottom td { box-shadow: inset 0 -2px 0 0 var(--primary
 .usage-note { margin: 0 0 8px; line-height: 1.45; }
 .usage-h3 { font-size: var(--fs-body); font-weight: var(--fw-ui); margin: 16px 0 8px; }
 
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 720px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+#stats-prov th, #stats-prov td { width: 25%; }
 .stat {
   border: 1px solid var(--glass-border);
   border-radius: 10px;
@@ -855,6 +859,18 @@ dialog .df {
 .key-cell { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .key-val { user-select: all; font-variant-numeric: tabular-nums; }
 .key-val.click { cursor: pointer; }
+/* 密钥眼睛切换按钮：固定 26px 正方形，消除 👁 与 🙈 字宽差异抖动 */
+[data-ktoggle], #p-key-toggle {
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
 footer {
   color: var(--muted);
   font-size: var(--fs-footer);

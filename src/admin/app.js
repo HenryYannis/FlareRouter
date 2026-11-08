@@ -1265,10 +1265,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       var tokensHtml = num(s.tokens || 0) +
         '<span class="stat-sub">' + t('overview.cacheHit') + ' ' + cacheVal + '</span>';
       $('#stats').innerHTML = [
+        [t('overview.avgLatency'), s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—'],
         [t('overview.totalCalls'), callsHtml],
         [t('overview.successRate'), successHtml],
-        [t('overview.totalTokens'), tokensHtml],
-        [t('overview.avgLatency'), s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—']
+        [t('overview.totalTokens'), tokensHtml]
+
       ].map(function (x) { return '<div class="stat"><span class="muted small">' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
       var rows = s.byProvider || [];
       $('#stats-prov').innerHTML = '<tr><th>' + t('overview.thProvider') + '</th><th>' + t('overview.thCalls') + '</th><th>' + t('overview.thSuccess') + '</th><th>' + t('overview.thTokens') + '</th></tr>' +
