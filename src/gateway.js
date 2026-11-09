@@ -327,6 +327,9 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       const masked = pm.maskPayload(body);
       sendBody = masked.maskedBody;
       privacyCtx = masked.context;
+      if (privacyCtx && privacyCtx.secretMap.size > 0 && ctx && ctx.waitUntil) {
+        ctx.waitUntil(privacyCtx.persistToKV(env));
+      }
     }
 
     const up = buildUpstream({ clientProtocol, endpoint, provider, model, body: sendBody, request, stream });
@@ -375,6 +378,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       attempts: i + 1,
       trail,
       redactedHits: privacyCtx ? privacyCtx.hits : 0,
+      redactedItems: privacyCtx && privacyCtx.redactedDetails && privacyCtx.redactedDetails.length ? JSON.stringify(privacyCtx.redactedDetails) : null,
       prompt: cfg.settings.logPrompts ? (isChat ? lastUserText(sendBody.messages) : JSON.stringify(sendBody.input || '')) : null,
     };
 
@@ -439,8 +443,11 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       contentType = 'application/json; charset=utf-8';
     }
 
-    if (privacyCtx && privacyCtx.secretMap.size > 0) {
-      outText = privacyCtx.restoreText(outText);
+    if (privacyCtx) {
+      outText = await privacyCtx.restoreTextAsync(outText, env);
+    } else if (isChat && outText.includes('{{MASK_')) {
+      const pmFallback = new PrivacyManager();
+      outText = await pmFallback.restoreTextAsync(outText, env);
     }
 
     let { promptTokens, completionTokens, cacheReadTokens } = usageForLog(up.upstreamProtocol, parsed && parsed.usage);
@@ -549,7 +556,8 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
   const encoder = new TextEncoder();
   const ttfb = Date.now() - tA;
 
-  const restorer = privacyCtx && privacyCtx.secretMap.size > 0 ? privacyCtx.createStreamRestorer() : null;
+  const effectivePm = privacyCtx || (env && env.CONFIG ? new PrivacyManager() : null);
+  const restorer = effectivePm ? effectivePm.createStreamRestorer(env) : null;
   const isRaw = Boolean(handler.raw);
 
   const pump = (async () => {
@@ -559,7 +567,7 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
     let clientGone = false;
     const emit = async (s) => {
       if (!s || clientGone) return;
-      const text = restorer ? restorer(s) : s;
+      const text = restorer ? await restorer(s) : s;
       if (!text) return;
       try { await writer.write(encoder.encode(text)); } catch { clientGone = true; }
     };
@@ -580,7 +588,7 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
         if (isRaw && !clientGone) {
           try {
             if (restorer) {
-              const restored = restorer(chunkText);
+              const restored = await restorer(chunkText);
               if (restored) await writer.write(encoder.encode(restored));
             } else {
               await writer.write(value);
@@ -599,7 +607,7 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
       }
       if (buf) { const out = handleLine(buf); if (!isRaw) await emit(out); }
       if (restorer) {
-        const rem = restorer('');
+        const rem = await restorer('');
         if (rem && !clientGone) {
           try { await writer.write(encoder.encode(rem)); } catch { clientGone = true; }
         }

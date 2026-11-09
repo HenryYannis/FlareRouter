@@ -21,6 +21,7 @@ function fnv1a64(str) {
 const REGEX_API_KEY = /\b(sk-[a-zA-Z0-9_\-]{20,}|ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{40,}|xox[baprs]-[a-zA-Z0-9]{10,}|AIza[0-9A-Za-z\-_]{35}|bearer\s+[a-zA-Z0-9_\-\.]{25,})\b/gi;
 const REGEX_DB_CONN = /((?:postgres|mysql|mongodb(?:\+srv)?|redis):\/\/[^:\s]+:)([^@\s]{3,})(@)/gi;
 const REGEX_IPV4 = /(?<![\w\.])(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?![\w\.])/g;
+export const REGEX_PLACEHOLDER = /\{\{MASK_[A-Z]+_[a-f0-9]{8}\}\}/g;
 
 /**
  * 判定指定服务商与全局设置下，本次请求是否应当启用隐私脱敏
@@ -51,6 +52,8 @@ export class PrivacyManager {
     // original -> placeholder
     this.reverseMap = new Map();
     this.hits = 0;
+    // 结构化脱敏明细 [{ kind, placeholder, original }]
+    this.redactedDetails = [];
   }
 
   getPlaceholder(kind, original) {
@@ -62,6 +65,9 @@ export class PrivacyManager {
     this.secretMap.set(placeholder, original);
     this.reverseMap.set(original, placeholder);
     this.hits++;
+    if (this.redactedDetails.length < 50) {
+      this.redactedDetails.push({ kind, placeholder, original });
+    }
     return placeholder;
   }
 
@@ -160,6 +166,65 @@ export class PrivacyManager {
   }
 
   /**
+   * 将脱敏暗号持久化写入 Cloudflare KV (env.CONFIG)
+   * 默认 ttlSeconds = 0，表示永久保存（永不过期）
+   */
+  async persistToKV(env, ttlSeconds = 0) {
+    if (!env || !env.CONFIG || typeof env.CONFIG.put !== 'function' || this.secretMap.size === 0) return;
+    const tasks = [];
+    const opts = ttlSeconds > 0 ? { expirationTtl: ttlSeconds } : undefined;
+    for (const [placeholder, original] of this.secretMap.entries()) {
+      const key = `mask:${placeholder}`;
+      tasks.push(
+        env.CONFIG.put(key, original, opts).catch((e) => {
+          console.error(`KV put error for ${key}:`, e && e.message);
+        })
+      );
+    }
+    await Promise.allSettled(tasks);
+  }
+
+  /**
+   * 扫描文本中尚未在内存中的 {{MASK_...}} 占位符，从 KV 中并发批量拉取
+   */
+  async loadMissingFromKV(text, env) {
+    if (!text || typeof text !== 'string' || !env || !env.CONFIG || typeof env.CONFIG.get !== 'function') return;
+    const matches = text.match(REGEX_PLACEHOLDER);
+    if (!matches || !matches.length) return;
+    const missing = [];
+    for (const ph of matches) {
+      if (!this.secretMap.has(ph) && !missing.includes(ph)) {
+        missing.push(ph);
+      }
+    }
+    if (!missing.length) return;
+    await Promise.all(
+      missing.map(async (ph) => {
+        try {
+          const val = await env.CONFIG.get(`mask:${ph}`);
+          if (typeof val === 'string' && val) {
+            this.secretMap.set(ph, val);
+            this.reverseMap.set(val, ph);
+          }
+        } catch (e) {
+          console.error(`KV get error for mask:${ph}:`, e && e.message);
+        }
+      })
+    );
+  }
+
+  /**
+   * 异步文本还原：先从 KV 查漏补齐跨会话历史暗号，再进行文本替换
+   */
+  async restoreTextAsync(text, env) {
+    if (typeof text !== 'string' || !text) return text;
+    if (env) {
+      await this.loadMissingFromKV(text, env);
+    }
+    return this.restoreText(text);
+  }
+
+  /**
    * 还原返回文本中的占位符
    */
   restoreText(text) {
@@ -176,18 +241,16 @@ export class PrivacyManager {
   /**
    * 创建流式 SSE 事件行还原器
    * 针对跨 SSE 事件被截断的占位符（如 event 1 末尾输出 {{MASK_，event 2 开头输出 KEY_123}}）
+   * 若传入 env 则支持异步查 KV 补齐跨会话暗号；若不传 env 则纯同步
    */
-  createStreamRestorer() {
-    if (this.secretMap.size === 0) {
-      return (line) => line;
-    }
+  createStreamRestorer(env = null) {
     const self = this;
     let pendingTail = ''; // 暂扣的未闭合暗号前缀
     const HOLD_LIMIT = 48;
 
     return (chunk) => {
-      if (!chunk) return chunk;
-      let text = pendingTail + chunk;
+      if (!chunk && !pendingTail) return chunk;
+      let text = pendingTail + (chunk || '');
       pendingTail = '';
 
       // 检查当前 chunk 末尾是否包含未闭合的 {{ 疑似暗号前缀
@@ -199,6 +262,13 @@ export class PrivacyManager {
           pendingTail = afterOpen;
           text = text.slice(0, lastOpen);
         }
+      }
+
+      if (env && env.CONFIG && typeof env.CONFIG.get === 'function') {
+        return (async () => {
+          await self.loadMissingFromKV(text, env);
+          return self.restoreText(text);
+        })();
       }
 
       return self.restoreText(text);

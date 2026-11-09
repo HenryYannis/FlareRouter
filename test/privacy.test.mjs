@@ -142,4 +142,54 @@ console.log('--- 开始测试隐私与脱敏模块 (PrivacyManager) ---');
   console.log('PASS: 服务商脱敏策略 (inherit/on/off) 解析');
 }
 
+// 9. 脱敏明细结构化收集测试
+{
+  const pm = new PrivacyManager({ enabled: true, maskSecrets: true, maskIp: true });
+  const text = '密钥是 sk-abcdef12345678901234567890，服务器位于 1.2.3.4。';
+  pm.maskText(text);
+  assert.equal(pm.redactedDetails.length, 2, '应记录 2 条脱敏条目');
+  assert.ok(pm.redactedDetails.some((d) => d.kind === 'KEY' && d.original.includes('sk-abcdef')), '应包含 KEY 明细');
+  assert.ok(pm.redactedDetails.some((d) => d.kind === 'IP' && d.original === '1.2.3.4'), '应包含 IP 明细');
+  console.log('PASS: 结构化脱敏明细条目收集');
+}
+
+// 10. KV 永久持久化与新实例跨会话异步还原测试
+{
+  const mockKV = new Map();
+  const mockEnv = {
+    CONFIG: {
+      async put(key, val, opts) {
+        mockKV.set(key, val);
+      },
+      async get(key) {
+        return mockKV.get(key) || null;
+      },
+    },
+  };
+
+  // 实例 1：第 1 轮对话，脱敏并写入 KV
+  const pm1 = new PrivacyManager({ enabled: true, maskSecrets: true });
+  const rawKey = 'sk-round1secretkey1234567890abcdefgh';
+  const maskedPrompt = pm1.maskText(`我的 API Key 是 ${rawKey}`);
+  await pm1.persistToKV(mockEnv); // 默认永久写入
+
+  assert.equal(mockKV.size, 1, 'KV 中应存入 1 条暗号映射');
+  const storedKey = Array.from(mockKV.keys())[0];
+  assert.ok(storedKey.startsWith('mask:{{MASK_KEY_'), 'KV key 应带有 mask: 前缀');
+  assert.equal(mockKV.get(storedKey), rawKey, 'KV 中应存储真实明文');
+
+  // 实例 2：模拟 7 天甚至几个月后的全新实例（内存完全为空，无任何 secretMap）
+  const pm2 = new PrivacyManager({ enabled: true });
+  assert.equal(pm2.secretMap.size, 0, '实例 2 初始内存必须为空');
+
+  // AI 回复中引用了之前的暗号
+  const aiReply = `我已经接收到你的密钥 ${Array.from(pm1.secretMap.keys())[0]}，随时待命。`;
+  const restoredText = await pm2.restoreTextAsync(aiReply, mockEnv);
+
+  assert.ok(!restoredText.includes('{{MASK_KEY_'), '还原后不应再有占位符暗号');
+  assert.ok(restoredText.includes(rawKey), '跨会话/跨实例成功从 KV 读取并精准还原真实明文！');
+  assert.equal(pm2.secretMap.size, 1, '还原后已自动载入实例 2 的内存二级缓存');
+  console.log('PASS: KV 永久持久化与多轮/跨会话透明异步解密还原');
+}
+
 console.log('--- 全部隐私与脱敏单元测试均顺利通过！ ---');

@@ -1587,14 +1587,14 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         var ok = l.status >= 200 && l.status < 300;
         var target = l.provider_id ? l.provider_id + '/' + (l.model || '') : '—';
         var redactedBadge = l.redacted_hits
-          ? '<div style="margin-top:3px"><span class="tag warn" style="font-size:11px;padding:0 5px;line-height:16px;border-radius:4px;display:inline-block" title="' + esc(t('logs.redactedCount', { count: l.redacted_hits })) + '">' + t('logs.redactedBadge', { count: l.redacted_hits }) + '</span></div>'
+          ? '<span class="tag warn" style="font-size:11px;padding:0 5px;line-height:16px;border-radius:4px;display:inline-block;white-space:nowrap" title="' + esc(t('logs.redactedCount', { count: l.redacted_hits })) + '">' + t('logs.redactedBadge', { count: l.redacted_hits }) + '</span>'
           : '';
         return '<tr class="click" data-log="' + i + '"><td class="small" style="white-space:nowrap">' + fmtTime(l.ts) + '</td>' +
           '<td class="small">' + esc(l.key_name || '—') + '</td>' +
           '<td class="small"><div class="mono">' + esc(target) + '</div>' + (l.requested_model && l.requested_model !== target ? '<div class="muted mono">' + t('logs.requested') + esc(l.requested_model) + '</div>' : '') + (l.stream ? '<span class="tag">' + t('logs.tagStream') + '</span> ' : '') + protoTag(l) + '</td>' +
-          '<td><span class="tag ' + (ok ? (l.error ? 'warn' : 'ok') : 'bad') + '">' + l.status + '</span>' + redactedBadge + (!ok && l.error ? '<div class="err small" style="max-width:320px;max-height:3.2em;overflow:hidden">' + esc(l.error) + '</div>' : '') + '</td>' +
-          '<td class="small">' + num(l.latency_ms) + ' ms' + (l.ttfb_ms != null ? '<div class="muted">' + num(l.ttfb_ms) + ' ms</div>' : '') + '</td>' +
-          '<td class="small">' + num(l.total_tokens) + '</td>' +
+          '<td><div style="display:inline-flex;align-items:center;flex-wrap:nowrap;gap:4px"><span class="tag ' + (ok ? (l.error ? 'warn' : 'ok') : 'bad') + '">' + l.status + '</span>' + redactedBadge + '</div>' + (!ok && l.error ? '<div class="err small" style="max-width:320px;max-height:3.2em;overflow:hidden">' + esc(l.error) + '</div>' : '') + '</td>' +
+          '<td class="small" style="white-space:nowrap">' + num(l.latency_ms) + ' ms' + (l.ttfb_ms != null ? '<div class="muted">' + num(l.ttfb_ms) + ' ms</div>' : '') + '</td>' +
+          '<td class="small" style="white-space:nowrap">' + num(l.total_tokens) + '</td>' +
           '<td>' + (l.fallback ? '<span class="tag warn">' + t('logs.attemptN', { n: l.attempts }) + '</span>' : '') + '</td></tr>';
       }).join('') : '<tr><td colspan="7" class="muted">' + t('logs.empty') + '</td></tr>');
     var end = Math.min(offset + logItems.length, state.logTotal);
@@ -1657,7 +1657,34 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     }
     if (l.error) h += '<h3 style="font-size:14px;margin:14px 0 4px">' + t('logs.detailError') + '</h3><pre class="err">' + esc(l.error) + '</pre>';
     if (l.prompt) h += '<h3 style="font-size:14px;margin:14px 0 4px">' + t('logs.detailPrompt') + '</h3><pre>' + esc(l.prompt) + '</pre>';
-    $('#log-detail').innerHTML = h; $('#dlg-log').showModal();
+    if (Array.isArray(l.redacted_items) && l.redacted_items.length) {
+      h += '<h3 style="font-size:14px;margin:14px 0 4px">' + t('logs.detailRedactedList') + ' (' + l.redacted_items.length + ')</h3>' +
+        '<div class="scroll-x"><table class="redacted-detail-table">' +
+        '<thead><tr><th style="width:75px">' + t('logs.redactedKind') + '</th><th>' + t('logs.redactedOriginal') + '</th><th>' + t('logs.redactedPlaceholder') + '</th></tr></thead><tbody>' +
+        l.redacted_items.map(function (item) {
+          return '<tr>' +
+            '<td><span class="tag warn" style="font-size:11px">' + esc(item.kind || 'TEXT') + '</span></td>' +
+            '<td class="mono small" style="word-break:break-all">' + esc(item.original) +
+              ' <button type="button" class="copy-inline-btn" data-copy-val="' + esc(item.original) + '">' + t('logs.copy') + '</button></td>' +
+            '<td class="mono small" style="word-break:break-all;color:var(--muted)">' + esc(item.placeholder) + '</td>' +
+            '</tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    $('#log-detail').innerHTML = h;
+    $('#log-detail').querySelectorAll('.copy-inline-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var val = btn.getAttribute('data-copy-val');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(val).then(function () {
+            var old = btn.textContent;
+            btn.textContent = t('logs.copied');
+            setTimeout(function () { btn.textContent = old; }, 1500);
+          });
+        }
+      });
+    });
+    $('#dlg-log').showModal();
   });
 
 // ---- 启动 ----
