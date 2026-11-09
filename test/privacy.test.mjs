@@ -192,4 +192,48 @@ console.log('--- 开始测试隐私与脱敏模块 (PrivacyManager) ---');
   console.log('PASS: KV 永久持久化与多轮/跨会话透明异步解密还原');
 }
 
+// 11. SSE Token 被大模型碎片化（分词切碎）拼合还原测试
+{
+  const pm = new PrivacyManager({ enabled: true, customWords: ['张三丰'] });
+  pm.maskPayload({ messages: [{ role: 'user', content: '我叫张三丰' }] });
+  const ph = Array.from(pm.secretMap.keys())[0]; // {{MASK_CUSTOM_xxxx}}
+  assert.ok(ph, '应生成自定义暗号占位符');
+
+  const restorer = pm.createStreamRestorer();
+
+  // 模拟大模型把暗号切碎成 4 个小 Token
+  const mid1 = Math.floor(ph.length / 3);
+  const mid2 = Math.floor((ph.length * 2) / 3);
+  const partA = ph.slice(0, mid1);
+  const partB = ph.slice(mid1, mid2);
+  const partC = ph.slice(mid2);
+
+  const chunks = [
+    `data: {"choices":[{"delta":{"content":"你的名字是：${partA}"}}]}\n\n`,
+    `data: {"choices":[{"delta":{"content":"${partB}"}}]}\n\n`,
+    `data: {"choices":[{"delta":{"content":"${partC}，已成功记住。"}}]}\n\n`,
+    'data: [DONE]\n\n',
+  ];
+
+  let assembledContent = '';
+  for (const c of chunks) {
+    const out = await restorer(c);
+    const lines = out.split('\n');
+    for (const l of lines) {
+      if (!l.startsWith('data:')) continue;
+      const raw = l.slice(5).trim();
+      if (!raw || raw === '[DONE]') continue;
+      try {
+        const o = JSON.parse(raw);
+        if (o.choices && o.choices[0] && o.choices[0].delta && o.choices[0].delta.content) {
+          assembledContent += o.choices[0].delta.content;
+        }
+      } catch (e) {}
+    }
+  }
+
+  assert.equal(assembledContent, '你的名字是：张三丰，已成功记住。', '碎片化的 Token 必须拼齐并 100% 还原为真实姓名！');
+  console.log('PASS: SSE Token 碎片化多帧跨包滑动拼接与解密还原');
+}
+
 console.log('--- 全部隐私与脱敏单元测试均顺利通过！ ---');

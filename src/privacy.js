@@ -255,11 +255,16 @@ export class PrivacyManager {
    */
   createStreamRestorer(env = null) {
     const self = this;
+    const sseRestorer = new SseTokenStreamRestorer(this, env);
     let pendingTail = ''; // 暂扣的未闭合暗号前缀
     const HOLD_LIMIT = 48;
 
     return (chunk) => {
-      if (!chunk && !pendingTail) return chunk;
+      if (typeof chunk === 'string' && (chunk.includes('data:') || env)) {
+        if (!chunk) return sseRestorer.flush();
+        return sseRestorer.feedChunk(chunk);
+      }
+      if (!chunk && !pendingTail) return chunk || '';
       let text = pendingTail + (chunk || '');
       pendingTail = '';
 
@@ -274,15 +279,118 @@ export class PrivacyManager {
         }
       }
 
-      if (env && env.CONFIG && typeof env.CONFIG.get === 'function') {
-        return (async () => {
-          await self.loadMissingFromKV(text, env);
-          return self.restoreText(text);
-        })();
-      }
-
       return self.restoreText(text);
     };
+  }
+}
+
+/**
+ * 流式 SSE Token 拼接还原器
+ * 专门解决大模型在流式打字输出时，将 {{MASK_...}} 暗号切碎成多个微小 Token（如 {{, MASK_, CUSTOM_, ..., }}）
+ * 导致单帧无法匹配还原的问题。
+ */
+export class SseTokenStreamRestorer {
+  constructor(privacyManager, env = null) {
+    this.pm = privacyManager;
+    this.env = env;
+    this.contentBuf = '';
+    this.reasoningBuf = '';
+    this.lineBuf = '';
+  }
+
+  async _feedText(bufProp, incoming) {
+    if (!incoming) return '';
+    let text = this[bufProp] + incoming;
+    this[bufProp] = '';
+
+    const lastOpen = text.lastIndexOf('{{');
+    if (lastOpen >= 0) {
+      const tail = text.slice(lastOpen);
+      const closeIdx = tail.indexOf('}}');
+      if (closeIdx >= 0) {
+        this[bufProp] = '';
+      } else {
+        if (tail.length <= 48) {
+          this[bufProp] = tail;
+          text = text.slice(0, lastOpen);
+        } else {
+          this[bufProp] = '';
+        }
+      }
+    }
+
+    if (this.env && text.includes('{{MASK_')) {
+      await this.pm.loadMissingFromKV(text, this.env);
+    }
+    return this.pm.restoreText(text);
+  }
+
+  async feedChunk(chunkText) {
+    if (!chunkText) return '';
+    const raw = this.lineBuf + chunkText;
+    this.lineBuf = '';
+
+    const lines = raw.split('\n');
+    this.lineBuf = lines.pop();
+
+    const outLines = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) {
+        outLines.push(this.pm.restoreText(line));
+        continue;
+      }
+      const dataStr = trimmed.slice(5).trim();
+      if (!dataStr || dataStr === '[DONE]') {
+        const remContent = await this._feedText('contentBuf', '');
+        const remReason = await this._feedText('reasoningBuf', '');
+        const flushRem = (remContent || '') + (remReason || '');
+        if (flushRem) {
+          outLines.push(`data: {"choices":[{"delta":{"content":${JSON.stringify(flushRem)}}}]}`);
+        }
+        outLines.push(line);
+        continue;
+      }
+
+      try {
+        const obj = JSON.parse(dataStr);
+        if (obj.choices && obj.choices[0] && obj.choices[0].delta) {
+          const delta = obj.choices[0].delta;
+          if (typeof delta.content === 'string') {
+            delta.content = await this._feedText('contentBuf', delta.content);
+          }
+          if (typeof delta.reasoning_content === 'string') {
+            delta.reasoning_content = await this._feedText('reasoningBuf', delta.reasoning_content);
+          }
+        } else if (obj.type === 'content_block_delta' && obj.delta) {
+          if (obj.delta.type === 'text_delta' && typeof obj.delta.text === 'string') {
+            obj.delta.text = await this._feedText('contentBuf', obj.delta.text);
+          } else if (obj.delta.type === 'thinking_delta' && typeof obj.delta.thinking === 'string') {
+            obj.delta.thinking = await this._feedText('reasoningBuf', obj.delta.thinking);
+          }
+        }
+        outLines.push('data: ' + JSON.stringify(obj));
+      } catch (e) {
+        outLines.push(this.pm.restoreText(line));
+      }
+    }
+
+    return outLines.length ? outLines.join('\n') + '\n' : '';
+  }
+
+  async flush() {
+    let out = '';
+    const remContent = await this._feedText('contentBuf', '');
+    const remReason = await this._feedText('reasoningBuf', '');
+    const rem = (remContent || '') + (remReason || '');
+    if (rem) {
+      out += `data: {"choices":[{"delta":{"content":${JSON.stringify(rem)}}}]}\n\n`;
+    }
+    if (this.lineBuf) {
+      out += this.pm.restoreText(this.lineBuf);
+      this.lineBuf = '';
+    }
+    return out;
   }
 }
 

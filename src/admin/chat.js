@@ -476,8 +476,8 @@
         }
         function visibleContent() {
           var tools = renderTools();
-          if (contentOut && tools) return contentOut + '\n\n' + tools;
-          return contentOut || tools;
+          var text = (contentOut && tools) ? (contentOut + '\n\n' + tools) : (contentOut || tools);
+          return restoreMasksClientSide(text);
         }
         for (;;) {
           var r = await reader.read(); if (r.done) break;
@@ -512,7 +512,7 @@
               }
             } catch (e) { contentOut += '\n' + d; }
           });
-          chatState.messages[assistantIdx].reasoning = reasonOut;
+          chatState.messages[assistantIdx].reasoning = restoreMasksClientSide(reasonOut);
           chatState.messages[assistantIdx].content = visibleContent();
           renderChatMessages();
         }
@@ -556,3 +556,27 @@
       }
     }
   });
+
+  function fnv1a64Hex(str) {
+    var h1 = 0x811c9dc5, h2 = 0x84222325;
+    for (var i = 0; i < str.length; i++) {
+      var ch = str.charCodeAt(i);
+      h1 ^= ch; h1 = Math.imul(h1, 0x01000193);
+      h2 ^= ch; h2 = Math.imul(h2, 0x01000193);
+    }
+    var hex1 = (h1 >>> 0).toString(16).padStart(8, '0');
+    var hex2 = (h2 >>> 0).toString(16).padStart(8, '0');
+    return (hex1.slice(0, 4) + hex2.slice(0, 4)).toLowerCase();
+  }
+  function restoreMasksClientSide(str) {
+    if (!str || typeof str !== 'string' || str.indexOf('{{MASK_') === -1) return str;
+    var out = str;
+    var words = (state && state.cfg && state.cfg.settings && state.cfg.settings.privacy && Array.isArray(state.cfg.settings.privacy.customWords)) ? state.cfg.settings.privacy.customWords : [];
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i];
+      if (!w) continue;
+      var h = fnv1a64Hex(w);
+      out = out.split('{{MASK_CUSTOM_' + h + '}}').join(w);
+    }
+    return out;
+  }
