@@ -15,6 +15,13 @@ export const DEFAULT_SETTINGS = {
   logRetentionDays: 30,
   // 是否在日志里记录请求消息原文（默认关，只记元数据）
   logPrompts: false,
+  // 隐私与脱敏设置
+  privacy: {
+    enabled: false,
+    maskSecrets: true,
+    maskIp: true,
+    customWords: [],
+  },
 };
 
 export function emptyConfig() {
@@ -26,6 +33,13 @@ export function normalizeConfig(raw) {
   cfg.version = 1;
   cfg.providers = Array.isArray(cfg.providers) ? cfg.providers.map(normalizeProvider).filter(Boolean) : [];
   cfg.settings = { ...DEFAULT_SETTINGS, ...(cfg.settings || {}) };
+  cfg.settings.privacy = {
+    ...DEFAULT_SETTINGS.privacy,
+    ...(cfg.settings.privacy || {}),
+  };
+  if (!Array.isArray(cfg.settings.privacy.customWords)) {
+    cfg.settings.privacy.customWords = [];
+  }
   if (!Array.isArray(cfg.settings.fallbackChain)) cfg.settings.fallbackChain = [];
   return cfg;
 }
@@ -66,6 +80,8 @@ export function normalizeProvider(p) {
     // 流式请求时自动加 stream_options.include_usage（个别服务商不认可以关掉）
     streamUsage: p.streamUsage !== false,
     note: String(p.note || ''),
+    // 隐私策略：inherit（跟随全局）、on（强制开启）、off（强制关闭）
+    privacy: ['inherit', 'on', 'off'].includes(p.privacy) ? p.privacy : 'inherit',
     // 各模型的输出上限（从上游模型列表拉取时记下），OpenAI 入口转 Anthropic 上游且没传 max_tokens 时用
     modelLimits: parseModelLimits(p.modelLimits),
     // 各模型真实测试嗅探到的能力（tools, thinking, vision 等）

@@ -765,6 +765,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#p-models').value = p ? p.models.join('\n') : '';
     $('#p-timeout').value = p ? p.timeoutMs : 60000;
     $('#p-note').value = p ? p.note || '' : '';
+    $('#p-privacy').value = (p && p.privacy) || 'inherit';
     $('#p-usage').checked = p ? p.streamUsage !== false : true;
     $('#prov-err').textContent = ''; $('#p-fetch-err').textContent = '';
     $('#prov-save').textContent = t('providers.save');
@@ -821,7 +822,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         id: $('#p-id').value.trim(), name: $('#p-name').value.trim(), protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(),
         consoleUrl: $('#p-console').value.trim(),
         apiKey: keyVal, models: $('#p-models').value, timeoutMs: +$('#p-timeout').value || 60000,
-        note: $('#p-note').value.trim(), streamUsage: $('#p-usage').checked,
+        note: $('#p-note').value.trim(), privacy: $('#p-privacy').value, streamUsage: $('#p-usage').checked,
         enabled: prev ? !!prev.enabled : true
       }
     };
@@ -1238,7 +1239,27 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   function renderSettings() {
     $('#s-ret').value = state.cfg.settings.logRetentionDays;
     $('#s-prompts').checked = !!state.cfg.settings.logPrompts;
+    var priv = state.cfg.settings.privacy || {};
+    $('#priv-on').checked = !!priv.enabled;
+    $('#priv-secrets').checked = priv.maskSecrets !== false;
+    $('#priv-ip').checked = priv.maskIp !== false;
+    $('#priv-words').value = (priv.customWords || []).join('\n');
   }
+  $('#priv-save').addEventListener('click', async function () {
+    try {
+      var words = $('#priv-words').value.split('\n').map(function (w) { return w.trim(); }).filter(Boolean);
+      var privacy = {
+        enabled: $('#priv-on').checked,
+        maskSecrets: $('#priv-secrets').checked,
+        maskIp: $('#priv-ip').checked,
+        customWords: words,
+      };
+      setCfg(await api('/admin/api/settings', { body: { privacy: privacy } }));
+      toast(t('settings.privacySaved'));
+    } catch (err) {
+      await showAlert({ message: err.message });
+    }
+  });
   $('#s-save').addEventListener('click', async function () {
     var saveBtn = $('#s-save');
     if (saveBtn.disabled) return;
@@ -1264,25 +1285,36 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     try {
       var s = await api('/admin/api/stats?days=' + $('#stats-days').value);
       var total = s.total || 0, ok = s.ok || 0;
+      var failCount = total - ok;
+      var failRate = total ? ((failCount * 100) / total).toFixed(1) + '%' : '0%';
       var cacheVal = '—';
       if (s.cache_read_tokens != null && s.prompt_tokens_for_cache > 0) {
         cacheVal = num(s.cache_read_tokens) + ' / ' + (s.cache_read_tokens * 100 / s.prompt_tokens_for_cache).toFixed(1) + '%';
       } else if (s.cache_read_tokens != null) {
         cacheVal = num(s.cache_read_tokens);
       }
-      // 调用(+失败) · 成功率(+容灾) · Tokens(+缓存) · 平均耗时 → 4 格
+      // 纯净 6 格指标（偶数排布，移动端 2 列 × 3 行，绝无 Emoji）：
+      // 1. 调用次数(+失败) · 2. 成功率(+失败率) · 3. Tokens(+缓存) · 4. 平均耗时 · 5. 容灾切换 · 6. 隐私脱敏
       var callsHtml = num(total) +
-        '<span class="stat-sub">' + t('overview.failedCalls') + ' ' + num(total - ok) + '</span>';
+        '<span class="stat-sub">' + t('overview.failedCalls') + ' ' + num(failCount) + '</span>';
       var successHtml = (total ? (ok * 100 / total).toFixed(1) + '%' : '—') +
-        '<span class="stat-sub">' + t('overview.fallbackTriggered') + ' ' + num(s.fallback || 0) + '</span>';
+        '<span class="stat-sub">' + t('overview.failRate') + ' ' + failRate + '</span>';
       var tokensHtml = num(s.tokens || 0) +
         '<span class="stat-sub">' + t('overview.cacheHit') + ' ' + cacheVal + '</span>';
+      var latencyHtml = (s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—') +
+        '<span class="stat-sub">' + t('overview.avgLatency') + '</span>';
+      var fallbackHtml = num(s.fallback || 0) +
+        '<span class="stat-sub">' + t('overview.fallbackSub') + '</span>';
+      var privacyHtml = num(s.redacted_hits || 0) +
+        '<span class="stat-sub">' + t('overview.privacySub') + '</span>';
+
       $('#stats').innerHTML = [
-        [t('overview.avgLatency'), s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—'],
         [t('overview.totalCalls'), callsHtml],
         [t('overview.successRate'), successHtml],
-        [t('overview.totalTokens'), tokensHtml]
-
+        [t('overview.totalTokens'), tokensHtml],
+        [t('overview.avgLatency'), latencyHtml],
+        [t('overview.fallbackCount'), fallbackHtml],
+        [t('overview.privacyMasked'), privacyHtml]
       ].map(function (x) { return '<div class="stat"><span class="muted small">' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('');
       var rows = s.byProvider || [];
       $('#stats-prov').innerHTML = '<tr><th>' + t('overview.thProvider') + '</th><th>' + t('overview.thCalls') + '</th><th>' + t('overview.thSuccess') + '</th><th>' + t('overview.thTokens') + '</th></tr>' +
@@ -1591,6 +1623,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       [t('logs.detailFieldStatus'), l.status], [t('logs.detailFieldStream'), l.stream ? t('logs.yes') : t('logs.no')], [t('logs.detailFieldLatency'), num(l.latency_ms) + ' ms'], [t('logs.detailFieldTTFB'), l.ttfb_ms == null ? '—' : num(l.ttfb_ms) + ' ms'],
       [t('logs.detailFieldTokens'), num(l.prompt_tokens) + ' / ' + num(l.completion_tokens) + ' / ' + num(l.total_tokens)],
       [t('logs.detailFieldCacheRead'), l.cache_read_tokens == null ? '—' : num(l.cache_read_tokens)],
+      [t('logs.detailFieldRedacted'), l.redacted_hits ? t('logs.redactedCount', { count: l.redacted_hits }) : '—'],
       [t('logs.detailFieldAttempts'), l.attempts]
     ].map(function (row) { return '<tr><th style="width:110px">' + row[0] + '</th><td class="mono small">' + esc(row[1]) + '</td></tr>'; }).join('') + '</table>';
     if (l.trail && l.trail.length) {

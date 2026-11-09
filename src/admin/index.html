@@ -233,6 +233,22 @@
         </div>
       </div>
       <div class="card">
+        <h2 data-i18n="settings.privacyTitle">隐私与脱敏</h2>
+        <div class="row" style="margin-bottom:8px">
+          <label class="switch"><input type="checkbox" id="priv-on"><span></span></label>
+          <span data-i18n="settings.privacySwitch">开启请求脱敏</span>
+        </div>
+        <p class="muted small" data-i18n="settings.privacyDesc">在请求发往第三方上游服务商前自动替换敏感信息，并在模型响应时无缝还原。</p>
+        <div class="row small" style="gap:16px;margin:10px 0;flex-wrap:wrap">
+          <label class="row small"><input type="checkbox" id="priv-secrets"> <span data-i18n="settings.privacyMaskSecrets">拦截 API 密钥与数据库凭据</span></label>
+          <label class="row small"><input type="checkbox" id="priv-ip"> <span data-i18n="settings.privacyMaskIp">拦截 IPv4 地址</span></label>
+        </div>
+        <label class="f" for="priv-words" style="margin-top:8px" data-i18n="settings.privacyWordsLabel">自定义私有词表</label>
+        <textarea id="priv-words" spellcheck="false" style="margin-top:6px;min-height:80px;width:100%" data-i18n-placeholder="settings.privacyWordsPlaceholder" placeholder="每行一个，严格精确匹配（例如个人姓名、私有域名、项目代号）"></textarea>
+        <div class="muted small" style="margin-top:4px" data-i18n="settings.privacyWordsTip">这些词在发往模型前会被替换为暗号，模型返回时自动还原。</div>
+        <div class="card-actions-end" style="margin-top:12px"><button class="btn primary" id="priv-save" data-i18n="settings.save">保存</button></div>
+      </div>
+      <div class="card">
         <h2 data-i18n="settings.logsTitle">日志</h2>
         <div class="row">
           <span data-i18n="settings.retentionLabel">日志保留</span>
@@ -328,6 +344,15 @@
         <div class="row">
           <div><label class="f" for="p-timeout" data-i18n="providers.labelTimeout">超时（毫秒）</label><input type="number" id="p-timeout" min="1000" step="1000" style="width:140px"></div>
           <div class="grow"><label class="f" for="p-note" data-i18n="providers.labelNote">备注</label><input type="text" id="p-note" style="width:100%" placeholder="可选备注信息"></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div style="flex:1"><label class="f" for="p-privacy" data-i18n="providers.privacyPolicy">隐私脱敏</label>
+            <select id="p-privacy" style="width:100%">
+              <option value="inherit" data-i18n="providers.privacyInherit">跟随全局设置（默认）</option>
+              <option value="on" data-i18n="providers.privacyOn">对此服务商强制开启脱敏</option>
+              <option value="off" data-i18n="providers.privacyOff">对此服务商关闭脱敏（直连放行）</option>
+            </select>
+          </div>
         </div>
         <label class="row small" style="margin-top:8px" title="让上游模型在流式打字机结束时返回真实的官方 Token 消耗；主流服务商推荐开启，极少数报错的小众上游可取消勾选" data-i18n-title="providers.streamUsageTip"><input type="checkbox" id="p-usage"> <span data-i18n="providers.streamUsage">流式请求自动加 stream_options.include_usage</span></label>
       </div>

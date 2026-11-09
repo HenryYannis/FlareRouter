@@ -2,6 +2,7 @@
 
 import { getConfig } from './config.js';
 import { writeLog } from './logs.js';
+import { PrivacyManager, resolvePrivacyPolicy } from './privacy.js';
 import {
   anthropicErrorBody,
   anthropicHeaders,
@@ -316,7 +317,19 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
     }
 
     if (!provider.baseUrl) { fail1(0, '服务商未填写 Base URL'); continue; }
-    const up = buildUpstream({ clientProtocol, endpoint, provider, model, body, request, stream });
+
+    // 隐私脱敏处理
+    const shouldRedact = isChat && resolvePrivacyPolicy(cfg, provider);
+    let sendBody = body;
+    let privacyCtx = null;
+    if (shouldRedact) {
+      const pm = new PrivacyManager(cfg.settings.privacy);
+      const masked = pm.maskPayload(body);
+      sendBody = masked.maskedBody;
+      privacyCtx = masked.context;
+    }
+
+    const up = buildUpstream({ clientProtocol, endpoint, provider, model, body: sendBody, request, stream });
     if (up.skip) { fail1(0, up.skip); continue; }
 
     const controller = new AbortController();
@@ -361,6 +374,8 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       fallback: isFallback,
       attempts: i + 1,
       trail,
+      redactedHits: privacyCtx ? privacyCtx.hits : 0,
+      prompt: cfg.settings.logPrompts ? (isChat ? lastUserText(sendBody.messages) : JSON.stringify(sendBody.input || '')) : null,
     };
 
     let prefetchedText = null;
@@ -369,7 +384,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       const jsonNotSse = ct.includes('application/json') && !ct.includes('text/event-stream');
       if (!jsonNotSse) {
         const handler = createStreamHandler(clientProtocol, up.upstreamProtocol, { clientModel: body.model, includeUsage });
-        return pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate: () => estimatePrompt(clientProtocol, body) });
+        return pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate: () => estimatePrompt(clientProtocol, body), privacyCtx });
       }
       prefetchedText = await res.text();
       let peeked = null;
@@ -422,6 +437,10 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       const converted = clientProtocol === 'anthropic' ? openAIToAnthropicResponse(parsed, body.model) : anthropicToOpenAIResponse(parsed, body.model);
       outText = JSON.stringify(converted);
       contentType = 'application/json; charset=utf-8';
+    }
+
+    if (privacyCtx && privacyCtx.secretMap.size > 0) {
+      outText = privacyCtx.restoreText(outText);
     }
 
     let { promptTokens, completionTokens, cacheReadTokens } = usageForLog(up.upstreamProtocol, parsed && parsed.usage);
@@ -522,13 +541,18 @@ export async function handleCountTokens(request, env) {
   return json(anthropicErrorBody(message, st >= 400 ? st : 502, { attempts: trail }), st >= 400 ? st : 502, CORS_HEADERS);
 }
 
-function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate }) {
+function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate, privacyCtx }) {
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   const ttfb = Date.now() - tA;
+
+  const restorer = privacyCtx && privacyCtx.secretMap.size > 0 ? privacyCtx.createStreamRestorer() : null;
+  if (restorer) {
+    handler.raw = false;
+  }
 
   const pump = (async () => {
     let buf = '';
@@ -537,7 +561,9 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
     let clientGone = false;
     const emit = async (s) => {
       if (!s || clientGone) return;
-      try { await writer.write(encoder.encode(s)); } catch { clientGone = true; }
+      const text = restorer ? restorer(s) : s;
+      if (!text) return;
+      try { await writer.write(encoder.encode(text)); } catch { clientGone = true; }
     };
     // 逐行解析 SSE：记住最近的 event: 行，每个 data: 行触发一次
     const handleLine = (line) => {
@@ -566,6 +592,10 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
         if (clientGone) break;
       }
       if (buf) { const out = handleLine(buf); if (!handler.raw) await emit(out); }
+      if (restorer) {
+        const rem = restorer('');
+        if (rem) await emit(rem);
+      }
       if (!handler.raw) await emit(handler.finish(null));
     } catch (e) {
       streamError = `流读取中断：${errText(e)}`;

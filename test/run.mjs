@@ -1069,6 +1069,7 @@ try {
     ok(c({ prompt_tokens: 10, cacheReadInputTokens: 9 }) === 9, '缓存字段：驼峰');
     ok(c({ prompt_tokens: 10, prompt_tokens_details: { cached_tokens: 0 } }) === 0, '缓存字段：报了 0 记 0');
   }
+  await import('./privacy.test.mjs');
 } catch (e) {
   fail++;
   console.log('FAIL 测试异常', e && e.stack);

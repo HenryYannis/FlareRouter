@@ -8,6 +8,9 @@ const COLS = `ts, key_id, key_name, endpoint, requested_model, provider_id, prov
        stream, status, latency_ms, ttfb_ms, prompt_tokens, completion_tokens, total_tokens, cache_read_tokens,
        fallback, attempts, trail, error, prompt`;
 
+const COLS_V6 = `${COLS}, client_protocol, upstream_protocol, redacted_hits`;
+const COLS_V5 = `${COLS}, client_protocol, upstream_protocol`;
+
 const COLS_LEGACY = `ts, key_id, key_name, endpoint, requested_model, provider_id, provider_name, model,
        stream, status, latency_ms, ttfb_ms, prompt_tokens, completion_tokens, total_tokens,
        fallback, attempts, trail, error, prompt`;
@@ -85,7 +88,9 @@ export function writeLog(env, ctx, entry) {
     );
   }
   const proto = [entry.clientProtocol || null, entry.upstreamProtocol || null];
-  p = env.DB.prepare(`INSERT INTO call_logs (${COLS}, client_protocol, upstream_protocol) VALUES (${Array(23).fill('?').join(', ')})`)
+  const redactedHits = Math.max(0, Number(entry.redactedHits || 0));
+
+  const doInsertLegacy = () => env.DB.prepare(`INSERT INTO call_logs (${COLS}, client_protocol, upstream_protocol) VALUES (${Array(23).fill('?').join(', ')})`)
     .bind(...base, ...proto)
     .run()
     .catch((e) => {
@@ -101,6 +106,20 @@ export function writeLog(env, ctx, entry) {
         });
     })
     .catch((e) => console.error('写日志失败', e && e.message));
+
+  if (redactedHits > 0) {
+    p = env.DB.prepare(`INSERT INTO call_logs (${COLS_V6}) VALUES (${Array(24).fill('?').join(', ')})`)
+      .bind(...base, ...proto, redactedHits)
+      .run()
+      .catch((e) => {
+        if (!missingCol(e)) throw e;
+        // 缺 redacted_hits 时退回 23 列
+        return doInsertLegacy();
+      })
+      .catch((e) => console.error('写日志失败', e && e.message));
+  } else {
+    p = doInsertLegacy();
+  }
   ctx.waitUntil(p);
   } catch (e) {
     console.error('写日志失败', e && e.message);
@@ -154,19 +173,34 @@ export async function statsSummary(env, sinceTs) {
               SUM(COALESCE(total_tokens, 0)) AS tokens,
               AVG(latency_ms) AS avg_latency,
               SUM(cache_read_tokens) AS cache_read_tokens,
-              SUM(CASE WHEN cache_read_tokens IS NOT NULL THEN COALESCE(prompt_tokens, 0) ELSE 0 END) AS prompt_tokens_for_cache
+              SUM(CASE WHEN cache_read_tokens IS NOT NULL THEN COALESCE(prompt_tokens, 0) ELSE 0 END) AS prompt_tokens_for_cache,
+              SUM(COALESCE(redacted_hits, 0)) AS redacted_hits
          FROM call_logs WHERE ts >= ?`
     ).bind(sinceTs).first();
   } catch (e) {
     if (!missingCol(e)) throw e;
-    row = await env.DB.prepare(
-      `SELECT COUNT(*) AS total,
-              SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
-              SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
-              SUM(COALESCE(total_tokens, 0)) AS tokens,
-              AVG(latency_ms) AS avg_latency
-         FROM call_logs WHERE ts >= ?`
-    ).bind(sinceTs).first();
+    try {
+      row = await env.DB.prepare(
+        `SELECT COUNT(*) AS total,
+                SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
+                SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
+                SUM(COALESCE(total_tokens, 0)) AS tokens,
+                AVG(latency_ms) AS avg_latency,
+                SUM(cache_read_tokens) AS cache_read_tokens,
+                SUM(CASE WHEN cache_read_tokens IS NOT NULL THEN COALESCE(prompt_tokens, 0) ELSE 0 END) AS prompt_tokens_for_cache
+           FROM call_logs WHERE ts >= ?`
+      ).bind(sinceTs).first();
+    } catch (e2) {
+      if (!missingCol(e2)) throw e2;
+      row = await env.DB.prepare(
+        `SELECT COUNT(*) AS total,
+                SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
+                SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
+                SUM(COALESCE(total_tokens, 0)) AS tokens,
+                AVG(latency_ms) AS avg_latency
+           FROM call_logs WHERE ts >= ?`
+      ).bind(sinceTs).first();
+    }
   }
   const byProvider = await env.DB.prepare(
     `SELECT provider_id, provider_name, COUNT(*) AS total,

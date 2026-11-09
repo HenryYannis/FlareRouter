@@ -8,7 +8,7 @@ var I18N = {
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新', refreshing: '刷新中…',
         totalCalls: '调用次数', successRate: '成功率', failedCalls: '失败', fallbackTriggered: '触发容灾', totalTokens: 'Tokens', avgLatency: '平均耗时',
-        cacheHit: '缓存命中',
+        cacheHit: '缓存命中', failRate: '失败率', fallbackCount: '容灾切换', fallbackSub: '自动故障转移', privacyMasked: '隐私脱敏', privacySub: '敏感词已保护', ttfbLatency: '首字',
         usageTitle: '调用方式',
         usageBaseLabel: 'Base URL', usageBaseHint: '填进客户端的「API 地址 / Base URL」',
         usageProtoLabel: '对话协议', usageProtoHint: '按客户端支持的类型选一行',
@@ -38,6 +38,7 @@ var I18N = {
         fetchPopulated: '已写入全部 {count} 个模型', fetchPruned: '已移除 {count} 个服务商不再提供的旧模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
         noMatchModels: '没有匹配的模型（共 {count} 个）', labelTimeout: '超时（毫秒，拿到响应头为止）', labelNote: '备注',
         streamUsage: '流式请求自动加 stream_options.include_usage', streamUsageTip: '让上游模型在流式打字机结束时返回真实的官方 Token 消耗；主流服务商推荐开启，极少数报错的小众上游可取消勾选', cancel: '取消', save: '保存', saved: '已保存',
+        privacyPolicy: '隐私脱敏', privacyInherit: '跟随全局设置（默认）', privacyOn: '对此服务商强制开启脱敏', privacyOff: '对此服务商关闭脱敏（直连放行）',
         savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」', saving: '保存中…', selectAvailable: '只选可用', selectAvailableTip: '只选中测试成功的可用模型', testModels: '测试模型', testStop: '停止', testRunning: '正在测试 ({done}/{total})… 可用: {ok}，失败: {fail}', testDone: '测试完成：共 {total} 个，可用 {ok} 个，失败 {fail} 个', testNoResults: '请先点击「测试模型」进行可用性测试', testSelectedCount: '已勾选 {count} 个可用模型', testNoneAvailable: '未找到测试可用的模型', testing: '测试中…', testFailed: '失败', urlRequired: 'Base URL 必填', noModelsToTest: '暂无模型可供测试',
         sectionBasic: '基础连接与鉴权', sectionModels: '模型列表配置', sectionAdvanced: '高级选项'
       },
@@ -84,6 +85,7 @@ var I18N = {
         detailFieldKey: '密钥', detailFieldReqModel: '请求模型', detailFieldFinalProv: '最终服务商', detailFieldFinalModel: '最终模型',
         detailFieldStatus: '状态', detailFieldStream: '流式', detailFieldLatency: '总耗时', detailFieldTTFB: '首包',
         detailFieldTokens: 'Tokens', detailFieldCacheRead: '缓存读 Token', detailFieldAttempts: '尝试次数', detailTrail: '失败的尝试（原文）', detailError: '错误',
+        detailFieldRedacted: '隐私脱敏', redactedCount: '已脱敏 {count} 处',
         detailPrompt: '用户消息', yes: '是', no: '否', close: '关闭'
       },
       test: {
@@ -105,6 +107,10 @@ var I18N = {
         ttfbTotal: '首包 {ttfb} ms · 总 {total} ms', totalOnly: '{total} ms'
       },
       settings: {
+        privacyTitle: '隐私与脱敏', privacyDesc: '在请求发往第三方上游服务商前自动替换敏感信息，并在模型响应时无缝还原。',
+        privacySwitch: '开启请求脱敏', privacyMaskSecrets: '拦截 API 密钥与数据库凭据', privacyMaskIp: '拦截 IPv4 地址',
+        privacyWordsLabel: '自定义私有词表', privacyWordsPlaceholder: '每行一个，严格精确匹配（例如个人姓名、私有域名、项目代号）',
+        privacyWordsTip: '这些词在发往模型前会被替换为暗号，模型返回时自动还原。', privacySaved: '隐私设置已保存',
         logsTitle: '日志', retentionLabel: '日志保留', daysUnit: '天（0 = 永久，每日 Cron 清理）',
         logPromptsLabel: '记录最后一条用户消息原文（默认关，只记元数据）', save: '保存', saved: '已保存',
         backupTitle: '备份', backupDesc: '导出文件包含上游 API Key 明文，请妥善保存。导入会整体覆盖当前服务商与设置。',
@@ -122,7 +128,7 @@ var I18N = {
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新', refreshing: '重新整理中…',
         totalCalls: '調用次數', successRate: '成功率', failedCalls: '失敗', fallbackTriggered: '觸發容災', totalTokens: 'Tokens', avgLatency: '平均耗時',
-        cacheHit: '快取命中',
+        cacheHit: '快取命中', failRate: '失敗率', fallbackCount: '容災切換', fallbackSub: '自動故障轉移', privacyMasked: '隱私脫敏', privacySub: '敏感詞已保護', ttfbLatency: '首字',
         usageTitle: '調用方式',
         usageBaseLabel: 'Base URL', usageBaseHint: '填進客戶端的「API 位址 / Base URL」',
         usageProtoLabel: '對話協議', usageProtoHint: '按客戶端支援的類型選一行',
@@ -152,6 +158,7 @@ var I18N = {
         fetchPopulated: '已寫入全部 {count} 個模型', fetchPruned: '已移除 {count} 個服務商不再提供的舊模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
         noMatchModels: '沒有匹配的模型（共 {count} 個）', labelTimeout: '超時（毫秒，拿到回應頭為止）', labelNote: '備註',
         streamUsage: '串流請求自動加 stream_options.include_usage', streamUsageTip: '讓上游模型在串流打字結束時回傳真實的官方 Token 消耗；主流服務商推薦開啟，極少數報錯的非標上游可取消勾選', cancel: '取消', save: '儲存', saved: '已儲存',
+        privacyPolicy: '隱私脫敏', privacyInherit: '跟隨全域設定（預設）', privacyOn: '對此服務商強制開啟脫敏', privacyOff: '對此服務商關閉脫敏（直連放行）',
         savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」', saving: '儲存中…', selectAvailable: '只選可用', selectAvailableTip: '只選中測試成功的可用模型', testModels: '測試模型', testStop: '停止', testRunning: '正在測試 ({done}/{total})… 可用: {ok}，失敗: {fail}', testDone: '測試完成：共 {total} 個，可用 {ok} 個，失敗 {fail} 個', testNoResults: '請先點擊「測試模型」進行可用性測試', testSelectedCount: '已勾選 {count} 個可用模型', testNoneAvailable: '未找到測試可用的模型', testing: '測試中…', testFailed: '失敗', urlRequired: 'Base URL 必填', noModelsToTest: '暫無模型可供測試',
         sectionBasic: '基礎連接與鑒權', sectionModels: '模型列表配置', sectionAdvanced: '進階選項'
       },
@@ -198,6 +205,7 @@ var I18N = {
         detailFieldKey: '密鑰', detailFieldReqModel: '請求模型', detailFieldFinalProv: '最終服務商', detailFieldFinalModel: '最終模型',
         detailFieldStatus: '狀態', detailFieldStream: '串流', detailFieldLatency: '總耗時', detailFieldTTFB: '首包',
         detailFieldTokens: 'Tokens', detailFieldCacheRead: '快取讀 Token', detailFieldAttempts: '嘗試次數', detailTrail: '失敗的嘗試（原文）', detailError: '錯誤',
+        detailFieldRedacted: '隱私脫敏', redactedCount: '已脫敏 {count} 處',
         detailPrompt: '使用者訊息', yes: '是', no: '否', close: '關閉'
       },
       test: {
@@ -219,6 +227,10 @@ var I18N = {
         ttfbTotal: '首包 {ttfb} ms · 總 {total} ms', totalOnly: '{total} ms'
       },
       settings: {
+        privacyTitle: '隱私與脫敏', privacyDesc: '在請求發往第三方上游服務商前自動替換敏感資訊，並在模型回應時無縫還原。',
+        privacySwitch: '開啟請求脫敏', privacyMaskSecrets: '攔截 API 密鑰與資料庫憑據', privacyMaskIp: '攔截 IPv4 地址',
+        privacyWordsLabel: '自訂私有詞表', privacyWordsPlaceholder: '每行一個，嚴格精確匹配（例如個人姓名、私有網域、專案代號）',
+        privacyWordsTip: '這些詞在發往模型前會被替換為暗號，模型返回時自動還原。', privacySaved: '隱私設定已儲存',
         logsTitle: '日誌', retentionLabel: '日誌保留', daysUnit: '天（0 = 永久，每日 Cron 清理）',
         logPromptsLabel: '記錄最後一條使用者訊息原文（預設關，只記元數據）', save: '儲存', saved: '已儲存',
         backupTitle: '備份', backupDesc: '匯出檔案包含上游 API Key 明文，請妥善保存。匯入會整體覆蓋當前服務商與設定。',
@@ -236,7 +248,7 @@ var I18N = {
       overview: {
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh', refreshing: 'Refreshing…',
         totalCalls: 'Total Calls', successRate: 'Success Rate', failedCalls: 'Failed', fallbackTriggered: 'Failovers', totalTokens: 'Tokens', avgLatency: 'Avg Latency',
-        cacheHit: 'Cache Hit',
+        cacheHit: 'Cache Hit', failRate: 'Failure Rate', fallbackCount: 'Failovers', fallbackSub: 'Auto Failover', privacyMasked: 'Privacy Redacted', privacySub: 'Sensitive Data Shielded', ttfbLatency: 'TTFB',
         usageTitle: 'Usage Guide',
         usageBaseLabel: 'Base URL', usageBaseHint: 'Paste into the client\'s API Base URL field',
         usageProtoLabel: 'Chat Protocols', usageProtoHint: 'Pick the row your client supports',
@@ -266,6 +278,7 @@ var I18N = {
         fetchPopulated: 'Populated all {count} models', fetchPruned: 'Removed {count} old models the provider no longer lists', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
         noMatchModels: 'No matching models ({count} total)', labelTimeout: 'Timeout (ms, until response headers)', labelNote: 'Note',
         streamUsage: 'Auto add stream_options.include_usage to stream requests', streamUsageTip: 'Instruct upstream models to return official Token usage in the final streaming chunk. Recommended for all standard providers; uncheck if an upstream fails with 400.', cancel: 'Cancel', save: 'Save', saved: 'Saved',
+        privacyPolicy: 'Privacy Redaction', privacyInherit: 'Inherit Global Settings (Default)', privacyOn: 'Force Redaction On', privacyOff: 'Force Redaction Off (Direct Passthrough)',
         savedEmptyModels: 'Saved. Models empty — use Fetch from Provider', saving: 'Saving…', selectAvailable: 'Select Available', selectAvailableTip: 'Select only tested and working models', testModels: 'Test Models', testStop: 'Stop', testRunning: 'Testing ({done}/{total})… OK: {ok}, Failed: {fail}', testDone: 'Testing done: {total} total, {ok} available, {fail} failed', testNoResults: 'Please click "Test Models" first to check availability', testSelectedCount: 'Selected {count} available models', testNoneAvailable: 'No available models found', testing: 'Testing…', testFailed: 'Failed', urlRequired: 'Base URL is required', noModelsToTest: 'No models to test',
         sectionBasic: 'Connection & Authentication', sectionModels: 'Model List Configuration', sectionAdvanced: 'Advanced Options'
       },
@@ -312,6 +325,7 @@ var I18N = {
         detailFieldKey: 'Key', detailFieldReqModel: 'Requested Model', detailFieldFinalProv: 'Final Provider', detailFieldFinalModel: 'Final Model',
         detailFieldStatus: 'Status', detailFieldStream: 'Stream', detailFieldLatency: 'Latency', detailFieldTTFB: 'TTFB',
         detailFieldTokens: 'Tokens', detailFieldCacheRead: 'Cache Read Tokens', detailFieldAttempts: 'Attempts', detailTrail: 'Failed Attempts (Raw)', detailError: 'Error',
+        detailFieldRedacted: 'Privacy Redaction', redactedCount: '{count} redacted',
         detailPrompt: 'User Message', yes: 'Yes', no: 'No', close: 'Close'
       },
       test: {
@@ -333,6 +347,10 @@ var I18N = {
         ttfbTotal: 'TTFB {ttfb} ms · Total {total} ms', totalOnly: '{total} ms'
       },
       settings: {
+        privacyTitle: 'Privacy & Redaction', privacyDesc: 'Automatically masks secrets and private words before sending requests upstream, and transparently restores them on response.',
+        privacySwitch: 'Enable Request Redaction', privacyMaskSecrets: 'Mask API keys & Database credentials', privacyMaskIp: 'Mask IPv4 addresses',
+        privacyWordsLabel: 'Custom Private Words', privacyWordsPlaceholder: 'One per line, exact match (e.g. your name, internal domains, codenames)',
+        privacyWordsTip: 'These words will be masked as tokens before forwarding upstream and restored upon arrival.', privacySaved: 'Privacy settings saved',
         logsTitle: 'Logs', retentionLabel: 'Log retention', daysUnit: 'days (0 = forever, daily cron cleanup)',
         logPromptsLabel: 'Log raw user prompt of the last message (default off)', save: 'Save', saved: 'Saved',
         backupTitle: 'Backup', backupDesc: 'Export file contains raw upstream API keys; store safely. Import overwrites existing providers and settings.',

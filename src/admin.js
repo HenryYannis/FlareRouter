@@ -346,6 +346,18 @@ export async function handleAdminApi(request, env, ctx, path) {
     if (typeof b.logPrompts === 'boolean') s.logPrompts = b.logPrompts;
     if (b.logRetentionDays !== undefined) s.logRetentionDays = Math.max(0, Math.min(3650, parseInt(b.logRetentionDays, 10) || 0));
     if (b.fallbackChain !== undefined) s.fallbackChain = parseModels(b.fallbackChain);
+    if (b.privacy && typeof b.privacy === 'object') {
+      s.privacy = {
+        enabled: Boolean(b.privacy.enabled),
+        maskSecrets: b.privacy.maskSecrets !== false,
+        maskIp: b.privacy.maskIp !== false,
+        customWords: Array.isArray(b.privacy.customWords)
+          ? b.privacy.customWords.map((w) => String(w || '').trim()).filter(Boolean)
+          : (typeof b.privacy.customWords === 'string'
+              ? b.privacy.customWords.split('\n').map((w) => w.trim()).filter(Boolean)
+              : []),
+      };
+    }
     return json(publicConfig(await saveConfig(env, cfg)));
   }
 
