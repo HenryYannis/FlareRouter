@@ -305,7 +305,6 @@
   function setChatBusy(on) {
     chatBusy = !!on;
     $('#c-send').disabled = chatBusy;
-    $('#c-input').disabled = chatBusy;
     $('#c-clear').disabled = chatBusy;
     $('#c-model').disabled = chatBusy;
     $('#c-nofb').disabled = chatBusy;
@@ -543,19 +542,17 @@
   $('#c-send').addEventListener('click', function () { sendChat(); });
 
   var isComposing = false;
-  var lastCompositionEndTime = 0;
   $('#c-input').addEventListener('compositionstart', function () { isComposing = true; });
-  $('#c-input').addEventListener('compositionend', function () {
-    isComposing = false;
-    lastCompositionEndTime = Date.now();
-  });
+  $('#c-input').addEventListener('compositionend', function () { isComposing = false; });
 
   $('#c-input').addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
-      if (isComposing || e.isComposing || (Date.now() - lastCompositionEndTime < 300)) {
+      if (isComposing || e.isComposing || e.keyCode === 229) {
         return;
       }
       e.preventDefault();
-      sendChat();
+      if (!chatBusy) {
+        sendChat();
+      }
     }
   });
