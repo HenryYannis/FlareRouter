@@ -8,7 +8,6 @@ const COLS = `ts, key_id, key_name, endpoint, requested_model, provider_id, prov
        stream, status, latency_ms, ttfb_ms, prompt_tokens, completion_tokens, total_tokens, cache_read_tokens,
        fallback, attempts, trail, error, prompt`;
 
-const COLS_V7 = `${COLS}, client_protocol, upstream_protocol, redacted_hits, redacted_items`;
 const COLS_V6 = `${COLS}, client_protocol, upstream_protocol, redacted_hits`;
 const COLS_V5 = `${COLS}, client_protocol, upstream_protocol`;
 
@@ -90,7 +89,6 @@ export function writeLog(env, ctx, entry) {
   }
   const proto = [entry.clientProtocol || null, entry.upstreamProtocol || null];
   const redactedHits = Math.max(0, Number(entry.redactedHits || 0));
-  const redactedItems = entry.redactedItems ? cut(entry.redactedItems, 8000) : null;
 
   const doInsertLegacy = () => env.DB.prepare(`INSERT INTO call_logs (${COLS}, client_protocol, upstream_protocol) VALUES (${Array(23).fill('?').join(', ')})`)
     .bind(...base, ...proto)
@@ -109,27 +107,16 @@ export function writeLog(env, ctx, entry) {
     })
     .catch((e) => console.error('写日志失败', e && e.message));
 
-  const doInsertV6 = () => env.DB.prepare(`INSERT INTO call_logs (${COLS_V6}) VALUES (${Array(24).fill('?').join(', ')})`)
-    .bind(...base, ...proto, redactedHits)
-    .run()
-    .catch((e) => {
-      if (!missingCol(e)) throw e;
-      return doInsertLegacy();
-    })
-    .catch((e) => console.error('写日志失败', e && e.message));
-
-  if (redactedItems) {
-    p = env.DB.prepare(`INSERT INTO call_logs (${COLS_V7}) VALUES (${Array(25).fill('?').join(', ')})`)
-      .bind(...base, ...proto, redactedHits, redactedItems)
+  if (redactedHits > 0) {
+    p = env.DB.prepare(`INSERT INTO call_logs (${COLS_V6}) VALUES (${Array(24).fill('?').join(', ')})`)
+      .bind(...base, ...proto, redactedHits)
       .run()
       .catch((e) => {
         if (!missingCol(e)) throw e;
-        // 缺 redacted_items 时退回 V6
-        return doInsertV6();
+        // 缺 redacted_hits 时退回 23 列
+        return doInsertLegacy();
       })
       .catch((e) => console.error('写日志失败', e && e.message));
-  } else if (redactedHits > 0) {
-    p = doInsertV6();
   } else {
     p = doInsertLegacy();
   }
@@ -172,11 +159,7 @@ export async function queryLogs(env, q) {
     total: total ? total.n : 0,
     limit,
     offset,
-    items: (rows.results || []).map((r) => ({
-      ...r,
-      trail: r.trail ? safeParse(r.trail) : [],
-      redacted_items: r.redacted_items ? safeParse(r.redacted_items) : null,
-    })),
+    items: (rows.results || []).map((r) => ({ ...r, trail: r.trail ? safeParse(r.trail) : [] })),
   };
 }
 

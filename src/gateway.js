@@ -328,7 +328,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       sendBody = masked.maskedBody;
       privacyCtx = masked.context;
       if (privacyCtx && privacyCtx.secretMap.size > 0 && ctx && ctx.waitUntil) {
-        ctx.waitUntil(privacyCtx.persistToKV(env));
+        ctx.waitUntil(privacyCtx.persistToKV(env, { logTs: t0 }));
       }
     }
 
@@ -378,7 +378,6 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       attempts: i + 1,
       trail,
       redactedHits: privacyCtx ? privacyCtx.hits : 0,
-      redactedItems: privacyCtx && privacyCtx.redactedDetails && privacyCtx.redactedDetails.length ? JSON.stringify(privacyCtx.redactedDetails) : null,
       prompt: cfg.settings.logPrompts ? (isChat ? lastUserText(sendBody.messages) : JSON.stringify(sendBody.input || '')) : null,
     };
 

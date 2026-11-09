@@ -494,6 +494,15 @@ export async function handleAdminApi(request, env, ctx, path) {
   if (path === '/admin/api/logs' && method === 'GET') {
     return json(await queryLogs(env, Object.fromEntries(url.searchParams)));
   }
+  if (path === '/admin/api/logs/redacted' && method === 'GET') {
+    const ts = url.searchParams.get('ts');
+    if (!ts || !env.CONFIG || typeof env.CONFIG.get !== 'function') return json({ items: [] });
+    const raw = await env.CONFIG.get(`redact:log:${ts}`);
+    if (raw) {
+      try { return json({ items: JSON.parse(raw) }); } catch {}
+    }
+    return json({ items: [] });
+  }
   if (path === '/admin/api/logs/clear' && method === 'POST') {
     const { before } = await readJson(request);
     return json({ ok: true, deleted: await clearLogs(env, before) });

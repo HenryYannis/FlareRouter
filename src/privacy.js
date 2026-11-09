@@ -166,18 +166,28 @@ export class PrivacyManager {
   }
 
   /**
-   * 将脱敏暗号持久化写入 Cloudflare KV (env.CONFIG)
+   * 将脱敏暗号与日志对照明细持久化写入 Cloudflare KV (env.CONFIG)
    * 默认 ttlSeconds = 0，表示永久保存（永不过期）
+   * @param {object} env
+   * @param {object} [opts] - { ttlSeconds, logTs }
    */
-  async persistToKV(env, ttlSeconds = 0) {
+  async persistToKV(env, { ttlSeconds = 0, logTs = null } = {}) {
     if (!env || !env.CONFIG || typeof env.CONFIG.put !== 'function' || this.secretMap.size === 0) return;
     const tasks = [];
-    const opts = ttlSeconds > 0 ? { expirationTtl: ttlSeconds } : undefined;
+    const putOpts = ttlSeconds > 0 ? { expirationTtl: ttlSeconds } : undefined;
     for (const [placeholder, original] of this.secretMap.entries()) {
       const key = `mask:${placeholder}`;
       tasks.push(
-        env.CONFIG.put(key, original, opts).catch((e) => {
+        env.CONFIG.put(key, original, putOpts).catch((e) => {
           console.error(`KV put error for ${key}:`, e && e.message);
+        })
+      );
+    }
+    if (logTs && this.redactedDetails.length > 0) {
+      const logKey = `redact:log:${logTs}`;
+      tasks.push(
+        env.CONFIG.put(logKey, JSON.stringify(this.redactedDetails), putOpts).catch((e) => {
+          console.error(`KV put error for ${logKey}:`, e && e.message);
         })
       );
     }

@@ -1637,7 +1637,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       if (btn) btn.disabled = false;
     }
   });
-  $('#log-table').addEventListener('click', function (e) {
+  $('#log-table').addEventListener('click', async function (e) {
     var tr = e.target.closest('tr[data-log]'); if (!tr) return;
     var l = logItems[+tr.dataset.log];
     var h = '<table>' + [
@@ -1657,11 +1657,20 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     }
     if (l.error) h += '<h3 style="font-size:14px;margin:14px 0 4px">' + t('logs.detailError') + '</h3><pre class="err">' + esc(l.error) + '</pre>';
     if (l.prompt) h += '<h3 style="font-size:14px;margin:14px 0 4px">' + t('logs.detailPrompt') + '</h3><pre>' + esc(l.prompt) + '</pre>';
-    if (Array.isArray(l.redacted_items) && l.redacted_items.length) {
-      h += '<h3 style="font-size:14px;margin:14px 0 4px">' + t('logs.detailRedactedList') + ' (' + l.redacted_items.length + ')</h3>' +
+
+    // 从 KV 异步拉取本次请求的脱敏明细（若命中脱敏或包含暗号）
+    var redactedItems = [];
+    if (l.redacted_hits || (l.prompt && l.prompt.includes('{{MASK_'))) {
+      try {
+        var redRes = await api('/admin/api/logs/redacted?ts=' + l.ts);
+        redactedItems = redRes && Array.isArray(redRes.items) ? redRes.items : [];
+      } catch (err) {}
+    }
+    if (redactedItems.length) {
+      h += '<h3 style="font-size:14px;margin:14px 0 4px">' + t('logs.detailRedactedList') + ' (' + redactedItems.length + ')</h3>' +
         '<div class="scroll-x"><table class="redacted-detail-table">' +
         '<thead><tr><th style="width:75px">' + t('logs.redactedKind') + '</th><th>' + t('logs.redactedOriginal') + '</th><th>' + t('logs.redactedPlaceholder') + '</th></tr></thead><tbody>' +
-        l.redacted_items.map(function (item) {
+        redactedItems.map(function (item) {
           return '<tr>' +
             '<td><span class="tag warn" style="font-size:11px">' + esc(item.kind || 'TEXT') + '</span></td>' +
             '<td class="mono small" style="word-break:break-all">' + esc(item.original) +
