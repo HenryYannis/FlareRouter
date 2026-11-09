@@ -86,7 +86,7 @@ async function route(request, env, ctx) {
 
   if (isModels) {
     if (request.method !== 'GET') return apiError('Method Not Allowed', 405);
-    return json(listModels(await getConfig(env)), 200, CORS_HEADERS);
+    return json(listModels(await getConfig(env)), 200, { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800' });
   }
   if (request.method !== 'POST') return protocolError(proto, 'Method Not Allowed', 405);
   if (isCount) return handleCountTokens(request, env);
