@@ -202,12 +202,28 @@ export async function statsSummary(env, sinceTs) {
       ).bind(sinceTs).first();
     }
   }
-  const byProvider = await env.DB.prepare(
-    `SELECT provider_id, provider_name, COUNT(*) AS total,
-            SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
-            SUM(COALESCE(total_tokens, 0)) AS tokens
-       FROM call_logs WHERE ts >= ? GROUP BY provider_id ORDER BY total DESC`
-  ).bind(sinceTs).all();
+  let byProvider;
+  try {
+    byProvider = await env.DB.prepare(
+      `SELECT provider_id, provider_name, COUNT(*) AS total,
+              SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
+              SUM(COALESCE(total_tokens, 0)) AS tokens,
+              SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
+              SUM(COALESCE(redacted_hits, 0)) AS redacted_hits,
+              ROUND(AVG(latency_ms)) AS avg_latency
+         FROM call_logs WHERE ts >= ? GROUP BY provider_id ORDER BY total DESC`
+    ).bind(sinceTs).all();
+  } catch (e) {
+    if (!missingCol(e)) throw e;
+    byProvider = await env.DB.prepare(
+      `SELECT provider_id, provider_name, COUNT(*) AS total,
+              SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
+              SUM(COALESCE(total_tokens, 0)) AS tokens,
+              SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
+              ROUND(AVG(latency_ms)) AS avg_latency
+         FROM call_logs WHERE ts >= ? GROUP BY provider_id ORDER BY total DESC`
+    ).bind(sinceTs).all();
+  }
   return { ...(row || {}), byProvider: byProvider.results || [] };
 }
 

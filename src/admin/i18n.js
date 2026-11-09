@@ -21,7 +21,7 @@ var I18N = {
         usageCurlLabel: '示例',
         errorsTitle: '常见错误速查', errorsDesc: '调用网关或上游服务商时的常见 HTTP 状态码、产生原因与排查方案',
         errColCode: '状态码', errColName: '类型', errColCause: '常见原因', errColSolution: '排查与解决方案',
-        thProvider: '服务商', thCalls: '调用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暂无调用', unhit: '（未命中）'
+        thProvider: '服务商', thCalls: '调用', thSuccess: '成功', thTokens: 'Tokens', thFallback: '容灾', thPrivacy: '脱敏', noStats: '暂无调用', unhit: '（未命中）'
       },
       providers: {
         title: '上游', desc: '顺序即 auto 默认容灾顺序（未自定义容灾链时）', add: '添加服务商',
@@ -141,7 +141,7 @@ var I18N = {
         usageCurlLabel: '範例',
         errorsTitle: '常見錯誤速查', errorsDesc: '調用網關或上游服務商時的常見 HTTP 狀態碼、產生原因與排查方案',
         errColCode: '狀態碼', errColName: '類型', errColCause: '常見原因', errColSolution: '排查與解決方案',
-        thProvider: '服務商', thCalls: '調用', thSuccess: '成功', thTokens: 'Tokens', noStats: '暫無調用', unhit: '（未命中）'
+        thProvider: '服務商', thCalls: '調用', thSuccess: '成功', thTokens: 'Tokens', thFallback: '容災', thPrivacy: '脫敏', noStats: '暫無調用', unhit: '（未命中）'
       },
       providers: {
         title: '上游', desc: '順序即 auto 預設容災順序（未自訂容災鏈時）', add: '新增服務商',
@@ -261,7 +261,7 @@ var I18N = {
         usageCurlLabel: 'Example',
         errorsTitle: 'Common Errors & Troubleshooting', errorsDesc: 'Quick reference for HTTP status codes, probable causes, and troubleshooting tips',
         errColCode: 'Status', errColName: 'Type', errColCause: 'Probable Causes', errColSolution: 'Solutions & Tips',
-        thProvider: 'Provider', thCalls: 'Calls', thSuccess: 'Success', thTokens: 'Tokens', noStats: 'No calls yet', unhit: '(Unhit)'
+        thProvider: 'Provider', thCalls: 'Calls', thSuccess: 'Success', thTokens: 'Tokens', thFallback: 'Failover', thPrivacy: 'Redacted', noStats: 'No calls yet', unhit: '(Unhit)'
       },
       providers: {
         title: 'Upstream', desc: 'Order defines default failover when chain is unset', add: 'Add Provider',

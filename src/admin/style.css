@@ -433,13 +433,16 @@ tr.provider-row.drag-over-bottom td { box-shadow: inset 0 -2px 0 0 var(--primary
 .usage-note { margin: 0 0 8px; line-height: 1.45; }
 .usage-h3 { font-size: var(--fs-body); font-weight: var(--fw-ui); margin: 16px 0 8px; }
 
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+@media (max-width: 980px) {
+  .stats { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 720px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
 }
 #stats-prov {
   width: 100%;
-  min-width: 520px;
+  min-width: 600px;
   display: block;
 }
 #stats-prov thead, #stats-prov tbody {
@@ -447,7 +450,7 @@ tr.provider-row.drag-over-bottom td { box-shadow: inset 0 -2px 0 0 var(--primary
 }
 #stats-prov tr {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 12px;
   border-bottom: 1px solid var(--border);
 }
@@ -456,7 +459,7 @@ tr.provider-row.drag-over-bottom td { box-shadow: inset 0 -2px 0 0 var(--primary
   border-bottom: none;
   box-sizing: border-box;
 }
-#stats-prov td[colspan="4"] {
+#stats-prov td[colspan="6"], #stats-prov td[colspan="4"] {
   grid-column: 1 / -1;
 }
 .stat {
