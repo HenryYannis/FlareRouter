@@ -169,7 +169,7 @@ console.log('--- 开始测试隐私与脱敏模块 (PrivacyManager) ---');
 
   // 实例 1：第 1 轮对话，脱敏并写入 KV
   const pm1 = new PrivacyManager({ enabled: true, maskSecrets: true });
-  const rawKey = 'sk-round1secretkey1234567890abcdefgh';
+  const rawKey = 'sk-11111111112222222222333333333344';
   const maskedPrompt = pm1.maskText(`我的 API Key 是 ${rawKey}`);
   await pm1.persistToKV(mockEnv); // 默认永久写入
 
