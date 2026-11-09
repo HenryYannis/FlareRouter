@@ -31,6 +31,19 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     return val;
   }
 
+  var LANG_FLAG = {
+    zh: '🇨🇳',
+    'zh-Hant': '🇭🇰',
+    en: '🇺🇸'
+  };
+
+  function updateLangIcons(lang) {
+    var flag = LANG_FLAG[lang] || '🌐';
+    $$('.lang-icon').forEach(function (el) {
+      el.textContent = flag;
+    });
+  }
+
   function applyI18n() {
     document.title = t('title');
     document.documentElement.setAttribute('lang', state.lang === 'zh' ? 'zh-CN' : (state.lang === 'zh-Hant' ? 'zh-TW' : 'en-US'));
@@ -53,6 +66,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $$('.lang-select').forEach(function (s) {
       s.value = state.lang;
     });
+    updateLangIcons(state.lang);
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     updateThemeButtons(isDark);
     syncProtocol();

@@ -336,12 +336,23 @@ header .btn.sm,
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
+}
+.theme-toggle {
+  cursor: pointer;
+}
+.theme-toggle .theme-icon-moon,
+.theme-toggle .theme-icon-sun {
+  font-size: 14px;
+  line-height: 1;
+  display: block;
 }
 .lang-btn {
   position: relative;
   cursor: pointer;
   overflow: hidden;
-  user-select: none;
 }
 .lang-btn .lang-icon {
   font-size: 14px;

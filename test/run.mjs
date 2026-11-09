@@ -373,6 +373,14 @@ try {
   const content = (s) => s.split('\n').filter((l) => l.startsWith('data: {')).map((l) => JSON.parse(l.slice(6))).map((o) => o.choices?.[0]?.delta?.content || '').join('');
   ok(r.status === 200 && r.headers.get('content-type').includes('text/event-stream') && content(t) === '你好，世界' && t.includes('[DONE]'), '流式原样透传', t.slice(0, 200));
   ok(seen.at(-1).body.stream_options?.include_usage === true, '流式自动加 include_usage');
+
+  // 流式脱敏：开启脱敏并测试同协议流式透传暗号还原（杜绝 0 字节与 EmptyStreamError）
+  await admin('/admin/api/settings', { privacy: { enabled: true, customWords: ['敏感机密'] } });
+  r = await chat({ model: 'good/m2', stream: true, messages: [{ role: 'user', content: '查询 敏感机密 内容' }] });
+  t = await r.text();
+  ok(r.status === 200 && content(t) === '你好，世界' && t.includes('[DONE]'), '开启隐私脱敏时流式透传正常输出，不丢包不报空流');
+  ok(!JSON.stringify(seen.at(-1).body).includes('敏感机密'), '上游收到的请求已被脱敏替换为暗号占位符');
+  await admin('/admin/api/settings', { privacy: { enabled: false, customWords: [] } });
   r = await chat({ model: 'bad/x', stream: true, messages: [{ role: 'user', content: 'hi' }] });
   t = await r.text();
   ok(r.status === 200 && content(t) === '你好，世界' && r.headers.get('x-gateway-provider') === 'good', '流式容灾：开始返回前切换到 good');

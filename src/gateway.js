@@ -550,9 +550,7 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
   const ttfb = Date.now() - tA;
 
   const restorer = privacyCtx && privacyCtx.secretMap.size > 0 ? privacyCtx.createStreamRestorer() : null;
-  if (restorer) {
-    handler.raw = false;
-  }
+  const isRaw = Boolean(handler.raw);
 
   const pump = (async () => {
     let buf = '';
@@ -574,32 +572,42 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
       return handler.onEvent(curEvent, s.slice(5).trim()) || '';
     };
     try {
-      await emit(handler.start());
+      if (!isRaw) await emit(handler.start());
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        if (handler.raw && !clientGone) {
-          try { await writer.write(value); } catch { clientGone = true; }
+        const chunkText = decoder.decode(value, { stream: true });
+        if (isRaw && !clientGone) {
+          try {
+            if (restorer) {
+              const restored = restorer(chunkText);
+              if (restored) await writer.write(encoder.encode(restored));
+            } else {
+              await writer.write(value);
+            }
+          } catch { clientGone = true; }
         }
-        buf += decoder.decode(value, { stream: true });
+        buf += chunkText;
         let idx;
         let out = '';
         while ((idx = buf.indexOf('\n')) >= 0) {
           out += handleLine(buf.slice(0, idx));
           buf = buf.slice(idx + 1);
         }
-        if (!handler.raw) await emit(out);
+        if (!isRaw) await emit(out);
         if (clientGone) break;
       }
-      if (buf) { const out = handleLine(buf); if (!handler.raw) await emit(out); }
+      if (buf) { const out = handleLine(buf); if (!isRaw) await emit(out); }
       if (restorer) {
         const rem = restorer('');
-        if (rem) await emit(rem);
+        if (rem && !clientGone) {
+          try { await writer.write(encoder.encode(rem)); } catch { clientGone = true; }
+        }
       }
-      if (!handler.raw) await emit(handler.finish(null));
+      if (!isRaw) await emit(handler.finish(null));
     } catch (e) {
       streamError = `流读取中断：${errText(e)}`;
-      if (!handler.raw) await emit(handler.finish(streamError));
+      if (!isRaw) await emit(handler.finish(streamError));
     } finally {
       try { await writer.close(); } catch { /* 客户端已断开 */ }
       if (clientGone) { try { await reader.cancel(); } catch { /* ignore */ } }
