@@ -1225,10 +1225,17 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   function renderModelSelects() {
     var ms = state.cfg.models || modelsFrom(state.cfg.providers);
+    if (!ms.includes('auto')) ms.unshift('auto');
     state.cfg.models = ms;
     var opts = ms.map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
-    var keepC = $('#c-model').value || (chatState && chatState.model) || '';
-    $('#c-model').innerHTML = opts; if (keepC) $('#c-model').value = keepC;
+    var keepC = (chatState && chatState.model) || $('#c-model').value || 'auto';
+    $('#c-model').innerHTML = opts;
+    if (ms.includes(keepC)) {
+      $('#c-model').value = keepC;
+    } else {
+      $('#c-model').value = 'auto';
+      if (chatState) chatState.model = 'auto';
+    }
     $('#chain-add').innerHTML = ms.filter(function (m) { return m !== 'auto'; }).map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
     $('#lf-provider').innerHTML = '<option value="">' + t('logs.allProviders') + '</option>' + state.cfg.providers.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('');
     var ex = ms[1] || 'auto';

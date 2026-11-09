@@ -319,7 +319,19 @@
   function initChatUi() {
     loadChatState();
     $('#c-nofb').checked = !!chatState.noFallback;
-    if (chatState.model) $('#c-model').value = chatState.model;
+    var targetModel = chatState.model || 'auto';
+    var available = Array.from($('#c-model').options).map(function (o) { return o.value; });
+    if (available.length) {
+      if (available.includes(targetModel)) {
+        $('#c-model').value = targetModel;
+      } else {
+        $('#c-model').value = available.includes('auto') ? 'auto' : available[0];
+        chatState.model = $('#c-model').value;
+      }
+    } else {
+      $('#c-model').value = 'auto';
+      chatState.model = 'auto';
+    }
     renderPendingAttachments();
     renderChatMessages();
   }
