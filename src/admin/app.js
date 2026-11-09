@@ -1289,24 +1289,20 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       var failRate = total ? ((failCount * 100) / total).toFixed(1) + '%' : '0%';
       var cacheVal = '—';
       if (s.cache_read_tokens != null && s.prompt_tokens_for_cache > 0) {
-        cacheVal = num(s.cache_read_tokens) + ' / ' + (s.cache_read_tokens * 100 / s.prompt_tokens_for_cache).toFixed(1) + '%';
+        cacheVal = (s.cache_read_tokens * 100 / s.prompt_tokens_for_cache).toFixed(1) + '%';
       } else if (s.cache_read_tokens != null) {
-        cacheVal = num(s.cache_read_tokens);
+        cacheVal = '0%';
       }
-      // 纯净 6 格指标严格对齐（原版 Commit 43f9ef81 顺序，绝无 Emoji）：
+      // 纯净 6 格指标严格对齐（原版 Commit 43f9ef81 顺序，精简去冗余，绝无 Emoji）：
       // 1. 平均耗时 · 2. 调用次数 · 3. 成功率 · 4. Tokens(对齐下方第4列) · 5. 容灾切换 · 6. 隐私脱敏
-      var latencyHtml = (s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—') +
-        '<span class="stat-sub">' + t('overview.avgLatency') + '</span>';
+      var latencyHtml = s.avg_latency ? Math.round(s.avg_latency) + ' ms' : '—';
       var callsHtml = num(total) +
         '<span class="stat-sub">' + t('overview.failedCalls') + ' ' + num(failCount) + '</span>';
-      var successHtml = (total ? (ok * 100 / total).toFixed(1) + '%' : '—') +
-        '<span class="stat-sub">' + t('overview.failRate') + ' ' + failRate + '</span>';
+      var successHtml = total ? (ok * 100 / total).toFixed(1) + '%' : '—';
       var tokensHtml = num(s.tokens || 0) +
-        '<span class="stat-sub">' + t('overview.cacheHit') + ' ' + cacheVal + '</span>';
-      var fallbackHtml = num(s.fallback || 0) +
-        '<span class="stat-sub">' + t('overview.fallbackSub') + '</span>';
-      var privacyHtml = num(s.redacted_hits || 0) +
-        '<span class="stat-sub">' + t('overview.privacySub') + '</span>';
+        (cacheVal !== '—' ? '<span class="stat-sub">' + t('overview.cacheHit') + ' ' + cacheVal + '</span>' : '');
+      var fallbackHtml = num(s.fallback || 0);
+      var privacyHtml = num(s.redacted_hits || 0);
 
       $('#stats').innerHTML = [
         [t('overview.avgLatency'), latencyHtml],
@@ -1319,9 +1315,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       var rows = s.byProvider || [];
       $('#stats-prov').innerHTML = '<tr><th>' + t('overview.thProvider') + '</th><th>' + t('overview.thCalls') + '</th><th>' + t('overview.thSuccess') + '</th><th>' + t('overview.thTokens') + '</th><th>' + t('overview.thFallback') + '</th><th>' + t('overview.thPrivacy') + '</th></tr>' +
         (rows.length ? rows.map(function (r) {
-          var provName = esc(r.provider_name || r.provider_id || t('overview.unhit'));
-          if (r.avg_latency) provName += ' <span class="muted small">(' + r.avg_latency + 'ms)</span>';
-          return '<tr><td>' + provName + '</td><td>' + num(r.total) + '</td><td>' + num(r.ok) + '</td><td>' + num(r.tokens) + '</td><td>' + num(r.fallback || 0) + '</td><td>' + num(r.redacted_hits || 0) + '</td></tr>';
+          return '<tr><td>' + esc(r.provider_name || r.provider_id || t('overview.unhit')) + '</td><td>' + num(r.total) + '</td><td>' + num(r.ok) + '</td><td>' + num(r.tokens) + '</td><td>' + num(r.fallback || 0) + '</td><td>' + num(r.redacted_hits || 0) + '</td></tr>';
         }).join('') : '<tr><td colspan="6" class="muted">' + t('overview.noStats') + '</td></tr>');
     } catch (err) { $('#stats').innerHTML = '<div class="err">' + esc(err.message) + '</div>'; }
   }
