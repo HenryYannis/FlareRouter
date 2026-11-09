@@ -205,8 +205,9 @@ nav button {
   font-size: var(--fs-nav);
   transition: var(--transition);
   white-space: nowrap;
+  flex: 1;
+  text-align: center;
 }
-nav button { flex: 1; text-align: center; }
 /* 移动端：保持一行，按钮均分撑满左右；放不下时横向滚动而不换行 */
 @media (max-width: 720px) {
   nav { flex-wrap: nowrap; gap: 2px; overflow-x: auto; scrollbar-width: none; }

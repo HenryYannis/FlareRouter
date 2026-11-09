@@ -270,7 +270,8 @@
     return html.join('\n');
   }
   var isChatAtBottom = true;
-  function bindScrollListener() {
+  var openedThinks = new Set();
+  function bindChatBoxListeners() {
     var box = $('#c-messages');
     if (box && !box.dataset.bound) {
       box.dataset.bound = 'true';
@@ -278,12 +279,21 @@
         var dist = box.scrollHeight - box.scrollTop - box.clientHeight;
         isChatAtBottom = dist <= 48;
       }, { passive: true });
+      // toggle 事件不冒泡，需在捕获阶段捕获，锁定用户手动展开/折叠状态
+      box.addEventListener('toggle', function (e) {
+        var el = e.target;
+        if (!el || !el.classList || !el.classList.contains('chat-think')) return;
+        var idx = el.getAttribute('data-think-idx');
+        if (idx == null) return;
+        if (el.open) openedThinks.add(String(idx));
+        else openedThinks.delete(String(idx));
+      }, true);
     }
   }
 
   function renderChatMessages(force) {
     var box = $('#c-messages');
-    bindScrollListener();
+    bindChatBoxListeners();
     if (!chatState.messages.length) {
       box.innerHTML = '<div class="chat-empty muted">' + esc(t('chat.empty')) + '<div class="small" style="margin-top:6px">' + esc(t('chat.localOnly')) + '</div></div>';
       return;
@@ -292,7 +302,8 @@
       var role = m.role === 'assistant' ? 'assistant' : 'user';
       var think = '';
       if (role === 'assistant' && m.reasoning) {
-        think = '<details class="chat-think"><summary>' + esc(t('chat.thinkLabel')) + '</summary><div class="chat-think-body">' + esc(m.reasoning).replace(/\n/g, '<br>') + '</div></details>';
+        var isOpen = openedThinks.has(String(idx)) ? ' open' : '';
+        think = '<details class="chat-think" data-think-idx="' + idx + '"' + isOpen + '><summary>' + esc(t('chat.thinkLabel')) + '</summary><div class="chat-think-body">' + esc(m.reasoning).replace(/\n/g, '<br>') + '</div></details>';
       }
       var body = role === 'assistant' ? renderMd(contentTextOf(m.content)) : renderUserContentHtml(m.content);
       var md = role === 'assistant' ? '<div class="chat-md">' + body + '</div>' : body;
@@ -343,6 +354,7 @@
     if (chatAbort) try { chatAbort.abort(); } catch (e) {}
     chatState.messages = [];
     pendingAttachments = [];
+    openedThinks.clear();
     renderPendingAttachments();
     saveChatState();
     renderChatMessages();

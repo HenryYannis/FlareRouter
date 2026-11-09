@@ -47,28 +47,17 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   function applyI18n() {
     document.title = t('title');
     document.documentElement.setAttribute('lang', state.lang === 'zh' ? 'zh-CN' : (state.lang === 'zh-Hant' ? 'zh-TW' : 'en-US'));
-    $$('[data-i18n]').forEach(function (el) {
-      var k = el.dataset.i18n;
-      if (k) el.textContent = t(k);
+    [['data-i18n', 'textContent'], ['data-i18n-title', 'title'], ['data-i18n-placeholder', 'placeholder'], ['data-i18n-aria-label', 'aria-label']].forEach(function (pair) {
+      $$('[' + pair[0] + ']').forEach(function (el) {
+        var k = el.getAttribute(pair[0]);
+        if (!k) return;
+        if (pair[1] === 'textContent') el.textContent = t(k);
+        else el.setAttribute(pair[1], t(k));
+      });
     });
-    $$('[data-i18n-title]').forEach(function (el) {
-      var k = el.dataset.i18nTitle;
-      if (k) el.setAttribute('title', t(k));
-    });
-    $$('[data-i18n-placeholder]').forEach(function (el) {
-      var k = el.dataset.i18nPlaceholder;
-      if (k) el.setAttribute('placeholder', t(k));
-    });
-    $$('[data-i18n-aria-label]').forEach(function (el) {
-      var k = el.dataset.i18nAriaLabel;
-      if (k) el.setAttribute('aria-label', t(k));
-    });
-    $$('.lang-select').forEach(function (s) {
-      s.value = state.lang;
-    });
+    $$('.lang-select').forEach(function (s) { s.value = state.lang; });
     updateLangIcons(state.lang);
-    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    updateThemeButtons(isDark);
+    updateThemeButtons(document.documentElement.getAttribute('data-theme') === 'dark');
     syncProtocol();
     renderUsageDocs();
     renderErrorTable();
@@ -134,9 +123,8 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       else if (e.key === 'Enter') {
         var active = document.activeElement;
         if (active && active.tagName === 'TEXTAREA') return;
-        if (active && active.classList && active.classList.contains('custom-dialog-input')) return;
         var btn = dialogOverlay.querySelector('.custom-dialog-btn-confirm');
-        if (btn) { e.preventDefault(); btn.click(); }
+        if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
       }
     });
     document.body.appendChild(dialogOverlay);
@@ -148,80 +136,44 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     dialogResolve = null;
     if (res) setTimeout(function () { res(result); }, 100);
   }
-  function showConfirm(options) {
-    var opts = typeof options === 'string' ? { message: options } : (options || {});
-    var isDanger = opts.danger !== false;
-    var iconType = opts.icon || (isDanger ? 'danger' : 'warning');
+  function openCustomDialog(type, title, msg, extraHtml, showCancel, cancelTxt, okTxt, isDanger, onDone) {
     ensureDialogOverlay();
     if (dialogResolve) closeDialog(null);
     return new Promise(function (resolve) {
-      dialogResolve = function (val) { resolve(val === true); };
-      dialogOverlay.innerHTML =
-        '<div class="custom-dialog-box" role="dialog" aria-modal="true">' +
-        '<div class="custom-dialog-header"><div class="custom-dialog-icon ' + iconType + '">' + (DIALOG_ICONS[iconType] || DIALOG_ICONS.warning) + '</div>' +
-        '<h3 class="custom-dialog-title">' + esc(opts.title || t('dialog.confirmTitle')) + '</h3></div>' +
-        '<div class="custom-dialog-message">' + esc(opts.message || '') + '</div>' +
-        '<div class="custom-dialog-actions">' +
-        '<button type="button" class="custom-dialog-btn custom-dialog-btn-cancel">' + esc(opts.cancelText || t('common.cancel')) + '</button>' +
-        '<button type="button" class="custom-dialog-btn custom-dialog-btn-confirm' + (isDanger ? ' danger' : '') + '">' + esc(opts.confirmText || t('common.confirm')) + '</button>' +
-        '</div></div>';
-      dialogOverlay.querySelector('.custom-dialog-btn-cancel').onclick = function () { this.disabled = true; var b = dialogOverlay.querySelector('.custom-dialog-btn-confirm'); if (b) b.disabled = true; closeDialog(false); };
-      dialogOverlay.querySelector('.custom-dialog-btn-confirm').onclick = function () { this.disabled = true; var b = dialogOverlay.querySelector('.custom-dialog-btn-cancel'); if (b) b.disabled = true; closeDialog(true); };
+      dialogResolve = function (val) { resolve(onDone ? onDone(val) : val); };
+      var icon = DIALOG_ICONS[type] || DIALOG_ICONS.info;
+      var actions = (showCancel ? '<button type="button" class="custom-dialog-btn custom-dialog-btn-cancel">' + esc(cancelTxt || t('common.cancel')) + '</button>' : '') +
+        '<button type="button" class="custom-dialog-btn custom-dialog-btn-confirm' + (isDanger ? ' danger' : '') + '">' + esc(okTxt || (showCancel ? t('common.confirm') : t('dialog.alertOk'))) + '</button>';
+      dialogOverlay.innerHTML = '<div class="custom-dialog-box" role="dialog" aria-modal="true">' +
+        '<div class="custom-dialog-header"><div class="custom-dialog-icon ' + type + '">' + icon + '</div><h3 class="custom-dialog-title">' + esc(title) + '</h3></div>' +
+        (msg ? '<div class="custom-dialog-message">' + esc(msg) + '</div>' : '') + (extraHtml || '') +
+        '<div class="custom-dialog-actions">' + actions + '</div></div>';
+      var cBtn = dialogOverlay.querySelector('.custom-dialog-btn-confirm');
+      var xBtn = dialogOverlay.querySelector('.custom-dialog-btn-cancel');
+      if (xBtn) xBtn.onclick = function () { if (cBtn) cBtn.disabled = true; this.disabled = true; closeDialog(false); };
+      if (cBtn) cBtn.onclick = function () { if (xBtn) xBtn.disabled = true; this.disabled = true; closeDialog(true); };
       requestAnimationFrame(function () {
         dialogOverlay.classList.add('active');
-        dialogOverlay.querySelector('.custom-dialog-btn-confirm').focus();
+        var input = dialogOverlay.querySelector('input');
+        if (input) { input.focus(); input.select(); } else if (cBtn) cBtn.focus();
       });
     });
+  }
+  function showConfirm(options) {
+    var o = typeof options === 'string' ? { message: options } : (options || {});
+    var d = o.danger !== false;
+    return openCustomDialog(o.icon || (d ? 'danger' : 'warning'), o.title || t('dialog.confirmTitle'), o.message, '', true, o.cancelText, o.confirmText, d);
   }
   function showAlert(options) {
-    var opts = typeof options === 'string' ? { message: options } : (options || {});
-    var type = opts.type || 'info';
-    ensureDialogOverlay();
-    if (dialogResolve) closeDialog(null);
-    return new Promise(function (resolve) {
-      dialogResolve = function () { resolve(); };
-      dialogOverlay.innerHTML =
-        '<div class="custom-dialog-box" role="dialog" aria-modal="true">' +
-        '<div class="custom-dialog-header"><div class="custom-dialog-icon ' + type + '">' + (DIALOG_ICONS[type] || DIALOG_ICONS.info) + '</div>' +
-        '<h3 class="custom-dialog-title">' + esc(opts.title || t('dialog.alertTitle')) + '</h3></div>' +
-        '<div class="custom-dialog-message">' + esc(opts.message || '') + '</div>' +
-        '<div class="custom-dialog-actions">' +
-        '<button type="button" class="custom-dialog-btn custom-dialog-btn-confirm">' + esc(opts.buttonText || t('dialog.alertOk')) + '</button>' +
-        '</div></div>';
-      dialogOverlay.querySelector('.custom-dialog-btn-confirm').onclick = function () { closeDialog(true); };
-      requestAnimationFrame(function () {
-        dialogOverlay.classList.add('active');
-        dialogOverlay.querySelector('.custom-dialog-btn-confirm').focus();
-      });
-    });
+    var o = typeof options === 'string' ? { message: options } : (options || {});
+    return openCustomDialog(o.type || 'info', o.title || t('dialog.alertTitle'), o.message, '', false, '', o.buttonText, false);
   }
   function showPrompt(options) {
-    var opts = typeof options === 'string' ? { message: options } : (options || {});
-    ensureDialogOverlay();
-    if (dialogResolve) closeDialog(null);
-    return new Promise(function (resolve) {
-      dialogResolve = resolve;
-      dialogOverlay.innerHTML =
-        '<div class="custom-dialog-box" role="dialog" aria-modal="true">' +
-        '<div class="custom-dialog-header"><div class="custom-dialog-icon info">' + DIALOG_ICONS.info + '</div>' +
-        '<h3 class="custom-dialog-title">' + esc(opts.title || t('dialog.promptTitle')) + '</h3></div>' +
-        (opts.message ? '<div class="custom-dialog-message">' + esc(opts.message) + '</div>' : '') +
-        '<div class="custom-dialog-prompt-wrap"><input type="text" class="custom-dialog-input" value="' + esc(opts.defaultValue || '') + '"></div>' +
-        '<div class="custom-dialog-actions">' +
-        '<button type="button" class="custom-dialog-btn custom-dialog-btn-cancel">' + esc(opts.cancelText || t('common.cancel')) + '</button>' +
-        '<button type="button" class="custom-dialog-btn custom-dialog-btn-confirm">' + esc(opts.confirmText || t('common.confirm')) + '</button>' +
-        '</div></div>';
-      var input = dialogOverlay.querySelector('.custom-dialog-input');
-      dialogOverlay.querySelector('.custom-dialog-btn-cancel').onclick = function () { closeDialog(null); };
-      dialogOverlay.querySelector('.custom-dialog-btn-confirm').onclick = function () { closeDialog(input.value); };
-      input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); closeDialog(input.value); }
-      });
-      requestAnimationFrame(function () {
-        dialogOverlay.classList.add('active');
-        input.focus();
-        input.select();
-      });
+    var o = typeof options === 'string' ? { message: options } : (options || {});
+    var extra = '<div class="custom-dialog-prompt-wrap"><input type="text" class="custom-dialog-input" value="' + esc(o.defaultValue || '') + '"></div>';
+    return openCustomDialog('info', o.title || t('dialog.promptTitle'), o.message, extra, true, o.cancelText, o.confirmText, false, function (ok) {
+      var inp = dialogOverlay ? dialogOverlay.querySelector('.custom-dialog-input') : null;
+      return ok && inp ? inp.value : null;
     });
   }
   function fmtTime(ts) {
@@ -298,141 +250,33 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   }
   
   var ERROR_CODES_DATA = [
-    {
-      code: 400,
-      name: 'Bad Request',
-      cls: 'c4xx',
-      causes: {
-        zh: '请求体 JSON 格式非法；缺少必填参数；上下文长度超出模型窗口（context length exceeded）；模型不支持传入的参数。',
-        'zh-Hant': '請求體 JSON 格式非法；缺少必填參數；上下文長度超出模型上限；模型不支援傳入的參數。',
-        en: 'Malformed JSON payload, missing required parameters, context length exceeded, or unsupported parameters.'
-      },
-      solutions: {
-        zh: '检查客户端请求体与参数格式；适当截断历史对话开启滑窗；核对该模型文档规范。',
-        'zh-Hant': '檢查客戶端請求體與參數格式；適當截斷歷史對話；核對該模型文檔規範。',
-        en: 'Check request body syntax; truncate chat history; verify parameter compatibility against model docs.'
-      }
-    },
-    {
-      code: 401,
-      name: 'Unauthorized',
-      cls: 'c4xx',
-      causes: {
-        zh: '网关 API Key 错误或未传（缺少 Authorization 请求头）；上游服务商 API Key 无效、已失效或填写错误。',
-        'zh-Hant': '網關 API Key 錯誤或未攜帶；上游服務商 API Key 無效、已過期或填錯。',
-        en: 'Missing or invalid gateway API key (Authorization header); or upstream provider API key is invalid/expired.'
-      },
-      solutions: {
-        zh: '检查客户端是否携带 Authorization: Bearer <key>；在后台「上游」编辑窗口核对服务商 Key 并重新测活。',
-        'zh-Hant': '檢查客戶端是否攜帶 Authorization: Bearer <key>；在「上游」編輯視窗核對 Key 並重新測活。',
-        en: 'Verify Authorization header in client; re-check and test provider API key under "Providers".'
-      }
-    },
-    {
-      code: 402,
-      name: 'Payment Required',
-      cls: 'c4xx',
-      causes: {
-        zh: '对应上游服务商账户欠费或可用余额不足。',
-        'zh-Hant': '對應上游服務商帳戶欠費或可用餘額不足。',
-        en: 'Upstream provider account out of credits, balance exhausted, or payment required.'
-      },
-      solutions: {
-        zh: '前往服务商控制台充值。<div class="muted small" style="margin-top:3px">💡 <b>网关特性：</b>开启容灾链时，网关遇到 402 会自动 0ms 快速熔断跳过该服务商，尝试后续服务商。</div>',
-        'zh-Hant': '前往服務商控制台儲值。<div class="muted small" style="margin-top:3px">💡 <b>網關特性：</b>開啟容災鏈時，遇到 402 會自動 0ms 快速熔斷跳過該商並嘗試下一家。</div>',
-        en: 'Top up credits in upstream console.<div class="muted small" style="margin-top:3px">💡 <b>Gateway:</b> Automatically fast-fails over (0ms) to next provider if failover chain is enabled.</div>'
-      }
-    },
-    {
-      code: 404,
-      name: 'Not Found',
-      cls: 'c4xx',
-      causes: {
-        zh: '请求的模型名称不存在或拼写错误；Base URL 缺少 /v1；指定的服务商未配置该模型。',
-        'zh-Hant': '請求的模型名稱不存在或拼寫錯誤；Base URL 缺少 /v1；指定的服務商未配置該模型。',
-        en: 'Model name not found or misspelled; Base URL missing /v1 path; model not registered under provider.'
-      },
-      solutions: {
-        zh: '访问 GET /v1/models 查看可用模型列表；按「服务商ID/模型」或 auto 调用；确认 Base URL 为 https://域名/v1。',
-        'zh-Hant': '訪問 GET /v1/models 查看可用模型列表；按「服務商ID/模型」或 auto 調用；確認 Base URL 為 https://網域名稱/v1。',
-        en: 'Query GET /v1/models for available list; use "provider/model" or "auto"; ensure Base URL ends with /v1.'
-      }
-    },
-    {
-      code: 429,
-      name: 'Too Many Requests',
-      cls: 'c4xx',
-      causes: {
-        zh: '① <b>网关限额超限</b>：当前 Key 消耗达到后台设置的 Token 限额（可在「密钥」页查看红色已超额标识）；② <b>上游限流/欠费</b>：上游并发超频（RPM/TPM）或配额耗尽。',
-        'zh-Hant': '① <b>網關限額超額</b>：目前 Key 消耗達到後台設置的 Token 上限（可在「密鑰」頁檢視紅色已超額標記）；② <b>上游限流/超額</b>：上游併發超頻或配額用盡。',
-        en: '① <b>Gateway Quota</b>: Key hit Token limit (marked red in "Keys"); ② <b>Upstream Rate Limit</b>: Provider RPM/TPM limit or credit exhausted.'
-      },
-      solutions: {
-        zh: '若是网关限额，在「密钥」页提高上限或重置已用额度为 0；若是上游问题，网关会自动熔断并尝试容灾链下一家。<div class="muted small" style="margin-top:3px">💡 <b>提示：</b>网关密钥超额时，模型列表（/v1/models）仍保持可正常拉取。</div>',
-        'zh-Hant': '若為網關密鑰超額，在「密鑰」頁調高限額或重置已用額度為 0；若為上游問題，網關會自動熔斷並嘗試容災鏈下一家。<div class="muted small" style="margin-top:3px">💡 <b>提示：</b>網關密鑰超額時，模型列表（/v1/models）仍可正常取得。</div>',
-        en: 'If gateway quota, raise limit or reset usage in "Keys"; if upstream, gateway automatically failovers to the next provider.<div class="muted small" style="margin-top:3px">💡 <b>Tip:</b> GET /v1/models remains accessible even when quota is exceeded.</div>'
-      }
-    },
-    {
-      code: 500,
-      name: 'Internal Server Error',
-      cls: 'c5xx',
-      causes: {
-        zh: '上游服务商临时服务故障、模型端异常或解析异常。',
-        'zh-Hant': '上游服務商暫時性故障、模型端異常或伺服器崩潰。',
-        en: 'Upstream provider internal error, model server crash, or server overload.'
-      },
-      solutions: {
-        zh: '在后台「日志」查看具体错误响应与堆栈；开启容灾链时网关会自动尝试后续备用服务商。',
-        'zh-Hant': '在後台「日誌」查看具體錯誤訊息與堆疊；開啟容災鏈時網關會自動嘗試備用服務商。',
-        en: 'Inspect upstream error details in "Logs" tab; gateway will automatically try fallback providers.'
-      }
-    },
-    {
-      code: 502,
-      name: 'Bad Gateway',
-      cls: 'c5xx',
-      causes: {
-        zh: '无法连接上游 Base URL；域名解析失败（DNS）；网络被阻断或反向代理服务下线。',
-        'zh-Hant': '無法連線至上游 Base URL；DNS 解析失敗；網路阻斷或反向代理下線。',
-        en: 'Unable to connect to upstream Base URL, DNS resolution failed, connection blocked, or proxy offline.'
-      },
-      solutions: {
-        zh: '检查后台「上游」服务商的 Base URL 是否正确并包含 https://；在服务商编辑窗口测试模型连通性。',
-        'zh-Hant': '檢查後台「上游」服務商的 Base URL 是否正確並包含 https://；在編輯視窗測試模型連通性。',
-        en: 'Check provider Base URL and ensure https:// prefix; use test button under "Providers" to check connectivity.'
-      }
-    },
-    {
-      code: 503,
-      name: 'Service Unavailable',
-      cls: 'c5xx',
-      causes: {
-        zh: '网关未添加启用的服务商或模型为空；或容灾链中所有候选服务商依次尝试后全部失败。',
-        'zh-Hant': '網關未添加啟用的服務商或模型為空；或容災鏈中所有候選服務商嘗試後全部失敗。',
-        en: 'No enabled providers or models configured; or all candidates in failover chain were exhausted and failed.'
-      },
-      solutions: {
-        zh: '前往「上游」启用服务商并配置模型；若为全链失败，在「日志」中查看每家服务商的失败明细。',
-        'zh-Hant': '前往「上游」啟用服務商並配置模型；若為全鏈失敗，在「日誌」查看各家失敗原因。',
-        en: 'Enable at least one provider with models in "Providers"; check "Logs" for root cause across providers.'
-      }
-    },
-    {
-      code: 504,
-      name: 'Gateway Timeout',
-      cls: 'c5xx',
-      causes: {
-        zh: '上游生成响应时间过长，超过 Cloudflare Workers 最大执行超时限制（通常约 100 秒）；上游无响应挂起。',
-        'zh-Hant': '上游回應時間過長，超出 Cloudflare Workers 執行時間上限（通常約 100 秒）；上游無回應。',
-        en: 'Upstream response exceeded Cloudflare Workers execution timeout (~100s); network stall.'
-      },
-      solutions: {
-        zh: '在客户端开启流式传输（"stream": true）保持连接心跳；精简提示词或换用响应更快的模型。',
-        'zh-Hant': '在客戶端開啟串流傳輸（"stream": true）保持心跳；精簡提示詞或換用更快的模型。',
-        en: 'Enable streaming ("stream": true) to maintain active connection; reduce prompt tokens; use faster models.'
-      }
-    }
+    { code: 400, name: 'Bad Request', cls: 'c4xx',
+      causes: { zh: '请求体 JSON 格式非法；缺少必填参数；上下文长度超出模型窗口（context length exceeded）；模型不支持传入的参数。', 'zh-Hant': '請求體 JSON 格式非法；缺少必填參數；上下文長度超出模型上限；模型不支援傳入的參數。', en: 'Malformed JSON payload, missing required parameters, context length exceeded, or unsupported parameters.' },
+      solutions: { zh: '检查客户端请求体与参数格式；适当截断历史对话开启滑窗；核对该模型文档规范。', 'zh-Hant': '檢查客戶端請求體與參數格式；適當截斷歷史對話；核對該模型文檔規範。', en: 'Check request body syntax; truncate chat history; verify parameter compatibility against model docs.' } },
+    { code: 401, name: 'Unauthorized', cls: 'c4xx',
+      causes: { zh: '网关 API Key 错误或未传（缺少 Authorization 请求头）；上游服务商 API Key 无效、已失效或填写错误。', 'zh-Hant': '網關 API Key 錯誤或未攜帶；上游服務商 API Key 無效、已過期或填錯。', en: 'Missing or invalid gateway API key (Authorization header); or upstream provider API key is invalid/expired.' },
+      solutions: { zh: '检查客户端是否携带 Authorization: Bearer <key>；在后台「上游」编辑窗口核对服务商 Key 并重新测活。', 'zh-Hant': '檢查客戶端是否攜帶 Authorization: Bearer <key>；在「上游」編輯視窗核對 Key 並重新測活。', en: 'Verify Authorization header in client; re-check and test provider API key under "Providers".' } },
+    { code: 402, name: 'Payment Required', cls: 'c4xx',
+      causes: { zh: '对应上游服务商账户欠费或可用余额不足。', 'zh-Hant': '對應上游服務商帳戶欠費或可用餘額不足。', en: 'Upstream provider account out of credits, balance exhausted, or payment required.' },
+      solutions: { zh: '前往服务商控制台充值。<div class="muted small" style="margin-top:3px">💡 <b>网关特性：</b>开启容灾链时，网关遇到 402 会自动 0ms 快速熔断跳过该服务商，尝试后续服务商。</div>', 'zh-Hant': '前往服務商控制台儲值。<div class="muted small" style="margin-top:3px">💡 <b>網關特性：</b>開啟容災鏈時，遇到 402 會自動 0ms 快速熔斷跳過該商並嘗試下一家。</div>', en: 'Top up credits in upstream console.<div class="muted small" style="margin-top:3px">💡 <b>Gateway:</b> Automatically fast-fails over (0ms) to next provider if failover chain is enabled.</div>' } },
+    { code: 404, name: 'Not Found', cls: 'c4xx',
+      causes: { zh: '请求的模型名称不存在或拼写错误；Base URL 缺少 /v1；指定的服务商未配置该模型。', 'zh-Hant': '請求的模型名稱不存在或拼寫錯誤；Base URL 缺少 /v1；指定的服務商未配置該模型。', en: 'Model name not found or misspelled; Base URL missing /v1 path; model not registered under provider.' },
+      solutions: { zh: '访问 GET /v1/models 查看可用模型列表；按「服务商ID/模型」或 auto 调用；确认 Base URL 为 https://域名/v1。', 'zh-Hant': '訪問 GET /v1/models 查看可用模型列表；按「服務商ID/模型」或 auto 調用；確認 Base URL 為 https://網域名稱/v1。', en: 'Query GET /v1/models for available list; use "provider/model" or "auto"; ensure Base URL ends with /v1.' } },
+    { code: 429, name: 'Too Many Requests', cls: 'c4xx',
+      causes: { zh: '① <b>网关限额超限</b>：当前 Key 消耗达到后台设置的 Token 限额（可在「密钥」页查看红色已超额标识）；② <b>上游限流/欠费</b>：上游并发超频（RPM/TPM）或配额耗尽。', 'zh-Hant': '① <b>網關限額超額</b>：目前 Key 消耗達到後台設置的 Token 上限（可在「密鑰」頁檢視紅色已超額標記）；② <b>上游限流/超額</b>：上游併發超頻或配額用盡。', en: '① <b>Gateway Quota</b>: Key hit Token limit (marked red in "Keys"); ② <b>Upstream Rate Limit</b>: Provider RPM/TPM limit or credit exhausted.' },
+      solutions: { zh: '若是网关限额，在「密钥」页提高上限或重置已用额度为 0；若是上游问题，网关会自动熔断并尝试容灾链下一家。<div class="muted small" style="margin-top:3px">💡 <b>提示：</b>网关密钥超额时，模型列表（/v1/models）仍保持可正常拉取。</div>', 'zh-Hant': '若為網關密鑰超額，在「密鑰」頁調高限額或重置已用額度為 0；若為上游問題，網關會自動熔斷並嘗試容災鏈下一家。<div class="muted small" style="margin-top:3px">💡 <b>提示：</b>網關密鑰超額時，模型列表（/v1/models）仍可正常取得。</div>', en: 'If gateway quota, raise limit or reset usage in "Keys"; if upstream, gateway automatically failovers to the next provider.<div class="muted small" style="margin-top:3px">💡 <b>Tip:</b> GET /v1/models remains accessible even when quota is exceeded.</div>' } },
+    { code: 500, name: 'Internal Server Error', cls: 'c5xx',
+      causes: { zh: '上游服务商临时服务故障、模型端异常或解析异常。', 'zh-Hant': '上游服務商暫時性故障、模型端異常或伺服器崩潰。', en: 'Upstream provider internal error, model server crash, or server overload.' },
+      solutions: { zh: '在后台「日志」查看具体错误响应与堆栈；开启容灾链时网关会自动尝试后续备用服务商。', 'zh-Hant': '在後台「日誌」查看具體錯誤訊息與堆疊；開啟容災鏈時網關會自動嘗試備用服務商。', en: 'Inspect upstream error details in "Logs" tab; gateway will automatically try fallback providers.' } },
+    { code: 502, name: 'Bad Gateway', cls: 'c5xx',
+      causes: { zh: '无法连接上游 Base URL；域名解析失败（DNS）；网络被阻断或反向代理服务下线。', 'zh-Hant': '無法連線至上游 Base URL；DNS 解析失敗；網路阻斷或反向代理下線。', en: 'Unable to connect to upstream Base URL, DNS resolution failed, connection blocked, or proxy offline.' },
+      solutions: { zh: '检查后台「上游」服务商的 Base URL 是否正确并包含 https://；在服务商编辑窗口测试模型连通性。', 'zh-Hant': '檢查後台「上游」服務商的 Base URL 是否正確並包含 https://；在編輯視窗測試模型連通性。', en: 'Check provider Base URL and ensure https:// prefix; use test button under "Providers" to check connectivity.' } },
+    { code: 503, name: 'Service Unavailable', cls: 'c5xx',
+      causes: { zh: '网关未添加启用的服务商或模型为空；或容灾链中所有候选服务商依次尝试后全部失败。', 'zh-Hant': '網關未添加啟用的服務商或模型為空；或容災鏈中所有候選服務商嘗試後全部失敗。', en: 'No enabled providers or models configured; or all candidates in failover chain were exhausted and failed.' },
+      solutions: { zh: '前往「上游」启用服务商并配置模型；若为全链失败，在「日志」中查看每家服务商的失败明细。', 'zh-Hant': '前往「上游」啟用服務商並配置模型；若為全鏈失敗，在「日誌」查看各家失敗原因。', en: 'Enable at least one provider with models in "Providers"; check "Logs" for root cause across providers.' } },
+    { code: 504, name: 'Gateway Timeout', cls: 'c5xx',
+      causes: { zh: '上游生成响应时间过长，超过 Cloudflare Workers 最大执行超时限制（通常约 100 秒）；上游无响应挂起。', 'zh-Hant': '上游回應時間過長，超出 Cloudflare Workers 執行時間上限（通常約 100 秒）；上游無回應。', en: 'Upstream response exceeded Cloudflare Workers execution timeout (~100s); network stall.' },
+      solutions: { zh: '在客户端开启流式传输（"stream": true）保持连接心跳；精简提示词或换用响应更快的模型。', 'zh-Hant': '在客戶端開啟串流傳輸（"stream": true）保持心跳；精簡提示詞或換用更快的模型。', en: 'Enable streaming ("stream": true) to maintain active connection; reduce prompt tokens; use faster models.' } }
   ];
 
   function renderErrorTable() {
@@ -621,20 +465,14 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   var provTable = $('#prov-table');
   provTable.addEventListener('dragstart', function (e) {
-    if (e.target.closest('button, input, label, a')) {
-      e.preventDefault();
-      return;
-    }
+    if (e.target.closest('button, input, label, a')) return e.preventDefault();
     var row = e.target.closest('tr.provider-row');
     if (!row) return;
     draggedProvIdx = +row.dataset.dragIdx;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', String(draggedProvIdx));
-    setTimeout(function () {
-      if (row) row.classList.add('is-dragging');
-    }, 0);
+    setTimeout(function () { if (row) row.classList.add('is-dragging'); }, 0);
   });
-
   provTable.addEventListener('dragover', function (e) {
     if (draggedProvIdx === null) return;
     var targetRow = e.target.closest('tr.provider-row');
@@ -642,28 +480,15 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     var targetIdx = +targetRow.dataset.dragIdx;
-    if (targetIdx === draggedProvIdx) {
-      clearDragOverClasses();
-      targetRow.classList.add('is-dragging');
-      return;
-    }
+    if (targetIdx === draggedProvIdx) { clearDragOverClasses(); targetRow.classList.add('is-dragging'); return; }
     var rect = targetRow.getBoundingClientRect();
     var isBelow = e.clientY >= (rect.top + rect.height / 2);
-    $$('#prov-table tr.provider-row').forEach(function (r) {
-      if (r !== targetRow) r.classList.remove('drag-over-top', 'drag-over-bottom');
-    });
-    if (isBelow) {
-      targetRow.classList.remove('drag-over-top');
-      targetRow.classList.add('drag-over-bottom');
-    } else {
-      targetRow.classList.remove('drag-over-bottom');
-      targetRow.classList.add('drag-over-top');
-    }
+    $$('#prov-table tr.provider-row').forEach(function (r) { if (r !== targetRow) r.classList.remove('drag-over-top', 'drag-over-bottom'); });
+    targetRow.classList.toggle('drag-over-top', !isBelow);
+    targetRow.classList.toggle('drag-over-bottom', isBelow);
   });
-
   provTable.addEventListener('dragleave', function (e) {
-    var related = e.relatedTarget;
-    if (!related || !provTable.contains(related)) {
+    if (!e.relatedTarget || !provTable.contains(e.relatedTarget)) {
       clearDragOverClasses();
       if (draggedProvIdx !== null) {
         var dr = $('#prov-table tr.provider-row[data-drag-idx="' + draggedProvIdx + '"]');
@@ -671,7 +496,6 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       }
     }
   });
-
   provTable.addEventListener('drop', function (e) {
     if (draggedProvIdx === null) return;
     e.preventDefault();
@@ -683,14 +507,9 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     var toIdx = +targetRow.dataset.dragIdx;
     if (fromIdx === toIdx) return;
     var rect = targetRow.getBoundingClientRect();
-    var isBelow = e.clientY >= (rect.top + rect.height / 2);
-    reorderProvider(fromIdx, toIdx, isBelow);
+    reorderProvider(fromIdx, toIdx, e.clientY >= (rect.top + rect.height / 2));
   });
-
-  provTable.addEventListener('dragend', function () {
-    draggedProvIdx = null;
-    clearDragOverClasses();
-  });
+  provTable.addEventListener('dragend', function () { draggedProvIdx = null; clearDragOverClasses(); });
 
   $('#prov-table').addEventListener('click', async function (e) {
     var b = e.target.closest('button'); if (!b) return;
@@ -1172,65 +991,29 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     }
   });
 
-  $('#chain-picker-first').addEventListener('click', function () {
-    state.cfg.providers.forEach(function (p) {
-      if (p.enabled && p.models && p.models.length) {
-        pickerSelected.add(p.id + '/' + p.models[0]);
-      }
+  function addPickerModelsByFilter(filterFn) {
+    (state.cfg.providers || []).forEach(function (p) {
+      if (!p.enabled || !p.models) return;
+      p.models.forEach(function (m, idx) {
+        var caps = (p.modelCaps && p.modelCaps[m]) || [];
+        if (filterFn(caps, idx)) pickerSelected.add(p.id + '/' + m);
+      });
     });
     renderChainPickerGroups();
-  });
-
-  $('#chain-picker-vision').addEventListener('click', function () {
-    state.cfg.providers.forEach(function (p) {
-      if (p.enabled && p.models) {
-        p.models.forEach(function (m) {
-          if (p.modelCaps && Array.isArray(p.modelCaps[m]) && p.modelCaps[m].indexOf('vision') >= 0) pickerSelected.add(p.id + '/' + m);
-        });
-      }
-    });
-    renderChainPickerGroups();
-  });
-
-  $('#chain-picker-tools').addEventListener('click', function () {
-    state.cfg.providers.forEach(function (p) {
-      if (p.enabled && p.models) {
-        p.models.forEach(function (m) {
-          if (p.modelCaps && Array.isArray(p.modelCaps[m]) && p.modelCaps[m].indexOf('tools') >= 0) pickerSelected.add(p.id + '/' + m);
-        });
-      }
-    });
-    renderChainPickerGroups();
-  });
-
-  $('#chain-picker-image').addEventListener('click', function () {
-    state.cfg.providers.forEach(function (p) {
-      if (p.enabled && p.models) {
-        p.models.forEach(function (m) {
-          if (p.modelCaps && Array.isArray(p.modelCaps[m]) && (p.modelCaps[m].indexOf('image') >= 0 || p.modelCaps[m].indexOf('imageGen') >= 0)) pickerSelected.add(p.id + '/' + m);
-        });
-      }
-    });
-    renderChainPickerGroups();
-  });
+  }
+  $('#chain-picker-first').addEventListener('click', function () { addPickerModelsByFilter(function (_, i) { return i === 0; }); });
+  $('#chain-picker-vision').addEventListener('click', function () { addPickerModelsByFilter(function (c) { return c.indexOf('vision') >= 0; }); });
+  $('#chain-picker-tools').addEventListener('click', function () { addPickerModelsByFilter(function (c) { return c.indexOf('tools') >= 0; }); });
+  $('#chain-picker-image').addEventListener('click', function () { addPickerModelsByFilter(function (c) { return c.indexOf('image') >= 0 || c.indexOf('imageGen') >= 0; }); });
 
   $('#chain-picker-all').addEventListener('click', function () {
-    $('#chain-picker-list').querySelectorAll('input[data-pk]').forEach(function (cb) {
-      pickerSelected.add(cb.dataset.pk);
-    });
+    $$('#chain-picker-list input[data-pk]').forEach(function (cb) { pickerSelected.add(cb.dataset.pk); });
     renderChainPickerGroups();
   });
-
-  $('#chain-picker-none').addEventListener('click', function () {
-    pickerSelected.clear();
-    renderChainPickerGroups();
-  });
-
+  $('#chain-picker-none').addEventListener('click', function () { pickerSelected.clear(); renderChainPickerGroups(); });
   $('#chain-picker-confirm').addEventListener('click', function () {
     var nextDraft = chainDraft.filter(function (k) { return pickerSelected.has(k); });
-    pickerSelected.forEach(function (k) {
-      if (nextDraft.indexOf(k) < 0) nextDraft.push(k);
-    });
+    pickerSelected.forEach(function (k) { if (nextDraft.indexOf(k) < 0) nextDraft.push(k); });
     chainDraft = nextDraft;
     drawChain();
     $('#dlg-chain-picker').close();
@@ -1451,12 +1234,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       }
       if (b.dataset.rename) {
         var renId = b.dataset.rename;
-        var curName = '';
-        state.keys.forEach(function (k) { if (k.id === renId) curName = k.name || ''; });
-        var nextName = await showPrompt({ title: t('keys.renamePrompt'), defaultValue: curName });
+        var curK = state.keys.find(function (k) { return k.id === renId; });
+        var nextName = await showPrompt({ title: t('keys.renamePrompt'), defaultValue: curK ? curK.name : '' });
         if (nextName === null) return;
         nextName = String(nextName).trim();
-        if (!nextName) { toast(t('keys.nameRequired')); return; }
+        if (!nextName) return toast(t('keys.nameRequired'));
         var prevRen = state.keys.slice();
         renderKeys(state.keys.map(function (k) { return k.id === renId ? Object.assign({}, k, { name: nextName.slice(0, 60) }) : k; }));
         try {
@@ -1466,8 +1248,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         return;
       }
       if (b.dataset.quota) {
-        var qId = b.dataset.quota;
-        var qK = state.keys.find(function (k) { return k.id === qId; });
+        var qId = b.dataset.quota, qK = state.keys.find(function (k) { return k.id === qId; });
         if (!qK) return;
         state.quotaKeyId = qId;
         $('#kq-name').textContent = qK.name || qId;
@@ -1479,29 +1260,19 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         return;
       }
       if (b.dataset.rotate) {
-        var rotId = b.dataset.rotate;
-        var targetK = state.keys.find(function (k) { return k.id === rotId; });
+        var rotId = b.dataset.rotate, targetK = state.keys.find(function (k) { return k.id === rotId; });
         var targetName = targetK ? targetK.name : rotId;
         if (!(await showConfirm({ message: t('keys.rotateConfirm', { name: targetName }), danger: true }))) return;
-        var row = b.closest('tr');
-        var rowBtns = row ? row.querySelectorAll('button') : [];
+        var rowBtns = b.closest('tr') ? b.closest('tr').querySelectorAll('button') : [];
         rowBtns.forEach(function (btn) { btn.disabled = true; });
         b.textContent = t('keys.rotating');
         try {
           var rotRes = await api('/admin/api/keys/rotate', { body: { id: rotId } });
           await loadKeys();
-          try {
-            await navigator.clipboard.writeText(rotRes.key);
-            toast(t('header.copied'));
-          } catch (e) {}
-          await showAlert({
-            type: 'success',
-            title: t('keys.rotateTitle'),
-            message: t('keys.rotateNotice', { name: targetName }) + '\n\n' + rotRes.key
-          });
+          try { await navigator.clipboard.writeText(rotRes.key); toast(t('header.copied')); } catch (e) {}
+          await showAlert({ type: 'success', title: t('keys.rotateTitle'), message: t('keys.rotateNotice', { name: targetName }) + '\n\n' + rotRes.key });
         } catch (err) {
-          b.disabled = false;
-          b.textContent = t('keys.rotate');
+          b.disabled = false; b.textContent = t('keys.rotate');
           rowBtns.forEach(function (btn) { btn.disabled = false; });
           await showAlert({ message: err.message });
         }
@@ -1517,11 +1288,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           var delRes = await api('/admin/api/keys/delete', { body: { id: delId } });
           toast(t('keys.deleted'));
           if (delRes && delRes.items) renderKeys(delRes.items);
-        } catch (err) {
-          state.keys = prevDel;
-          renderKeys(prevDel);
-          await showAlert({ message: err.message });
-        }
+        } catch (err) { state.keys = prevDel; renderKeys(prevDel); await showAlert({ message: err.message }); }
         return;
       }
     } catch (err) { await showAlert({ message: err.message }); }
@@ -1671,29 +1438,26 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         '<div class="scroll-x"><table class="redacted-detail-table">' +
         '<thead><tr><th style="width:75px">' + t('logs.redactedKind') + '</th><th>' + t('logs.redactedOriginal') + '</th><th>' + t('logs.redactedPlaceholder') + '</th></tr></thead><tbody>' +
         redactedItems.map(function (item) {
-          return '<tr>' +
-            '<td><span class="tag warn" style="font-size:11px">' + esc(item.kind || 'TEXT') + '</span></td>' +
-            '<td class="mono small" style="word-break:break-all">' + esc(item.original) +
-              ' <button type="button" class="copy-inline-btn" data-copy-val="' + esc(item.original) + '">' + t('logs.copy') + '</button></td>' +
-            '<td class="mono small" style="word-break:break-all;color:var(--muted)">' + esc(item.placeholder) + '</td>' +
-            '</tr>';
+          return '<tr><td><span class="tag warn" style="font-size:11px">' + esc(item.kind || 'TEXT') + '</span></td>' +
+            '<td class="mono small" style="word-break:break-all">' + esc(item.original) + ' <button type="button" class="copy-inline-btn" data-copy-val="' + esc(item.original) + '">' + t('logs.copy') + '</button></td>' +
+            '<td class="mono small" style="word-break:break-all;color:var(--muted)">' + esc(item.placeholder) + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     }
     $('#log-detail').innerHTML = h;
-    $('#log-detail').querySelectorAll('.copy-inline-btn').forEach(function (btn) {
-      btn.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        var val = btn.getAttribute('data-copy-val');
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(val).then(function () {
-            var old = btn.textContent;
-            btn.textContent = t('logs.copied');
-            setTimeout(function () { btn.textContent = old; }, 1500);
-          });
-        }
-      });
-    });
     $('#dlg-log').showModal();
+  });
+  $('#log-detail').addEventListener('click', function (e) {
+    var btn = e.target.closest('.copy-inline-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    var val = btn.getAttribute('data-copy-val');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(val).then(function () {
+        var old = btn.textContent;
+        btn.textContent = t('logs.copied');
+        setTimeout(function () { btn.textContent = old; }, 1500);
+      });
+    }
   });
 
 // ---- 启动 ----
