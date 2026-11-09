@@ -94,7 +94,7 @@
   }
   function saveChatState() {
     var payload = {
-      model: $('#c-model').value || chatState.model || 'auto',
+      model: $('#c-model').value || chatState.model || 'FlareRouter/auto',
       noFallback: $('#c-nofb').checked,
       messages: chatState.messages.map(function (m) {
         return { role: m.role, content: m.content, reasoning: m.reasoning || '' };
@@ -319,18 +319,19 @@
   function initChatUi() {
     loadChatState();
     $('#c-nofb').checked = !!chatState.noFallback;
-    var targetModel = chatState.model || 'auto';
+    var targetModel = chatState.model;
+    if (!targetModel || targetModel === 'auto') targetModel = 'FlareRouter/auto';
     var available = Array.from($('#c-model').options).map(function (o) { return o.value; });
     if (available.length) {
       if (available.includes(targetModel)) {
         $('#c-model').value = targetModel;
       } else {
-        $('#c-model').value = available.includes('auto') ? 'auto' : available[0];
+        $('#c-model').value = available.includes('FlareRouter/auto') ? 'FlareRouter/auto' : available[0];
         chatState.model = $('#c-model').value;
       }
     } else {
-      $('#c-model').value = 'auto';
-      chatState.model = 'auto';
+      $('#c-model').value = 'FlareRouter/auto';
+      chatState.model = 'FlareRouter/auto';
     }
     renderPendingAttachments();
     renderChatMessages();
@@ -444,7 +445,7 @@
         headers: { 'Content-Type': 'application/json', 'X-Admin': '1' },
         signal: chatAbort ? chatAbort.signal : undefined,
         body: JSON.stringify({
-          model: $('#c-model').value || 'auto',
+          model: $('#c-model').value || 'FlareRouter/auto',
           stream: true,
           noFallback: $('#c-nofb').checked,
           messages: payloadMessages

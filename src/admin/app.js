@@ -514,7 +514,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   }
   function setCfg(c) { state.cfg.providers = c.providers; state.cfg.settings = c.settings; state.cfg.models = modelsFrom(c.providers); renderProviders(); renderChain(); renderModelSelects(); renderSettings(); }
   function modelsFrom(providers) {
-    var out = ['auto'];
+    var out = ['FlareRouter/auto'];
     providers.forEach(function (p) { if (p.enabled) p.models.forEach(function (m) { out.push(p.id + '/' + m); }); });
     return out;
   }
@@ -1225,20 +1225,22 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   function renderModelSelects() {
     var ms = state.cfg.models || modelsFrom(state.cfg.providers);
-    if (!ms.includes('auto')) ms.unshift('auto');
+    ms = ms.filter(function (m) { return m !== 'auto'; });
+    if (!ms.includes('FlareRouter/auto')) ms.unshift('FlareRouter/auto');
     state.cfg.models = ms;
     var opts = ms.map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
-    var keepC = (chatState && chatState.model) || $('#c-model').value || 'auto';
+    var keepC = (chatState && chatState.model) || $('#c-model').value || 'FlareRouter/auto';
+    if (keepC === 'auto') keepC = 'FlareRouter/auto';
     $('#c-model').innerHTML = opts;
     if (ms.includes(keepC)) {
       $('#c-model').value = keepC;
     } else {
-      $('#c-model').value = 'auto';
-      if (chatState) chatState.model = 'auto';
+      $('#c-model').value = 'FlareRouter/auto';
+      if (chatState) chatState.model = 'FlareRouter/auto';
     }
-    $('#chain-add').innerHTML = ms.filter(function (m) { return m !== 'auto'; }).map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
+    $('#chain-add').innerHTML = ms.filter(function (m) { return m !== 'FlareRouter/auto'; }).map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
     $('#lf-provider').innerHTML = '<option value="">' + t('logs.allProviders') + '</option>' + state.cfg.providers.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('');
-    var ex = ms[1] || 'auto';
+    var ex = ms[1] || 'FlareRouter/auto';
     $('#curl-example').textContent =
       'curl ' + base + '/chat/completions \\\n  -H "Authorization: Bearer sk-fr-xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"model":"' + ex + '","stream":true,"messages":[{"role":"user","content":"Hello"}]}\'';
   }
