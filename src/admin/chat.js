@@ -126,6 +126,20 @@
       reader.readAsDataURL(file);
     });
   }
+  function formatMiddleEllipsis(fileName, maxLength) {
+    maxLength = maxLength || 24;
+    if (!fileName || fileName.length <= maxLength) return fileName;
+    var lastDot = fileName.lastIndexOf('.');
+    if (lastDot <= 0) return fileName.slice(0, maxLength - 3) + '...';
+    var ext = fileName.slice(lastDot);
+    var base = fileName.slice(0, lastDot);
+    var avail = maxLength - ext.length - 3;
+    if (avail < 4) return fileName;
+    var front = Math.ceil(avail / 2);
+    var back = Math.floor(avail / 2);
+    return base.slice(0, front) + '...' + base.slice(-back) + ext;
+  }
+
   function renderPendingAttachments() {
     var box = $('#c-attach-list');
     if (!box) return;
@@ -141,7 +155,7 @@
         : '<span class="chat-attach-icon">FILE</span>';
       return '<div class="chat-attach-chip" data-id="' + a.id + '">' +
         preview +
-        '<span class="chat-attach-meta"><span class="chat-attach-name" title="' + esc(a.name) + '">' + esc(a.name) + '</span>' +
+        '<span class="chat-attach-meta"><span class="chat-attach-name" title="' + esc(a.name) + '">' + esc(formatMiddleEllipsis(a.name, 22)) + '</span>' +
         '<span class="chat-attach-size">' + esc(formatBytes(a.size)) + '</span></span>' +
         '<button type="button" class="chat-attach-remove" data-remove-id="' + a.id + '" aria-label="' + esc(t('chat.removeAttach')) + '">×</button>' +
         '</div>';
@@ -255,8 +269,21 @@
     closeList();
     return html.join('\n');
   }
-  function renderChatMessages() {
+  var isChatAtBottom = true;
+  function bindScrollListener() {
     var box = $('#c-messages');
+    if (box && !box.dataset.bound) {
+      box.dataset.bound = 'true';
+      box.addEventListener('scroll', function () {
+        var dist = box.scrollHeight - box.scrollTop - box.clientHeight;
+        isChatAtBottom = dist <= 48;
+      }, { passive: true });
+    }
+  }
+
+  function renderChatMessages(force) {
+    var box = $('#c-messages');
+    bindScrollListener();
     if (!chatState.messages.length) {
       box.innerHTML = '<div class="chat-empty muted">' + esc(t('chat.empty')) + '<div class="small" style="margin-top:6px">' + esc(t('chat.localOnly')) + '</div></div>';
       return;
@@ -271,7 +298,9 @@
       var md = role === 'assistant' ? '<div class="chat-md">' + body + '</div>' : body;
       return '<div class="chat-bubble ' + role + '" data-idx="' + idx + '"><div class="chat-role">' + (role === 'assistant' ? 'AI' : 'You') + '</div><div class="chat-body">' + think + md + '</div></div>';
     }).join('');
-    box.scrollTop = box.scrollHeight;
+    if (force || isChatAtBottom) {
+      box.scrollTop = box.scrollHeight;
+    }
   }
   function setChatBusy(on) {
     chatBusy = !!on;
@@ -499,8 +528,20 @@
     chatAbort = null;
   }
   $('#c-send').addEventListener('click', function () { sendChat(); });
+
+  var isComposing = false;
+  var lastCompositionEndTime = 0;
+  $('#c-input').addEventListener('compositionstart', function () { isComposing = true; });
+  $('#c-input').addEventListener('compositionend', function () {
+    isComposing = false;
+    lastCompositionEndTime = Date.now();
+  });
+
   $('#c-input').addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
+      if (isComposing || e.isComposing || (Date.now() - lastCompositionEndTime < 300)) {
+        return;
+      }
       e.preventDefault();
       sendChat();
     }

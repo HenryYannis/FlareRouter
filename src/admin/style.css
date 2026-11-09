@@ -1071,3 +1071,50 @@ html.night-theme .cap-badge.thinking { background: rgba(245, 158, 11, 0.2); colo
 html.night-theme .cap-badge.audio { background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(52, 211, 153, 0.35); }
 html.night-theme .cap-badge.embedding { background: rgba(99, 102, 241, 0.2); color: #818cf8; border-color: rgba(129, 140, 248, 0.35); }
 html.night-theme .cap-badge.rerank { background: rgba(217, 119, 6, 0.2); color: #f59e0b; border-color: rgba(245, 158, 11, 0.35); }
+
+/* ==========================================================================
+   大厂 UI 质感与微观排版升级规范 (Antigravity High-End Standards)
+   ========================================================================== */
+
+/* 1. 数字等宽锁死防抖 (Tabular Nums) - 避免监控卡片、QPS、延迟、Token、倒计时跳动乱晃 */
+.tabular-nums,
+.metric-value,
+.stat-number,
+.badge-count,
+.timer-text,
+.stat-card-value,
+.key-val,
+.stat b,
+#stats-prov td {
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
+
+/* 2. 正文排版防孤行保护 */
+h1, h2, h3, .panel-title, .modal-title {
+  text-wrap: balance;
+}
+
+p, .help-text, .alert-desc, .chat-body {
+  text-wrap: pretty;
+}
+
+/* 3. 暗色模式视网膜光学欺骗术 (Dark Mode Halation Compensation) */
+html.night-theme,
+[data-theme="dark"] {
+  --fw-ui: 450;
+  --fw-hero: 600;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 4. 行内小图标中心垂直严丝合缝对齐 (下移 1/8 个字高) */
+.inline-icon,
+.btn-icon svg,
+.tag-icon,
+.badge svg,
+.cap-badge {
+  display: inline-block;
+  vertical-align: -0.125em;
+}
+

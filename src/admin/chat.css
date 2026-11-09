@@ -244,3 +244,19 @@ html.night-theme .chat-messages { background: rgba(255, 255, 255, 0.04); }
   font-size: 12px;
   color: var(--muted);
 }
+
+/* 大厂温润双环聚焦阴影 (咬合感) */
+.chat-compose textarea:focus {
+  outline: none;
+  border-color: rgba(var(--primary-rgb), 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.3),
+              0 8px 24px -2px rgba(var(--primary-rgb), 0.18) !important;
+}
+
+/* 行内小图标中心垂直严丝合缝对齐 */
+.chat-role,
+.chat-side-btn svg,
+.chat-msg-file svg {
+  display: inline-block;
+  vertical-align: -0.125em;
+}
