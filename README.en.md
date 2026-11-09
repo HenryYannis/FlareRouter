@@ -27,7 +27,8 @@ Built for one person: no user accounts, billing or quotas, no build step. The ad
 - **Failover & Fast Circuit Breaking**: a network error, timeout or any non-2xx moves to the next entry in the chain; account-level failures (401/402/403/429 or quota exhausted) immediately fast-fail (0ms) and skip remaining models under the same provider; streams switch only before the upstream starts responding; the header `x-gateway-fallback: off` disables it for one request, and a setting disables it globally
 - **Gateway keys**: authenticate with `Authorization: Bearer`, `x-api-key` or `api-key`; create several, view raw keys, copy anytime, revoke and delete in the admin page; D1 stores raw keys and hashes
 - **Logs**: stored in D1, written asynchronously with `ctx.waitUntil`; filter by status, failover, protocol, provider, key, model or error text, and clear them; every failed attempt keeps the upstream's raw error
-- **Admin page**: `/admin` on the same Worker, admin-password sign-in; tabs for overview (with HTTP 400~504 error quick reference table), upstream, keys, test, logs and settings (failover lives under settings); modular sources under `src/admin/` (`app.js`, `chat.js`, `i18n.js`, `style.css`, `chat.css`, `index.html`); supports Simplified Chinese, Traditional Chinese, and English; day/night theme follows the system like FlarePanel; Test supports multi-turn streaming, collapsible thinking, and Markdown (stored only in this browser)
+- **Admin page**: `/admin` on the same Worker, admin-password sign-in; tabs for overview (with HTTP 400~504 error quick reference table), upstream, keys, test, logs and settings (failover and privacy redaction live under settings); modular sources under `src/admin/` (`app.js`, `chat.js`, `i18n.js`, `style.css`, `chat.css`, `index.html`); supports Simplified Chinese, Traditional Chinese, and English; day/night theme follows the system like FlarePanel; Test supports multi-turn streaming, collapsible thinking, and Markdown (stored only in this browser)
+- **Privacy & Data Redaction**: Outbound sensitive data (API keys, database connection strings, IPv4 addresses, custom sensitive keywords) are automatically replaced with deterministic tokens (e.g. `{{MASK_KEY_...}}`), and seamlessly restored in upstream responses (both non-streaming and SSE streams); tokens use deterministic hashing without degrading Prompt Cache hit rates; supports per-provider redaction policies (inherit global / always mask / bypass); automatically sanitizes call logs to prevent secrets from touching the database
 
 ## Deploy
 
@@ -102,9 +103,10 @@ Without `ADMIN_PASSWORD` the admin page can't be signed in to. Changing it signs
 Providers, the failover chain and these settings are stored in KV and edited in the admin page:
 
 - Failover on/off (on by default)
+- Privacy & redaction: global toggle, built-in detection rules (API keys, database connection strings, IPv4) and custom sensitive keyword list
+- Per-provider redaction policy (inherit global / always mask / bypass), timeout (default 60 seconds, at most 300), and whether to add `stream_options.include_usage` to streams (on by default)
 - Log retention in days (default 30, 0 keeps logs forever)
 - Whether to log message text (off by default; only metadata is logged)
-- Per-provider timeout (default 60 seconds, at most 300) and whether to add `stream_options.include_usage` to streams (on by default)
 
 设置 → 备份 (Settings → Backup) exports and imports the config. The export contains upstream keys in plain text, so keep it safe; an import replaces all current providers and settings.
 
