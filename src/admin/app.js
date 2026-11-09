@@ -1586,10 +1586,13 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       (logItems.length ? logItems.map(function (l, i) {
         var ok = l.status >= 200 && l.status < 300;
         var target = l.provider_id ? l.provider_id + '/' + (l.model || '') : '—';
+        var redactedBadge = l.redacted_hits
+          ? '<div style="margin-top:3px"><span class="tag warn" style="font-size:11px;padding:0 5px;line-height:16px;border-radius:4px;display:inline-block" title="' + esc(t('logs.redactedCount', { count: l.redacted_hits })) + '">' + t('logs.redactedBadge', { count: l.redacted_hits }) + '</span></div>'
+          : '';
         return '<tr class="click" data-log="' + i + '"><td class="small" style="white-space:nowrap">' + fmtTime(l.ts) + '</td>' +
           '<td class="small">' + esc(l.key_name || '—') + '</td>' +
           '<td class="small"><div class="mono">' + esc(target) + '</div>' + (l.requested_model && l.requested_model !== target ? '<div class="muted mono">' + t('logs.requested') + esc(l.requested_model) + '</div>' : '') + (l.stream ? '<span class="tag">' + t('logs.tagStream') + '</span> ' : '') + protoTag(l) + '</td>' +
-          '<td><span class="tag ' + (ok ? (l.error ? 'warn' : 'ok') : 'bad') + '">' + l.status + '</span>' + (!ok && l.error ? '<div class="err small" style="max-width:320px;max-height:3.2em;overflow:hidden">' + esc(l.error) + '</div>' : '') + '</td>' +
+          '<td><span class="tag ' + (ok ? (l.error ? 'warn' : 'ok') : 'bad') + '">' + l.status + '</span>' + redactedBadge + (!ok && l.error ? '<div class="err small" style="max-width:320px;max-height:3.2em;overflow:hidden">' + esc(l.error) + '</div>' : '') + '</td>' +
           '<td class="small">' + num(l.latency_ms) + ' ms' + (l.ttfb_ms != null ? '<div class="muted">' + num(l.ttfb_ms) + ' ms</div>' : '') + '</td>' +
           '<td class="small">' + num(l.total_tokens) + '</td>' +
           '<td>' + (l.fallback ? '<span class="tag warn">' + t('logs.attemptN', { n: l.attempts }) + '</span>' : '') + '</td></tr>';

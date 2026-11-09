@@ -249,7 +249,7 @@
         <p class="muted small" data-i18n="settings.privacyDesc">在请求发往第三方上游服务商前自动替换敏感信息，并在模型响应时无缝还原。</p>
         <div class="row small" style="gap:16px;margin:10px 0;flex-wrap:wrap">
           <label class="row small"><input type="checkbox" id="priv-secrets"> <span data-i18n="settings.privacyMaskSecrets">拦截 API 密钥与数据库凭据</span></label>
-          <label class="row small"><input type="checkbox" id="priv-ip"> <span data-i18n="settings.privacyMaskIp">拦截 IPv4 地址</span></label>
+          <label class="row small" title="若智能体（Agent）需执行网络运维或工具命令，请勿勾选" data-i18n-title="settings.privacyMaskIpTip"><input type="checkbox" id="priv-ip"> <span data-i18n="settings.privacyMaskIp">拦截 IPv4 地址</span></label>
         </div>
         <label class="f" for="priv-words" style="margin-top:8px" data-i18n="settings.privacyWordsLabel">自定义私有词表</label>
         <textarea id="priv-words" spellcheck="false" style="margin-top:6px;min-height:80px;width:100%" data-i18n-placeholder="settings.privacyWordsPlaceholder" placeholder="每行一个，严格精确匹配（例如个人姓名、私有域名、项目代号）"></textarea>

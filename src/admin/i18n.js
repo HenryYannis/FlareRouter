@@ -85,7 +85,7 @@ var I18N = {
         detailFieldKey: '密钥', detailFieldReqModel: '请求模型', detailFieldFinalProv: '最终服务商', detailFieldFinalModel: '最终模型',
         detailFieldStatus: '状态', detailFieldStream: '流式', detailFieldLatency: '总耗时', detailFieldTTFB: '首包',
         detailFieldTokens: 'Tokens', detailFieldCacheRead: '缓存读 Token', detailFieldAttempts: '尝试次数', detailTrail: '失败的尝试（原文）', detailError: '错误',
-        detailFieldRedacted: '隐私脱敏', redactedCount: '已脱敏 {count} 处',
+        detailFieldRedacted: '隐私脱敏', redactedCount: '已脱敏 {count} 处', redactedBadge: '脱敏 {count}',
         detailPrompt: '用户消息', yes: '是', no: '否', close: '关闭'
       },
       test: {
@@ -108,7 +108,7 @@ var I18N = {
       },
       settings: {
         privacyTitle: '隐私与脱敏', privacyDesc: '在请求发往第三方上游服务商前自动替换敏感信息，并在模型响应时无缝还原。',
-        privacySwitch: '开启请求脱敏', privacyMaskSecrets: '拦截 API 密钥与数据库凭据', privacyMaskIp: '拦截 IPv4 地址',
+        privacySwitch: '开启请求脱敏', privacyMaskSecrets: '拦截 API 密钥与数据库凭据', privacyMaskIp: '拦截 IPv4 地址', privacyMaskIpTip: '若智能体（Agent）需执行网络运维或工具命令，请勿勾选',
         privacyWordsLabel: '自定义私有词表', privacyWordsPlaceholder: '每行一个，严格精确匹配（例如个人姓名、私有域名、项目代号）',
         privacyWordsTip: '这些词在发往模型前会被替换为暗号，模型返回时自动还原。', privacySaved: '隐私设置已保存',
         logsTitle: '日志', retentionLabel: '日志保留', daysUnit: '天（0 = 永久，每日 Cron 清理）',
@@ -205,7 +205,7 @@ var I18N = {
         detailFieldKey: '密鑰', detailFieldReqModel: '請求模型', detailFieldFinalProv: '最終服務商', detailFieldFinalModel: '最終模型',
         detailFieldStatus: '狀態', detailFieldStream: '串流', detailFieldLatency: '總耗時', detailFieldTTFB: '首包',
         detailFieldTokens: 'Tokens', detailFieldCacheRead: '快取讀 Token', detailFieldAttempts: '嘗試次數', detailTrail: '失敗的嘗試（原文）', detailError: '錯誤',
-        detailFieldRedacted: '隱私脫敏', redactedCount: '已脫敏 {count} 處',
+        detailFieldRedacted: '隱私脫敏', redactedCount: '已脫敏 {count} 處', redactedBadge: '脫敏 {count}',
         detailPrompt: '使用者訊息', yes: '是', no: '否', close: '關閉'
       },
       test: {
@@ -228,7 +228,7 @@ var I18N = {
       },
       settings: {
         privacyTitle: '隱私與脫敏', privacyDesc: '在請求發往第三方上游服務商前自動替換敏感資訊，並在模型回應時無縫還原。',
-        privacySwitch: '開啟請求脫敏', privacyMaskSecrets: '攔截 API 密鑰與資料庫憑據', privacyMaskIp: '攔截 IPv4 地址',
+        privacySwitch: '開啟請求脫敏', privacyMaskSecrets: '攔截 API 密鑰與資料庫憑據', privacyMaskIp: '攔截 IPv4 地址', privacyMaskIpTip: '若智慧體（Agent）需執行網路維運或工具命令，請勿勾選',
         privacyWordsLabel: '自訂私有詞表', privacyWordsPlaceholder: '每行一個，嚴格精確匹配（例如個人姓名、私有網域、專案代號）',
         privacyWordsTip: '這些詞在發往模型前會被替換為暗號，模型返回時自動還原。', privacySaved: '隱私設定已儲存',
         logsTitle: '日誌', retentionLabel: '日誌保留', daysUnit: '天（0 = 永久，每日 Cron 清理）',
@@ -325,7 +325,7 @@ var I18N = {
         detailFieldKey: 'Key', detailFieldReqModel: 'Requested Model', detailFieldFinalProv: 'Final Provider', detailFieldFinalModel: 'Final Model',
         detailFieldStatus: 'Status', detailFieldStream: 'Stream', detailFieldLatency: 'Latency', detailFieldTTFB: 'TTFB',
         detailFieldTokens: 'Tokens', detailFieldCacheRead: 'Cache Read Tokens', detailFieldAttempts: 'Attempts', detailTrail: 'Failed Attempts (Raw)', detailError: 'Error',
-        detailFieldRedacted: 'Privacy Redaction', redactedCount: '{count} redacted',
+        detailFieldRedacted: 'Privacy Redaction', redactedCount: '{count} redacted', redactedBadge: 'Redacted {count}',
         detailPrompt: 'User Message', yes: 'Yes', no: 'No', close: 'Close'
       },
       test: {
@@ -348,7 +348,7 @@ var I18N = {
       },
       settings: {
         privacyTitle: 'Privacy & Redaction', privacyDesc: 'Automatically masks secrets and private words before sending requests upstream, and transparently restores them on response.',
-        privacySwitch: 'Enable Request Redaction', privacyMaskSecrets: 'Mask API keys & Database credentials', privacyMaskIp: 'Mask IPv4 addresses',
+        privacySwitch: 'Enable Request Redaction', privacyMaskSecrets: 'Mask API keys & Database credentials', privacyMaskIp: 'Mask IPv4 addresses', privacyMaskIpTip: 'Uncheck if your Agent runs network commands or tools',
         privacyWordsLabel: 'Custom Private Words', privacyWordsPlaceholder: 'One per line, exact match (e.g. your name, internal domains, codenames)',
         privacyWordsTip: 'These words will be masked as tokens before forwarding upstream and restored upon arrival.', privacySaved: 'Privacy settings saved',
         logsTitle: 'Logs', retentionLabel: 'Log retention', daysUnit: 'days (0 = forever, daily cron cleanup)',
