@@ -90,7 +90,7 @@ const upstream = http.createServer(async (req, res) => {
       res.write(`event: response.output_item.added\ndata: ${JSON.stringify({ type: 'response.output_item.added', sequence_number: 1, output_index: 0, item: { id: itemId, type: 'message', status: 'in_progress', role: 'assistant', content: [] } })}\n\n`);
       res.write(`event: response.output_text.delta\ndata: ${JSON.stringify({ type: 'response.output_text.delta', sequence_number: 2, output_index: 0, delta: `responses pong from ${body.model}` })}\n\n`);
       res.write(`event: response.output_text.done\ndata: ${JSON.stringify({ type: 'response.output_text.done', sequence_number: 3, output_index: 0, text: `responses pong from ${body.model}` })}\n\n`);
-      res.write(`event: response.completed\ndata: ${JSON.stringify({ type: 'response.completed', sequence_number: 4, response: { id: respId, object: 'response', status: 'completed', model: body.model, output: [{ id: itemId, type: 'message', status: 'completed', role: 'assistant', content: [{ type: 'text', text: `responses pong from ${body.model}` }] }], usage: { input_tokens: 12, output_tokens: 6, total_tokens: 18, input_token_details: { cached_tokens: 2 } } } })}\n\n`);
+      res.write(`event: response.completed\ndata: ${JSON.stringify({ type: 'response.completed', sequence_number: 4, response: { id: respId, object: 'response', status: 'completed', model: body.model, output: [{ id: itemId, type: 'message', status: 'completed', role: 'assistant', content: [{ type: 'output_text', text: `responses pong from ${body.model}` }] }], usage: { input_tokens: 12, output_tokens: 6, total_tokens: 18, input_token_details: { cached_tokens: 2 } } } })}\n\n`);
       return res.end();
     }
     return send(200, {
@@ -104,7 +104,7 @@ const upstream = http.createServer(async (req, res) => {
           type: 'message',
           status: 'completed',
           role: 'assistant',
-          content: [{ type: 'text', text: `responses pong from ${body.model}` }],
+          content: [{ type: 'output_text', text: `responses pong from ${body.model}` }],
         },
       ],
       usage: {
@@ -941,6 +941,7 @@ try {
     r.status === 200 &&
       d.object === 'response' &&
       d.status === 'completed' &&
+      d.output?.[0]?.content?.[0]?.type === 'output_text' &&
       d.output?.[0]?.content?.[0]?.text?.includes('responses pong from resp-m1') &&
       d.usage?.input_tokens === 12 &&
       d.usage?.output_tokens === 6 &&
@@ -958,6 +959,7 @@ try {
       t.includes('event: response.created') &&
       t.includes('event: response.output_text.delta') &&
       t.includes('event: response.completed') &&
+      t.includes('"type":"output_text"') &&
       t.includes('responses pong from resp-m1'),
     'Responses 原生透传（流式 SSE）',
     t.slice(0, 300)
@@ -971,6 +973,7 @@ try {
     r.status === 200 &&
       d.object === 'response' &&
       d.status === 'completed' &&
+      d.output?.[0]?.content?.[0]?.type === 'output_text' &&
       d.output?.[0]?.content?.[0]?.text === 'pong from m1' &&
       r.headers.get('x-gateway-protocol') === 'responses->openai' &&
       up.body.messages.some((m) => m.role === 'system' && m.content === 'system instruction') &&
@@ -988,6 +991,7 @@ try {
       t.includes('event: response.created') &&
       t.includes('event: response.output_text.delta') &&
       t.includes('event: response.completed') &&
+      t.includes('"type":"output_text"') &&
       t.includes('你') &&
       r.headers.get('x-gateway-protocol') === 'responses->openai',
     '跨协议：responses 入口 → openai 上游（流式 SSE）',
@@ -1001,6 +1005,7 @@ try {
     r.status === 200 &&
       d.object === 'response' &&
       d.status === 'completed' &&
+      d.output?.[0]?.content?.[0]?.type === 'output_text' &&
       d.output?.[0]?.content?.[0]?.text?.includes('claude pong from claude-x') &&
       r.headers.get('x-gateway-protocol') === 'responses->anthropic',
     '跨协议：responses 入口 → anthropic 上游（非流式）',
@@ -1010,10 +1015,12 @@ try {
   // 6. 跨协议互转：客户端 openai (chat/completions) → 上游 responses
   r = await chat({ model: 'resp/resp-m1', messages: [{ role: 'user', content: 'hello from chat' }] });
   d = await j(r);
+  up = seen.at(-1);
   ok(
     r.status === 200 &&
       d.object === 'chat.completion' &&
       d.choices?.[0]?.message?.content?.includes('responses pong from resp-m1') &&
+      up.body.input?.[0]?.content?.[0]?.type === 'input_text' &&
       r.headers.get('x-gateway-protocol') === 'openai->responses',
     '跨协议：openai chat 入口 → responses 上游（非流式）',
     JSON.stringify(d)

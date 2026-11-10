@@ -49,7 +49,9 @@ export function responsesToOpenAIRequest(body, model, { stream, streamUsage } = 
           if (Array.isArray(content)) {
             content = content.map((p) => {
               if (typeof p === 'string') return { type: 'text', text: p };
-              if (p && p.type === 'text') return { type: 'text', text: p.text || '' };
+              if (p && (p.type === 'text' || p.type === 'input_text' || p.type === 'output_text')) {
+                return { type: 'text', text: p.text || '' };
+              }
               if (p && p.type === 'image_url') return p;
               return { type: 'text', text: String(p?.text || '') };
             });
@@ -134,10 +136,23 @@ export function openAIToResponsesRequest(body, model, { stream } = {}) {
         output: typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? ''),
       });
     } else {
+      let content = m.content;
+      const partType = m.role === 'assistant' ? 'output_text' : 'input_text';
+      if (typeof content === 'string') {
+        content = [{ type: partType, text: content }];
+      } else if (Array.isArray(content)) {
+        content = content.map((p) => {
+          if (typeof p === 'string') return { type: partType, text: p };
+          if (p && (p.type === 'text' || p.type === 'input_text' || p.type === 'output_text')) {
+            return { type: partType, text: p.text || '' };
+          }
+          return p;
+        });
+      }
       input.push({
         type: 'message',
         role: m.role || 'user',
-        content: m.content,
+        content,
         ...(Array.isArray(m.tool_calls) ? { tool_calls: m.tool_calls } : {}),
       });
     }
@@ -217,7 +232,7 @@ export function openAIToResponsesResponse(body, model) {
       type: 'message',
       status: 'completed',
       role: 'assistant',
-      content: [{ type: 'text', text: String(text) }],
+      content: [{ type: 'output_text', text: String(text) }],
     });
   }
 
@@ -261,7 +276,7 @@ export function responsesToOpenAIResponse(body, model) {
     if (item.type === 'message') {
       const parts = Array.isArray(item.content) ? item.content : [];
       for (const p of parts) {
-        if (p && p.type === 'text') textContent += p.text || '';
+        if (p && (p.type === 'text' || p.type === 'output_text' || p.type === 'input_text')) textContent += p.text || '';
         else if (typeof p === 'string') textContent += p;
       }
     } else if (item.type === 'function_call') {
@@ -402,7 +417,7 @@ export function openAIToResponsesStream({ clientModel }) {
         type: 'response.content_part.added',
         output_index: 0,
         content_index: 0,
-        part: { type: 'text', text: '' },
+        part: { type: 'output_text', text: '' },
       });
       return out;
     },
@@ -463,7 +478,7 @@ export function openAIToResponsesStream({ clientModel }) {
         type: 'response.content_part.done',
         output_index: 0,
         content_index: 0,
-        part: { type: 'text', text: textAccum },
+        part: { type: 'output_text', text: textAccum },
       });
       out += emit('response.output_item.done', {
         type: 'response.output_item.done',
@@ -473,7 +488,7 @@ export function openAIToResponsesStream({ clientModel }) {
           type: 'message',
           status: 'completed',
           role: 'assistant',
-          content: [{ type: 'text', text: textAccum }],
+          content: [{ type: 'output_text', text: textAccum }],
         },
       });
 
@@ -494,7 +509,7 @@ export function openAIToResponsesStream({ clientModel }) {
               type: 'message',
               status: 'completed',
               role: 'assistant',
-              content: [{ type: 'text', text: textAccum }],
+              content: [{ type: 'output_text', text: textAccum }],
             },
           ],
           usage: {
@@ -633,7 +648,7 @@ export function anthropicToResponsesStream({ clientModel }) {
         type: 'response.content_part.added',
         output_index: 0,
         content_index: 0,
-        part: { type: 'text', text: '' },
+        part: { type: 'output_text', text: '' },
       });
       return out;
     },
@@ -690,7 +705,7 @@ export function anthropicToResponsesStream({ clientModel }) {
         type: 'response.content_part.done',
         output_index: 0,
         content_index: 0,
-        part: { type: 'text', text: textAccum },
+        part: { type: 'output_text', text: textAccum },
       });
       out += emit('response.output_item.done', {
         type: 'response.output_item.done',
@@ -700,7 +715,7 @@ export function anthropicToResponsesStream({ clientModel }) {
           type: 'message',
           status: 'completed',
           role: 'assistant',
-          content: [{ type: 'text', text: textAccum }],
+          content: [{ type: 'output_text', text: textAccum }],
         },
       });
 
@@ -721,7 +736,7 @@ export function anthropicToResponsesStream({ clientModel }) {
               type: 'message',
               status: 'completed',
               role: 'assistant',
-              content: [{ type: 'text', text: textAccum }],
+              content: [{ type: 'output_text', text: textAccum }],
             },
           ],
           usage: {
