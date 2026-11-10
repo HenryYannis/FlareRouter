@@ -915,7 +915,7 @@ try {
       name: 'Responses 官方',
       protocol: 'responses',
       baseUrl: `${UP}/resp/v1`,
-      apiKey: 'sk-resp-secret-1234567890',
+      apiKey: 'sk-11111111112222222222333333333366',
       models: 'resp-m1\nresp-m2',
     },
   });

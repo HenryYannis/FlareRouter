@@ -254,7 +254,7 @@ console.log('--- 开始测试隐私与脱敏模块 (PrivacyManager) ---');
     },
   };
 
-  const rawSecret = 'sk-quota-test-unique-key-998877';
+  const rawSecret = 'sk-11111111112222222222333333333355';
   // 第 1 轮对话：全新词，触发 1 次 get 检查 + 1 次 put 写入 + 1 次日志索引
   const pmRound1 = new PrivacyManager({ enabled: true, maskSecrets: true });
   pmRound1.maskText(`初始密钥: ${rawSecret}`);
