@@ -23,6 +23,10 @@ const REGEX_DB_CONN = /((?:postgres|mysql|mongodb(?:\+srv)?|redis):\/\/[^:\s]+:)
 const REGEX_IPV4 = /(?<![\w\.])(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?![\w\.])/g;
 export const REGEX_PLACEHOLDER = /\{\{MASK_[A-Z]+_[a-f0-9]{8}\}\}/g;
 
+// Worker 实例级内存指纹缓存（跨请求复用，消除多轮对话重复写入）
+const inMemoryPersistedMasks = (globalThis.__FLAREROUTER_PERSISTED_MASKS = globalThis.__FLAREROUTER_PERSISTED_MASKS || new Set());
+const inMemoryExistingMasks = (globalThis.__FLAREROUTER_CHECKED_EXISTING = globalThis.__FLAREROUTER_CHECKED_EXISTING || new Set());
+
 /**
  * 判定指定服务商与全局设置下，本次请求是否应当启用隐私脱敏
  * @param {object} cfg - 全局配置
@@ -190,31 +194,90 @@ export class PrivacyManager {
 
   /**
    * 将脱敏暗号与日志对照明细持久化写入 Cloudflare KV (env.CONFIG)
-   * 默认 ttlSeconds = 0，表示永久保存（永不过期）
+   * 采用“四层削峰防线”：
+   * 1. 内存常驻 Set 拦截（已写入过的暗号不再调用 put）
+   * 2. 读先于写（Read-Before-Write）：利用 10 万次读配额预检，若已存在直接记录内存并跳过 put
+   * 3. 仅当本次出现全新暗号时才持久化，日志对照明细自动配置 7 天 TTL (expirationTtl)
+   * 4. 配额耗尽兜底：捕获 429 / quota exceeded，不影响主流程执行
    * @param {object} env
    * @param {object} [opts] - { ttlSeconds, logTs }
    */
   async persistToKV(env, { ttlSeconds = 0, logTs = null } = {}) {
     if (!env || !env.CONFIG || typeof env.CONFIG.put !== 'function' || this.secretMap.size === 0) return;
-    const tasks = [];
-    const putOpts = ttlSeconds > 0 ? { expirationTtl: ttlSeconds } : undefined;
+
+    // 1. 内存预过滤：找出尚未确认在 KV 中持久化过的候选暗号
+    const candidates = [];
     for (const [placeholder, original] of this.secretMap.entries()) {
-      const key = `mask:${placeholder}`;
-      tasks.push(
-        env.CONFIG.put(key, original, putOpts).catch((e) => {
-          console.error(`KV put error for ${key}:`, e && e.message);
-        })
-      );
+      if (!inMemoryPersistedMasks.has(placeholder) && !inMemoryExistingMasks.has(placeholder)) {
+        candidates.push([placeholder, original]);
+      }
     }
+
+    const putOpts = ttlSeconds > 0 ? { expirationTtl: ttlSeconds } : undefined;
+    let hasNewMasks = false;
+    const tasks = [];
+
+    // 2. 读先于写预检（利用 10 万次读配额保护 1,000 次写配额）
+    if (candidates.length > 0) {
+      if (typeof env.CONFIG.get === 'function') {
+        await Promise.all(
+          candidates.map(async ([placeholder, original]) => {
+            const key = `mask:${placeholder}`;
+            try {
+              const existing = await env.CONFIG.get(key);
+              if (existing != null) {
+                inMemoryExistingMasks.add(placeholder);
+                return; // 云端已存在，无需重复 put！
+              }
+            } catch {}
+
+            // 确认为全新暗号，发起写入
+            hasNewMasks = true;
+            tasks.push(
+              env.CONFIG.put(key, original, putOpts)
+                .then(() => {
+                  inMemoryPersistedMasks.add(placeholder);
+                })
+                .catch((e) => {
+                  console.warn(`[FlareRouter] KV put error for ${key}:`, e && e.message);
+                })
+            );
+          })
+        );
+      } else {
+        // 如果没有 get 方法（纯 mock 场景），直接执行 put
+        hasNewMasks = true;
+        for (const [placeholder, original] of candidates) {
+          const key = `mask:${placeholder}`;
+          tasks.push(
+            env.CONFIG.put(key, original, putOpts)
+              .then(() => {
+                inMemoryPersistedMasks.add(placeholder);
+              })
+              .catch((e) => {
+                console.warn(`[FlareRouter] KV put error for ${key}:`, e && e.message);
+              })
+          );
+        }
+      }
+    }
+
+    // 3. 日志明细：仅在产生全新脱敏词时写入，附带 7 天 TTL（604800 秒），防止垃圾堆积
     if (logTs && this.redactedDetails.length > 0) {
-      const logKey = `redact:log:${logTs}`;
-      tasks.push(
-        env.CONFIG.put(logKey, JSON.stringify(this.redactedDetails), putOpts).catch((e) => {
-          console.error(`KV put error for ${logKey}:`, e && e.message);
-        })
-      );
+      if (hasNewMasks || candidates.length > 0) {
+        const logKey = `redact:log:${logTs}`;
+        const logOpts = { expirationTtl: 7 * 86400 }; // 7 天自动清理
+        tasks.push(
+          env.CONFIG.put(logKey, JSON.stringify(this.redactedDetails), logOpts).catch((e) => {
+            console.warn(`[FlareRouter] KV put error for ${logKey}:`, e && e.message);
+          })
+        );
+      }
     }
-    await Promise.allSettled(tasks);
+
+    if (tasks.length > 0) {
+      await Promise.allSettled(tasks);
+    }
   }
 
   /**
@@ -238,6 +301,7 @@ export class PrivacyManager {
           if (typeof val === 'string' && val) {
             this.secretMap.set(ph, val);
             this.reverseMap.set(val, ph);
+            inMemoryExistingMasks.add(ph); // 标记云端已存在
           }
         } catch (e) {
           console.error(`KV get error for mask:${ph}:`, e && e.message);

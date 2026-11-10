@@ -236,4 +236,75 @@ console.log('--- 开始测试隐私与脱敏模块 (PrivacyManager) ---');
   console.log('PASS: SSE Token 碎片化多帧跨包滑动拼接与解密还原');
 }
 
+// 12. KV 写入防爆与削峰：多轮对话内存指纹去重（消除 90% 重复写入）
+{
+  let putCount = 0;
+  let getCount = 0;
+  const mockKV = new Map();
+  const mockEnv = {
+    CONFIG: {
+      async put(key, val, opts) {
+        putCount++;
+        mockKV.set(key, val);
+      },
+      async get(key) {
+        getCount++;
+        return mockKV.get(key) || null;
+      },
+    },
+  };
+
+  const rawSecret = 'sk-quota-test-unique-key-998877';
+  // 第 1 轮对话：全新词，触发 1 次 get 检查 + 1 次 put 写入 + 1 次日志索引
+  const pmRound1 = new PrivacyManager({ enabled: true, maskSecrets: true });
+  pmRound1.maskText(`初始密钥: ${rawSecret}`);
+  await pmRound1.persistToKV(mockEnv, { logTs: 10001 });
+
+  assert.equal(putCount, 2, '第 1 轮：应写入 1 个暗号 + 1 条日志索引');
+  assert.equal(mockKV.size, 2, 'KV 中应有 2 条记录');
+
+  // 第 2 轮至第 10 轮对话（模拟带着长上下文多轮试聊）
+  for (let round = 2; round <= 10; round++) {
+    const pmNext = new PrivacyManager({ enabled: true, maskSecrets: true });
+    // 上下文里继续包含之前的 rawSecret
+    pmNext.maskText(`多轮对话第 ${round} 轮，依然包含: ${rawSecret}`);
+    await pmNext.persistToKV(mockEnv, { logTs: 10000 + round });
+  }
+
+  // 关键断言：后 9 轮对话中，因为有内存指纹与已存在标记拦截，putCount 绝不重复递增！
+  assert.equal(putCount, 2, '后 9 轮多轮对话重复写入量必须为 0，彻底根治多轮会话刷爆 KV 写配额！');
+  console.log('PASS: 多轮对话内存指纹去重（消除 90% 重复写入）');
+}
+
+// 13. Read-Before-Write（读先于写）削峰机制验证
+{
+  let putCount = 0;
+  let getCount = 0;
+  const mockKV = new Map();
+  const existingPh = '{{MASK_CUSTOM_aabbccdd}}';
+  mockKV.set(`mask:${existingPh}`, '云端已存在的敏感词');
+
+  const mockEnv = {
+    CONFIG: {
+      async put(key, val, opts) {
+        putCount++;
+        mockKV.set(key, val);
+      },
+      async get(key) {
+        getCount++;
+        return mockKV.get(key) || null;
+      },
+    },
+  };
+
+  const pm = new PrivacyManager({ enabled: true });
+  pm.secretMap.set(existingPh, '云端已存在的敏感词');
+
+  await pm.persistToKV(mockEnv);
+
+  assert.equal(getCount, 1, '应执行 1 次读预检');
+  assert.equal(putCount, 0, '云端已存在的暗号绝对禁止执行 put 写入，用 10 万次读保护 1000 次写！');
+  console.log('PASS: Read-Before-Write 读先于写削峰验证');
+}
+
 console.log('--- 全部隐私与脱敏单元测试均顺利通过！ ---');
