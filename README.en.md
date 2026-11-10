@@ -28,7 +28,7 @@ Built for one person: no user accounts, billing or quotas, no build step. The ad
 - **Gateway keys**: authenticate with `Authorization: Bearer`, `x-api-key` or `api-key`; create several, view raw keys, copy anytime, revoke and delete in the admin page; D1 stores raw keys and hashes
 - **Logs**: stored in D1, written asynchronously with `ctx.waitUntil`; filter by status, failover, protocol, provider, key, model or error text, and clear them; every failed attempt keeps the upstream's raw error
 - **Admin page**: `/admin` on the same Worker, admin-password sign-in; tabs for overview (with HTTP 400~504 error quick reference table), upstream, keys, test, logs and settings (failover and privacy redaction live under settings); modular sources under `src/admin/` (`app.js`, `chat.js`, `i18n.js`, `style.css`, `chat.css`, `index.html`); supports Simplified Chinese, Traditional Chinese, and English; day/night theme follows the system like FlarePanel; Test supports multi-turn streaming, collapsible thinking, and Markdown (stored only in this browser)
-- **Privacy & Data Redaction**: Outbound sensitive data (API keys, database connection strings, IPv4 addresses, custom sensitive keywords) are automatically replaced with deterministic tokens (e.g. `{{MASK_KEY_...}}`), and seamlessly restored in upstream responses (both non-streaming and SSE streams); tokens use deterministic hashing without degrading Prompt Cache hit rates; supports per-provider redaction policies (inherit global / always mask / bypass); automatically sanitizes call logs to prevent secrets from touching the database
+- **Privacy & Data Redaction**: Outbound sensitive data (API keys, database connection strings, IPv4 addresses, custom sensitive keywords) are automatically replaced with deterministic tokens (e.g. `{{MASK_TOKEN_...}}`), and seamlessly restored in upstream responses (both non-streaming and SSE streams); tokens use deterministic hashing without degrading Prompt Cache hit rates; supports per-provider redaction policies (inherit global / always mask / bypass); automatically sanitizes call logs to prevent secrets from touching the database
 
 ## Deploy
 
@@ -152,23 +152,24 @@ When every candidate fails, the HTTP status is the last upstream's status (502 i
 
 #### Add an Anthropic provider
 
-In the admin page, 服务商 → 添加服务商 (Providers → Add provider), with protocol 「Anthropic Messages」:
+In the admin page, click **Providers → Add provider**, with protocol "Anthropic Messages":
 
 - Base URL: `https://api.anthropic.com` (with or without `/v1`)
 - API key: `sk-ant-...` (sent upstream as `x-api-key`; `anthropic-version` defaults to `2023-06-01`, or the caller's value when it sends one)
-- 从服务商拉取 (pull from provider) requests the upstream's `/v1/models`
+- "Pull from provider" requests the upstream's `/v1/models`
 
 Other providers with an Anthropic-compatible API can be added the same way.
 
-#### Two entry points × two upstreams
+#### 3 Entry Points × 3 Upstream Protocol Conversions
 
-| Entry point | Anthropic upstream | OpenAI-compatible upstream |
-| --- | --- | --- |
-| `POST /v1/messages` | Passed through (only `model` is replaced; the caller's `anthropic-version` and `anthropic-beta` are kept) | Converted to chat/completions; responses and streams converted back to Anthropic events |
-| `POST /v1/chat/completions` | Converted to Messages; responses and streams converted back to OpenAI chunks | Passed through |
+| Entry point | Anthropic upstream | OpenAI Chat upstream | OpenAI Responses upstream |
+| --- | --- | --- | --- |
+| `POST /v1/messages` | Passed through (only `model` is replaced; the caller's `anthropic-version` and `anthropic-beta` are kept) | Converted to chat/completions; responses and streams converted back to Anthropic events | Converted to responses; responses and streams converted back to Anthropic events |
+| `POST /v1/chat/completions` | Converted to Messages; responses and streams converted back to OpenAI chunks | Passed through | Converted to responses; responses and streams converted back to OpenAI chunks |
+| `POST /v1/responses` | Converted to Messages; responses and streams converted back to Responses events | Converted to chat/completions; responses and streams converted back to Responses events | Passed through |
 
-Conversion covers: system, multi-turn, images (base64 / URL), tools / tool_use / tool_result, tool_choice, stop_reason ⇄ finish_reason, and usage (including cache hits).
-The failover chain applies to both entry points and can cross protocols (e.g. an official Claude 529 overload → a model on OpenRouter); once a stream starts, it no longer switches.
+Conversion covers: system, multi-turn, images (base64 / URL), tools / tool_use / tool_call / tool_result, tool_choice, stop_reason ⇄ finish_reason, and usage (including cache hits).
+The failover chain applies to all three entry points and can cross protocols (e.g. an official Claude 529 overload → a model on OpenRouter); once a stream starts, it no longer switches.
 The response header `x-gateway-protocol` shows `entry->upstream`, e.g. `anthropic->openai`; logs also record both protocols.
 
 `/v1/messages/count_tokens`: forwarded when the upstream is Anthropic; a local estimate when it is OpenAI-compatible (response header `x-gateway-estimated: 1`).

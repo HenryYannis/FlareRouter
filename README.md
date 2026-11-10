@@ -28,7 +28,7 @@
 - **调用密钥**：`Authorization: Bearer`、`x-api-key` 或 `api-key` 鉴权；管理页可生成多个、随时查看明文、一键复制、吊销、删除；D1 存储明文与哈希
 - **调用日志**：存 D1，`ctx.waitUntil` 异步写；可按状态、容灾、协议、服务商、密钥、模型、错误关键词筛选，可清空；失败的每次尝试都记录上游原始报错
 - **管理页**：同一个 Worker 的 `/admin`，管理员密码登录；概览（含 HTTP 常见错误 400~504 速查表）、上游、密钥、测试、日志、设置（含容灾与隐私脱敏）；模块化源码位于 `src/admin/`（`app.js`、`chat.js`、`i18n.js`、`style.css`、`chat.css`、`index.html`）；支持简体/繁体/English 三语切换；日夜模式默认跟随系统（与 FlarePanel 一致），可手动切换，含玻璃风格；「测试」支持多轮流式试聊、思考过程折叠与 Markdown（会话仅存本机浏览器）
-- **隐私与数据脱敏**：出站前自动将敏感信息（API Key、数据库连接密码、IPv4、自定义敏感词）替换为确定性暗号（如 `{{MASK_KEY_...}}`），并在上游模型响应（含非流式与流式 SSE）时无缝还原；暗号基于确定性哈希，不破坏 Prompt Cache 命中率；支持针对单个服务商配置脱敏策略（如官方直连放行，第三方代理强制脱敏）；记录日志时自动保护敏感内容，防止凭据落库
+- **隐私与数据脱敏**：出站前自动将敏感信息（API Key、数据库连接密码、IPv4、自定义敏感词）替换为确定性暗号（如 `{{MASK_TOKEN_...}}`），并在上游模型响应（含非流式与流式 SSE）时无缝还原；暗号基于确定性哈希，不破坏 Prompt Cache 命中率；支持针对单个服务商配置脱敏策略（如官方直连放行，第三方代理强制脱敏）；记录日志时自动保护敏感内容，防止凭据落库
 
 ## 部署
 
@@ -158,15 +158,16 @@ curl https://ai.example.com/v1/chat/completions \
 
 其它提供 Anthropic 兼容接口的服务商也可以按这个类型添加。
 
-#### 两种入口 × 两种上游
+#### 三种入口 × 三种上游协议转换
 
-| 入口 | 上游是 Anthropic | 上游是 OpenAI 兼容 |
-| --- | --- | --- |
-| `POST /v1/messages` | 原样透传（只换 model，`anthropic-version`、`anthropic-beta` 沿用调用方的） | 转成 chat/completions，响应和流式转回 Anthropic 事件 |
-| `POST /v1/chat/completions` | 转成 Messages，响应和流式转回 OpenAI chunk | 原样透传 |
+| 入口 | 上游是 Anthropic | 上游是 OpenAI 兼容 (Chat) | 上游是 OpenAI Responses |
+| --- | --- | --- | --- |
+| `POST /v1/messages` | 原样透传（只换 model，`anthropic-version`、`anthropic-beta` 沿用调用方的） | 转成 chat/completions，响应和流式转回 Anthropic 事件 | 自动转换请求体与流式事件 |
+| `POST /v1/chat/completions` | 转成 Messages，响应和流式转回 OpenAI chunk | 原样透传 | 自动转换请求体与流式事件 |
+| `POST /v1/responses` | 转成 Messages，响应和流式转回 Responses 事件 | 转成 chat/completions，响应和流式转回 Responses 事件 | 原样透传 |
 
 转换覆盖：system、多轮、图片（base64 / URL）、tools / tool_use / tool_result、tool_choice、stop_reason ⇄ finish_reason、usage（含缓存命中）。
-容灾链对两种入口都生效，可以跨协议切换（例如 Claude 官方 529 过载 → 换到 OpenRouter 上的模型），流式开始返回后不再切换。
+容灾链对三种入口都生效，可以跨协议切换（例如 Claude 官方 529 过载 → 换到 OpenRouter 上的模型），流式开始返回后不再切换。
 响应头 `x-gateway-protocol` 显示这次是 `入口->上游`，例如 `anthropic->openai`；日志里也记录入口协议和上游协议。
 
 `/v1/messages/count_tokens`：上游是 Anthropic 时直接转发；上游是 OpenAI 兼容时返回本地估算（响应头 `x-gateway-estimated: 1`）。
