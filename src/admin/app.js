@@ -31,16 +31,16 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     return val;
   }
 
-  var LANG_FLAG = {
-    zh: '🇨🇳',
-    'zh-Hant': '🇭🇰',
-    en: '🇺🇸'
+  var LANG_CODE = {
+    zh: 'SC',
+    'zh-Hant': 'TC',
+    en: 'EN'
   };
 
   function updateLangIcons(lang) {
-    var flag = LANG_FLAG[lang] || '🌐';
+    var code = LANG_CODE[lang] || 'SC';
     $$('.lang-icon').forEach(function (el) {
-      el.textContent = flag;
+      el.textContent = code;
     });
   }
 
