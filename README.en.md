@@ -211,6 +211,27 @@ Or put it in `~/.claude/settings.json`:
 - `ANTHROPIC_API_KEY` works in place of `ANTHROPIC_AUTH_TOKEN` (it sends an `x-api-key` header); the gateway accepts both.
 - Instead of setting `ANTHROPIC_MODEL`, you can add the official model names Claude Code sends (e.g. `claude-sonnet-4-5`) to a provider's model list; the gateway matches by model name.
 
+## Privacy & Data Redaction
+
+Aligned with enterprise-grade AI security gateway standards (such as Magpie). When sending prompts, contextual codebase snippets, or logs to LLMs, FlareRouter prevents production credentials (API keys, Bearer tokens, database connection URIs, IPv4 addresses) and custom sensitive terms (real names, trade secrets) from leaking to upstream model providers.
+
+### Core Architecture & Highlights
+
+- **Bidirectional Transparent Restoration**:
+  1. **Inbound Masking**: Before requests leave for upstream LLMs, FlareRouter scans and replaces sensitive values with deterministic tokens (e.g., `{{MASK_TOKEN_...}}`, `{{MASK_CUSTOM_...}}`) in sub-milliseconds;
+  2. **Model Processing**: Upstream models only perceive placeholders during reasoning and tool-calling;
+  3. **Outbound Restoration**: As soon as the response flows back to the caller, FlareRouter seamlessly replaces all placeholders with their original values. Downstream clients and automated agents receive real secrets without any client-side code modification.
+- **Proprietary SSE Token Stream Restorer**:
+  Solves the notorious LLM streaming challenge where models fragment placeholder tokens into micro-chunks (e.g. `{{`, `MASK_`, `CUSTOM_`, `218a703b`, `}}`), causing traditional per-chunk regex replacers to fail. FlareRouter buffers within a minimal sliding window and restores plaintext the exact moment the closure `}}` arrives, ensuring streaming feels identical to native typing.
+- **Prompt Cache Friendly**:
+  Deterministic hashing guarantees identical values produce identical placeholders across requests, preserving 100% of Anthropic and DeepSeek Prompt Cache hit rates.
+- **Edge KV Persistence**:
+  Placeholder mappings are permanently stored in Cloudflare KV. Unlike traditional gateways that store mappings in ephemeral process memory (which are lost upon restart), FlareRouter guarantees accurate de-anonymization across multi-turn sessions and server reboots with zero database migrations.
+- **Per-Provider Granular Policy**:
+  Configure redaction behavior per provider (`inherit global` / `always mask` / `bypass`). For example, bypass local/private models while enforcing strict redaction for third-party relays.
+- **Audit Logging**:
+  Logs persisted to D1 automatically strip raw secrets. The admin dashboard provides an asynchronous inspection modal allowing operators to cross-check masked tokens against their original values.
+
 ## Development
 
 ```bash
