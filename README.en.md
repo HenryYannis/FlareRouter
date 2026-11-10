@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | [繁體中文](README.zh-Hant.md) | English
 
-A personal AI gateway on a single Cloudflare Worker: it serves both an OpenAI-compatible API and the Anthropic Messages API, puts all your providers behind one URL and one key, and fails over to the next provider when one fails.
+A personal AI gateway on a single Cloudflare Worker: it serves both OpenAI-compatible APIs (Chat Completions and Responses API) and the Anthropic Messages API, puts all your providers behind one URL and one key, and fails over to the next provider when one fails.
 
 [![CI](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -19,10 +19,10 @@ Built for one person: no user accounts, billing or quotas, no build step. The ad
 
 ## Features
 
-- **Providers**: name, ID, protocol (OpenAI-compatible or Anthropic), base URL, API key (shown masked), model list (can be pulled from the provider's `/models` and ticked), enabled, order, timeout
-- **OpenAI-compatible API**: `/v1/chat/completions` (SSE streaming passed through), `/v1/embeddings`, `/v1/models`; images and audio: `/v1/images/generations`, `/v1/images/edits`, `/v1/audio/transcriptions`, `/v1/audio/speech` (TTS; aligned with the FlarePanel console gateway plus speech synthesis; forwarded as-is to the provider that lists the model)
+- **Providers**: name, ID, protocol (OpenAI-compatible, OpenAI Responses, or Anthropic), base URL, API key (shown masked), model list (can be pulled from the provider's `/models` and ticked), enabled, order, timeout
+- **OpenAI-compatible API**: `/v1/chat/completions` (SSE streaming passed through), `/v1/responses` (OpenAI Responses API, native forwarding and cross-protocol conversion), `/v1/embeddings`, `/v1/models`; images and audio: `/v1/images/generations`, `/v1/images/edits`, `/v1/audio/transcriptions`, `/v1/audio/speech` (TTS; aligned with the FlarePanel console gateway plus speech synthesis; forwarded as-is to the provider that lists the model)
 - **Anthropic API**: `/v1/messages` (with streaming) and `/v1/messages/count_tokens`; works with Claude Code
-- **Protocol conversion**: either entry point can call either kind of provider; requests, responses, stream events and tool calls are converted
+- **Full 3-Protocol Automatic Conversion**: any of the three entry points (Chat Completions / Responses / Messages) can call any provider protocol; requests (`messages` ⇄ `input`/`instructions`), responses, streaming SSE events (Chunk ⇄ Responses Events ⇄ Anthropic Events), and tool calls are converted automatically
 - **Model addressing**: `providerId/model` (e.g. `openrouter/google/gemini-2.5-pro`); a bare model name (looked up, case-insensitively, in the model lists of enabled providers); or `FlareRouter/auto` (also accepts `auto`) to walk the failover chain from the top
 - **Failover & Fast Circuit Breaking**: a network error, timeout or any non-2xx moves to the next entry in the chain; account-level failures (401/402/403/429 or quota exhausted) immediately fast-fail (0ms) and skip remaining models under the same provider; streams switch only before the upstream starts responding; the header `x-gateway-fallback: off` disables it for one request, and a setting disables it globally
 - **Gateway keys**: authenticate with `Authorization: Bearer`, `x-api-key` or `api-key`; create several, view raw keys, copy anytime, revoke and delete in the admin page; D1 stores raw keys and hashes

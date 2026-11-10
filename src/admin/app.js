@@ -310,6 +310,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         '<div class="usage-block-title">' + esc(t('overview.usageProtoLabel')) + '</div>' +
         '<p class="muted small usage-hint">' + esc(t('overview.usageProtoHint')) + '</p>' +
         usageRow(t('overview.usageChatLabel'), t('overview.usageChatHint'), 'POST', base + '/chat/completions') +
+        usageRow(t('overview.usageRespLabel'), t('overview.usageRespHint'), 'POST', base + '/responses') +
         usageRow(t('overview.usageAnthLabel'), t('overview.usageAnthHint'), 'POST', base + '/messages') +
       '</div>' +
       '<div class="usage-block">' +
@@ -1041,7 +1042,10 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#lf-provider').innerHTML = '<option value="">' + t('logs.allProviders') + '</option>' + state.cfg.providers.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('');
     var ex = ms[1] || 'FlareRouter/auto';
     $('#curl-example').textContent =
-      'curl ' + base + '/chat/completions \\\n  -H "Authorization: Bearer sk-fr-xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"model":"' + ex + '","stream":true,"messages":[{"role":"user","content":"Hello"}]}\'';
+      '# 1. Chat Completions 协议\n' +
+      'curl ' + base + '/chat/completions \\\n  -H "Authorization: Bearer sk-fr-xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"model":"' + ex + '","stream":true,"messages":[{"role":"user","content":"Hello"}]}\'\n\n' +
+      '# 2. Responses API 协议\n' +
+      'curl ' + base + '/responses \\\n  -H "Authorization: Bearer sk-fr-xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"model":"' + ex + '","stream":true,"input":"Hello"}\'';
   }
 
   function renderSettings() {

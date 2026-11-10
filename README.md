@@ -2,7 +2,7 @@
 
 简体中文 | [繁體中文](README.zh-Hant.md) | [English](README.en.md)
 
-部署在单个 Cloudflare Worker 上的个人 AI 网关：同时提供 OpenAI 兼容接口和 Anthropic Messages 接口，把多家服务商收拢到一个地址、一把密钥，失败自动切换到下一家。
+部署在单个 Cloudflare Worker 上的个人 AI 网关：同时提供 OpenAI 兼容接口（Chat Completions 与 Responses API）和 Anthropic Messages 接口，把多家服务商收拢到一个地址、一把密钥，失败自动切换到下一家。
 
 [![CI](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml/badge.svg)](https://github.com/HenryYannis/FlareRouter/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -19,10 +19,10 @@
 
 ## 功能
 
-- **服务商管理**：名称、ID、协议类型（OpenAI 兼容 / Anthropic）、Base URL、API Key（页面只显示脱敏预览）、模型列表（可从服务商 `/models` 拉取勾选）、启用、顺序、超时
-- **OpenAI 兼容接口**：`/v1/chat/completions`（流式 SSE 原样透传）、`/v1/embeddings`、`/v1/models`；图片与语音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；对齐控制台网关并补充合成，按模型找到服务商后原样转发）
+- **服务商管理**：名称、ID、协议类型（OpenAI 兼容 / OpenAI Responses / Anthropic）、Base URL、API Key（页面只显示脱敏预览）、模型列表（可从服务商 `/models` 拉取勾选）、启用、顺序、超时
+- **OpenAI 兼容接口**：`/v1/chat/completions`（流式 SSE 原样透传）、`/v1/responses`（OpenAI Responses API，含原生透传与跨协议转换）、`/v1/embeddings`、`/v1/models`；图片与语音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；对齐控制台网关并补充合成，按模型找到服务商后原样转发）
 - **Anthropic 接口**：`/v1/messages`（含流式）、`/v1/messages/count_tokens`，Claude Code 可直接接入
-- **协议互转**：两种入口都能调两种协议的服务商，请求、响应、流式事件、工具调用自动转换
+- **协议全自动互转**：三种入口（Chat Completions / Responses / Messages）都能调用任意协议的服务商，请求体（`messages` ⇄ `input`/`instructions`）、响应体、流式 SSE 事件（Chunk ⇄ Responses 事件 ⇄ Anthropic 事件）、工具调用全自动无缝互转
 - **模型寻址**：`服务商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只写模型名（在已启用服务商的模型列表里找，不区分大小写）；提供 `FlareRouter/auto`（兼任 `auto`），按容灾链从头尝试
 - **容灾切换与智能熔断**：失败（网络错误、超时、任何非 2xx）就按容灾链换下一个；同服务商遇 401/402/403/429 或欠费/额度耗尽等账号级故障时自动 0ms 快速熔断跳过该商剩余模型；流式请求只在上游开始返回之前切换；请求头 `x-gateway-fallback: off` 可单次关闭，设置里也可整体关闭
 - **调用密钥**：`Authorization: Bearer`、`x-api-key` 或 `api-key` 鉴权；管理页可生成多个、随时查看明文、一键复制、吊销、删除；D1 存储明文与哈希
