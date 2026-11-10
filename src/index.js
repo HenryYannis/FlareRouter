@@ -63,12 +63,13 @@ async function route(request, env, ctx) {
   const isEmb = path === '/v1/embeddings';
   const isMessages = path === '/v1/messages';
   const isCount = path === '/v1/messages/count_tokens';
+  const isResponses = path === '/v1/responses';
   const mediaPath = path.startsWith('/v1/') ? path.slice(4) : '';
   const isMedia = Object.prototype.hasOwnProperty.call(MEDIA_ENDPOINTS, mediaPath);
-  if (!isModels && !isChat && !isEmb && !isMessages && !isCount && !isMedia) {
+  if (!isModels && !isChat && !isEmb && !isMessages && !isCount && !isMedia && !isResponses) {
     return protocolError(path.startsWith('/v1/messages') ? 'anthropic' : 'openai', `未知接口 ${request.method} ${url.pathname}`, 404);
   }
-  const proto = isMessages || isCount ? 'anthropic' : 'openai';
+  const proto = isMessages || isCount ? 'anthropic' : isResponses ? 'responses' : 'openai';
 
   // 鉴权：Authorization: Bearer 或 x-api-key（Claude Code 等 Anthropic 客户端用 x-api-key）
   const caller = await verifyApiKey(env, ctx, extractBearer(request));
@@ -91,7 +92,8 @@ async function route(request, env, ctx) {
   if (request.method !== 'POST') return protocolError(proto, 'Method Not Allowed', 405);
   if (isCount) return handleCountTokens(request, env);
   if (isMedia) return handleMedia(request, env, ctx, { mediaPath, caller });
-  return handleProxy(request, env, ctx, { endpoint: isMessages ? 'messages' : isChat ? 'chat/completions' : 'embeddings', caller });
+  const endpoint = isMessages ? 'messages' : isResponses ? 'responses' : isChat ? 'chat/completions' : 'embeddings';
+  return handleProxy(request, env, ctx, { endpoint, caller });
 }
 
 export default {

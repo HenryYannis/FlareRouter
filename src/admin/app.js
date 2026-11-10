@@ -391,7 +391,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           '<button class="btn sm" data-down="' + i + '"' + (i === ps.length - 1 ? ' disabled' : '') + '>↓</button>' +
         '</td>' +
         '<td><div>' + esc(p.name) + '</div><div class="muted mono small">' + esc(p.id) + '</div>' + (p.note ? '<div class="muted small">' + esc(p.note) + '</div>' : '') + '</td>' +
-        '<td class="hide-sm mono small" style="word-break:break-all">' + esc(p.baseUrl) + (p.protocol === 'anthropic' ? ' <span class="tag">Anthropic</span>' : '') + '</td>' +
+        '<td class="hide-sm mono small" style="word-break:break-all">' + esc(p.baseUrl) + (p.protocol === 'anthropic' ? ' <span class="tag">Anthropic</span>' : p.protocol === 'responses' ? ' <span class="tag">Responses</span>' : '') + '</td>' +
         '<td class="mono small">' + (p.hasKey ? esc(p.apiKeyPreview) : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') + '</td>' +
         '<td class="small" title="' + esc(p.models.join(', ')) + '">' + p.models.length + '<div class="muted mono">' + esc(p.models[0] || '') + '</div></td>' +
         '<td><label class="switch"><input type="checkbox" data-toggle="' + esc(p.id) + '"' + (p.enabled ? ' checked' : '') + '><span></span></label></td>' +
@@ -587,7 +587,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#prov-title').textContent = p ? t('providers.dialogEdit') : t('providers.dialogAdd');
     $('#p-name').value = p ? p.name : '';
     $('#p-id').value = p ? p.id : '';
-    $('#p-protocol').value = p && p.protocol === 'anthropic' ? 'anthropic' : 'openai';
+    $('#p-protocol').value = p && (p.protocol === 'anthropic' || p.protocol === 'responses') ? p.protocol : 'openai';
     syncProtocol();
     $('#p-url').value = p ? p.baseUrl : '';
     $('#p-console').value = p ? (p.consoleUrl || '') : '';
@@ -616,10 +616,12 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#dlg-prov').showModal();
   }
   function syncProtocol() {
-    var a = $('#p-protocol').value === 'anthropic';
+    var pr = $('#p-protocol').value;
+    var a = pr === 'anthropic';
+    var r = pr === 'responses';
     $('#p-url').placeholder = a ? 'https://api.anthropic.com' : 'https://api.example.com/v1';
-    $('#p-protocol-tip').textContent = a ? t('providers.tipAnthropic') : t('providers.tipOpenAI');
-    $('#p-usage').closest('label').classList.toggle('hidden', a);
+    $('#p-protocol-tip').textContent = a ? t('providers.tipAnthropic') : r ? t('providers.tipResponses') : t('providers.tipOpenAI');
+    $('#p-usage').closest('label').classList.toggle('hidden', a || r);
   }
   $('#p-protocol').addEventListener('change', syncProtocol);
   $('#p-key-toggle').addEventListener('click', function () {
@@ -1368,11 +1370,13 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#log-info').textContent = state.logTotal ? t('logs.pageInfo', { start: offset + 1, end: end, total: state.logTotal }) : '';
     $('#log-prev').disabled = offset <= 0; $('#log-next').disabled = end >= state.logTotal;
   }
-  var PROTO_NAME = { openai: 'OpenAI', anthropic: 'Anthropic' };
+  var PROTO_NAME = { openai: 'OpenAI', anthropic: 'Anthropic', responses: 'Responses' };
   function protoTag(l) {
     if (!l.client_protocol) return '';
     var c = PROTO_NAME[l.client_protocol] || l.client_protocol, u = PROTO_NAME[l.upstream_protocol] || l.upstream_protocol;
-    if (!l.upstream_protocol || l.upstream_protocol === l.client_protocol) return l.client_protocol === 'anthropic' ? '<span class="tag">Anthropic</span>' : '';
+    if (!l.upstream_protocol || l.upstream_protocol === l.client_protocol) {
+      return l.client_protocol === 'anthropic' ? '<span class="tag">Anthropic</span>' : l.client_protocol === 'responses' ? '<span class="tag">Responses</span>' : '';
+    }
     return '<span class="tag" title="' + esc(c) + ' → ' + esc(u) + '">' + esc(c) + '→' + esc(u) + '</span>';
   }
   $('#lf-go').addEventListener('click', async function () {

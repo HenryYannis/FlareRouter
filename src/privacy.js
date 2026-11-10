@@ -162,6 +162,29 @@ export class PrivacyManager {
       clone.prompt = clone.prompt.map((p) => (typeof p === 'string' ? this.maskText(p) : p));
     }
 
+    // 处理 instructions 与 input 字段（OpenAI Responses API）
+    if (typeof clone.instructions === 'string') {
+      clone.instructions = this.maskText(clone.instructions);
+    }
+    if (typeof clone.input === 'string') {
+      clone.input = this.maskText(clone.input);
+    } else if (Array.isArray(clone.input)) {
+      for (const item of clone.input) {
+        if (!item) continue;
+        if (typeof item === 'object') {
+          if (typeof item.content === 'string') {
+            item.content = this.maskText(item.content);
+          } else if (Array.isArray(item.content)) {
+            for (const part of item.content) {
+              if (part && part.type === 'text' && typeof part.text === 'string') {
+                part.text = this.maskText(part.text);
+              }
+            }
+          }
+        }
+      }
+    }
+
     return { maskedBody: clone, context: this };
   }
 

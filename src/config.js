@@ -69,8 +69,8 @@ export function normalizeProvider(p) {
   return {
     id,
     name: String(p.name || id).trim(),
-    // 协议类型：openai（默认，OpenAI 兼容 /chat/completions）或 anthropic（/v1/messages，x-api-key 鉴权）
-    protocol: p.protocol === 'anthropic' ? 'anthropic' : 'openai',
+    // 协议类型：openai（默认，OpenAI 兼容 /chat/completions）、anthropic（/v1/messages）或 responses（/v1/responses）
+    protocol: ['anthropic', 'responses'].includes(p.protocol) ? p.protocol : 'openai',
     baseUrl: String(p.baseUrl || '').trim().replace(/\/+$/, ''),
     apiKey: String(p.apiKey || ''),
     consoleUrl: normalizeConsoleUrl(p.consoleUrl),

@@ -103,7 +103,7 @@ async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
   const isAnth = protocol === 'anthropic';
   const url = isAnth
     ? `${anthropicUrl(baseUrl, 'models')}?limit=1000`
-    : `${String(baseUrl || '').replace(/\/+$/, '').replace(/\/(chat\/completions|models)$/, '')}/models`;
+    : `${String(baseUrl || '').replace(/\/+$/, '').replace(/\/(chat\/completions|responses|models)$/, '')}/models`;
   let res;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
@@ -246,9 +246,12 @@ export async function handleAdminApi(request, env, ctx, path) {
     if (!model) return err('缺少模型名称');
 
     const isAnth = protocol === 'anthropic';
+    const isResp = protocol === 'responses';
     const url = isAnth
       ? anthropicUrl(baseUrl, 'messages')
-      : `${String(baseUrl || '').replace(/\/+$/, '').replace(/\/(chat\/completions|models)$/, '')}/chat/completions`;
+      : isResp
+        ? `${String(baseUrl || '').replace(/\/+$/, '').replace(/\/(chat\/completions|responses|models)$/, '')}/responses`
+        : `${String(baseUrl || '').replace(/\/+$/, '').replace(/\/(chat\/completions|responses|models)$/, '')}/chat/completions`;
 
     const isReasoning = typeof model === 'string' && /^o[13]/i.test(model);
     const testTool = isAnth
@@ -262,6 +265,15 @@ export async function handleAdminApi(request, env, ctx, path) {
           messages: [{ role: 'user', content: 'hi' }],
           max_tokens: 1,
           ...(withTools ? { tools: testTool } : {}),
+        });
+      }
+      if (isResp) {
+        return JSON.stringify({
+          model,
+          input: 'hi',
+          max_output_tokens: 1,
+          stream: false,
+          ...(withTools ? { tools: [{ type: 'function', name: 'probe_test', description: 'probe', parameters: { type: 'object', properties: {} } }] } : {}),
         });
       }
       return JSON.stringify({

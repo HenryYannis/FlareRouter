@@ -16,6 +16,26 @@ import {
   sanitizeAnthropicPayload,
   usageForLog,
 } from './anthropic.js';
+import {
+  anthropicToResponsesRequest,
+  anthropicToResponsesResponse,
+  anthropicToResponsesStream,
+  estimateResponsesPrompt,
+  lastResponsesUserText,
+  openAIToResponsesRequest,
+  openAIToResponsesResponse,
+  openAIToResponsesStream,
+  responsesHeaders,
+  responsesScanner,
+  responsesToAnthropicRequest,
+  responsesToAnthropicResponse,
+  responsesToAnthropicStream,
+  responsesToOpenAIRequest,
+  responsesToOpenAIResponse,
+  responsesToOpenAIStream,
+  responsesUrl,
+  usageForResponsesLog,
+} from './responses.js';
 import { CORS_HEADERS, apiError, errText, estimateMessagesTokens, estimateTokens, json, readBodyLimited } from './util.js';
 
 const ERROR_TEXT_LIMIT = 2000;
@@ -170,10 +190,10 @@ export function protocolError(clientProtocol, message, status, type = 'invalid_r
   return apiError(message, status, type, extra);
 }
 
-const upstreamProtocolOf = (provider) => (provider.protocol === 'anthropic' ? 'anthropic' : 'openai');
+const upstreamProtocolOf = (provider) => provider.protocol || 'openai';
 
 function openAIUrl(baseUrl, endpoint) {
-  return `${baseUrl.replace(/\/(chat\/completions|embeddings)$/, '')}/${endpoint}`;
+  return `${baseUrl.replace(/\/(chat\/completions|embeddings|responses)$/, '')}/${endpoint}`;
 }
 
 /**
@@ -187,11 +207,58 @@ function buildUpstream({ clientProtocol, endpoint, provider, model, body, reques
 
   if (endpoint === 'embeddings') {
     if (upstreamProtocol === 'anthropic') return { skip: 'Anthropic 协议的服务商不支持 /embeddings，已跳过' };
+    if (upstreamProtocol === 'responses') return { skip: 'Responses 协议的服务商不支持 /embeddings，已跳过' };
     return {
       upstreamProtocol,
       url: openAIUrl(provider.baseUrl, 'embeddings'),
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${provider.apiKey}`, Accept: 'application/json' },
       payload: { ...body, model },
+    };
+  }
+
+  // --- 客户端是 responses 入口 ---
+  if (clientProtocol === 'responses') {
+    if (upstreamProtocol === 'responses') {
+      return {
+        upstreamProtocol,
+        url: responsesUrl(provider.baseUrl, 'responses'),
+        headers: responsesHeaders(provider.apiKey, { stream }),
+        payload: { ...body, model },
+      };
+    }
+    if (upstreamProtocol === 'anthropic') {
+      return {
+        upstreamProtocol,
+        url: anthropicUrl(provider.baseUrl, 'messages'),
+        headers: anthropicHeaders(provider.apiKey, { stream }),
+        payload: responsesToAnthropicRequest(body, model, { stream, maxTokens: provider.modelLimits?.[model] }),
+      };
+    }
+    // 上游是 openai (chat/completions)
+    return {
+      upstreamProtocol,
+      url: openAIUrl(provider.baseUrl, 'chat/completions'),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${provider.apiKey}`, Accept: stream ? 'text/event-stream' : 'application/json' },
+      payload: responsesToOpenAIRequest(body, model, { stream, streamUsage: provider.streamUsage }),
+    };
+  }
+
+  // --- 上游是 responses 协议（客户端是 openai 或 anthropic） ---
+  if (upstreamProtocol === 'responses') {
+    if (clientProtocol === 'anthropic') {
+      return {
+        upstreamProtocol,
+        url: responsesUrl(provider.baseUrl, 'responses'),
+        headers: responsesHeaders(provider.apiKey, { stream }),
+        payload: anthropicToResponsesRequest(body, model, { stream }),
+      };
+    }
+    // clientProtocol === 'openai'
+    return {
+      upstreamProtocol,
+      url: responsesUrl(provider.baseUrl, 'responses'),
+      headers: responsesHeaders(provider.apiKey, { stream }),
+      payload: openAIToResponsesRequest(body, model, { stream }),
     };
   }
 
@@ -231,8 +298,23 @@ function buildUpstream({ clientProtocol, endpoint, provider, model, body, reques
   };
 }
 
+function resolveStreamHandler(clientProtocol, upstreamProtocol, opts = {}) {
+  if (clientProtocol === 'responses') {
+    if (upstreamProtocol === 'responses') return responsesScanner();
+    if (upstreamProtocol === 'anthropic') return anthropicToResponsesStream(opts);
+    return openAIToResponsesStream(opts);
+  }
+  if (upstreamProtocol === 'responses') {
+    if (clientProtocol === 'anthropic') return responsesToAnthropicStream(opts);
+    return responsesToOpenAIStream(opts);
+  }
+  return createStreamHandler(clientProtocol, upstreamProtocol, opts);
+}
+
 function estimatePrompt(clientProtocol, body) {
-  return clientProtocol === 'anthropic' ? estimateAnthropicInputTokens(body) : estimateMessagesTokens(body.messages);
+  if (clientProtocol === 'anthropic') return estimateAnthropicInputTokens(body);
+  if (clientProtocol === 'responses') return estimateResponsesPrompt(body);
+  return estimateMessagesTokens(body.messages);
 }
 
 function formatUpstreamErrorValue(error) {
@@ -242,10 +324,10 @@ function formatUpstreamErrorValue(error) {
   try { return JSON.stringify(error); } catch { return String(error); }
 }
 
-// HTTP 200 但没有 choices/content/data、只有 error 时，视为失败（部分聚合上游会这样返回）
+// HTTP 200 但没有 choices/content/data/output、只有 error 时，视为失败（部分聚合上游会这样返回）
 function upstreamErrorMessage(parsed) {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-  if (parsed.choices || parsed.content || parsed.data) return null;
+  if (parsed.choices || parsed.content || parsed.data || parsed.output) return null;
   if (parsed.type === 'error' && parsed.error) return formatUpstreamErrorValue(parsed.error);
   if (parsed.error) return formatUpstreamErrorValue(parsed.error);
   return null;
@@ -257,7 +339,7 @@ function upstreamErrorMessage(parsed) {
  */
 export async function handleProxy(request, env, ctx, { endpoint, caller }) {
   const t0 = Date.now();
-  const clientProtocol = endpoint === 'messages' ? 'anthropic' : 'openai';
+  const clientProtocol = endpoint === 'messages' ? 'anthropic' : endpoint === 'responses' ? 'responses' : 'openai';
   const fail = (message, status, type) => protocolError(clientProtocol, message, status, type);
   const limited = await readBodyLimited(request, env);
   if (limited.tooLarge) return fail(`请求体过大（上限 ${limited.tooLarge} 字节）`, 413, 'invalid_request_error');
@@ -285,7 +367,13 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
     clientProtocol,
     requestedModel: body.model || 'auto',
     stream,
-    prompt: cfg.settings.logPrompts ? (isChat ? lastUserText(body.messages) : JSON.stringify(body.input || '')) : null,
+    prompt: cfg.settings.logPrompts
+      ? (endpoint === 'responses'
+          ? lastResponsesUserText(body)
+          : isChat
+            ? lastUserText(body.messages)
+            : JSON.stringify(body.input || ''))
+      : null,
   };
 
   if (error) {
@@ -378,7 +466,13 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       attempts: i + 1,
       trail,
       redactedHits: privacyCtx ? privacyCtx.hits : 0,
-      prompt: cfg.settings.logPrompts ? (isChat ? lastUserText(sendBody.messages) : JSON.stringify(sendBody.input || '')) : null,
+      prompt: cfg.settings.logPrompts
+        ? (endpoint === 'responses'
+            ? lastResponsesUserText(sendBody)
+            : isChat
+              ? lastUserText(sendBody.messages)
+              : JSON.stringify(sendBody.input || ''))
+        : null,
     };
 
     let prefetchedText = null;
@@ -386,7 +480,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       const ct = (res.headers.get('content-type') || '').toLowerCase();
       const jsonNotSse = ct.includes('application/json') && !ct.includes('text/event-stream');
       if (!jsonNotSse) {
-        const handler = createStreamHandler(clientProtocol, up.upstreamProtocol, { clientModel: body.model, includeUsage });
+        const handler = resolveStreamHandler(clientProtocol, up.upstreamProtocol, { clientModel: body.model, includeUsage });
         return pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate: () => estimatePrompt(clientProtocol, body), privacyCtx });
       }
       prefetchedText = await res.text();
@@ -437,7 +531,20 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
         if (clientProtocol === 'anthropic') return json(anthropicErrorBody(message, 502, { attempts: trail }), 502, CORS_HEADERS);
         return json({ error: { message, type: 'upstream_error', attempts: trail } }, 502, CORS_HEADERS);
       }
-      const converted = clientProtocol === 'anthropic' ? openAIToAnthropicResponse(parsed, body.model) : anthropicToOpenAIResponse(parsed, body.model);
+      let converted;
+      if (clientProtocol === 'responses') {
+        converted = up.upstreamProtocol === 'anthropic'
+          ? anthropicToResponsesResponse(parsed, body.model)
+          : openAIToResponsesResponse(parsed, body.model);
+      } else if (clientProtocol === 'anthropic') {
+        converted = up.upstreamProtocol === 'responses'
+          ? responsesToAnthropicResponse(parsed, body.model)
+          : openAIToAnthropicResponse(parsed, body.model);
+      } else {
+        converted = up.upstreamProtocol === 'responses'
+          ? responsesToOpenAIResponse(parsed, body.model)
+          : anthropicToOpenAIResponse(parsed, body.model);
+      }
       outText = JSON.stringify(converted);
       contentType = 'application/json; charset=utf-8';
     }
@@ -449,13 +556,21 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       outText = await pmFallback.restoreTextAsync(outText, env);
     }
 
-    let { promptTokens, completionTokens, cacheReadTokens } = usageForLog(up.upstreamProtocol, parsed && parsed.usage);
+    let { promptTokens, completionTokens, cacheReadTokens } =
+      up.upstreamProtocol === 'responses'
+        ? usageForResponsesLog(parsed && parsed.usage)
+        : usageForLog(up.upstreamProtocol, parsed && parsed.usage);
     let totalTokens = typeof promptTokens === 'number' && typeof completionTokens === 'number' ? promptTokens + completionTokens : parsed?.usage?.total_tokens;
     if (typeof totalTokens !== 'number' && isChat) {
       promptTokens = estimatePrompt(clientProtocol, body);
-      const outStr = up.upstreamProtocol === 'anthropic'
-        ? (parsed?.content || []).map((b) => b.text || '').join('')
-        : parsed?.choices?.[0]?.message?.content || '';
+      let outStr = '';
+      if (up.upstreamProtocol === 'anthropic') {
+        outStr = (parsed?.content || []).map((b) => b.text || '').join('');
+      } else if (up.upstreamProtocol === 'responses') {
+        outStr = (parsed?.output || []).filter((o) => o?.type === 'message').flatMap((m) => (m.content || []).map((c) => c?.text || '')).join('');
+      } else {
+        outStr = parsed?.choices?.[0]?.message?.content || '';
+      }
       completionTokens = estimateTokens(outStr);
       totalTokens = promptTokens + completionTokens;
       cacheReadTokens = undefined; // 估算补全没有缓存信息

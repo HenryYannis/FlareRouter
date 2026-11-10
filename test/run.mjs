@@ -79,6 +79,44 @@ const upstream = http.createServer(async (req, res) => {
     return send(200, { id: 'msg_up3', type: 'message', role: 'assistant', model: body.model, content: [{ type: 'text', text: `claude pong from ${body.model}` }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 11, output_tokens: 4, cache_read_input_tokens: 5 }, echo_beta: req.headers['anthropic-beta'] || null });
   }
 
+  // ---- 假 Responses 上游 ----
+  if (req.url === '/resp/v1/models') return send(200, { data: [{ id: 'resp-m1' }, { id: 'resp-m2' }] });
+  if (req.url === '/resp/v1/responses') {
+    if (body.stream) {
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      const respId = 'resp_mock_123';
+      const itemId = 'item_mock_123';
+      res.write(`event: response.created\ndata: ${JSON.stringify({ type: 'response.created', sequence_number: 0, response: { id: respId, object: 'response', status: 'in_progress', model: body.model, output: [] } })}\n\n`);
+      res.write(`event: response.output_item.added\ndata: ${JSON.stringify({ type: 'response.output_item.added', sequence_number: 1, output_index: 0, item: { id: itemId, type: 'message', status: 'in_progress', role: 'assistant', content: [] } })}\n\n`);
+      res.write(`event: response.output_text.delta\ndata: ${JSON.stringify({ type: 'response.output_text.delta', sequence_number: 2, output_index: 0, delta: `responses pong from ${body.model}` })}\n\n`);
+      res.write(`event: response.output_text.done\ndata: ${JSON.stringify({ type: 'response.output_text.done', sequence_number: 3, output_index: 0, text: `responses pong from ${body.model}` })}\n\n`);
+      res.write(`event: response.completed\ndata: ${JSON.stringify({ type: 'response.completed', sequence_number: 4, response: { id: respId, object: 'response', status: 'completed', model: body.model, output: [{ id: itemId, type: 'message', status: 'completed', role: 'assistant', content: [{ type: 'text', text: `responses pong from ${body.model}` }] }], usage: { input_tokens: 12, output_tokens: 6, total_tokens: 18, input_token_details: { cached_tokens: 2 } } } })}\n\n`);
+      return res.end();
+    }
+    return send(200, {
+      id: 'resp_mock_sync',
+      object: 'response',
+      status: 'completed',
+      model: body.model,
+      output: [
+        {
+          id: 'item_mock_sync',
+          type: 'message',
+          status: 'completed',
+          role: 'assistant',
+          content: [{ type: 'text', text: `responses pong from ${body.model}` }],
+        },
+      ],
+      usage: {
+        total_tokens: 18,
+        input_tokens: 12,
+        output_tokens: 6,
+        input_token_details: { cached_tokens: 3 },
+      },
+      echo: { input: body.input, instructions: body.instructions },
+    });
+  }
+
   if (req.url === '/good/v1/models') return send(200, { data: [{ id: 'm1' }, { id: 'm2' }, { id: 'vendor/m3' }] });
   if (req.url.startsWith('/bad/')) return send(500, { error: { message: 'upstream exploded: quota of key sk-xxx exhausted' } });
   if (req.url.startsWith('/slow/')) { await sleep(3000); return send(200, {}); }
@@ -869,6 +907,138 @@ try {
   t = await r.text().catch((e) => `ERR ${e}`);
   evs = parseSSE(t);
   ok(r.status === 200 && evs[0].ev === 'message_start' && evs.some((e) => e.ev === 'content_block_delta' && e.data.delta.text === '半') && evs.at(-1).ev === 'error' && /流读取中断/.test(evs.at(-1).data.error.message), '转换流中途断开：先转发已收到内容，再发 error 事件（原文）', t.slice(0, 400));
+
+  // ================= OpenAI Responses 协议 =================
+  r = await admin('/admin/api/providers', {
+    provider: {
+      id: 'resp',
+      name: 'Responses 官方',
+      protocol: 'responses',
+      baseUrl: `${UP}/resp/v1`,
+      apiKey: 'sk-resp-secret-1234567890',
+      models: 'resp-m1\nresp-m2',
+    },
+  });
+  cfg = await j(r);
+  const respP = cfg.providers && cfg.providers.find((p) => p.id === 'resp');
+  ok(r.status === 200 && respP && respP.protocol === 'responses', '服务商协议类型：responses 可保存');
+
+  r = await admin('/admin/api/providers/fetch-models', { id: 'resp' });
+  d = await j(r);
+  ok(r.status === 200 && JSON.stringify(d.models) === '["resp-m1","resp-m2"]', 'responses 拉取模型：/v1/models + Bearer Key');
+
+  const responsesReq = (b, extra = {}) =>
+    req('/v1/responses', {
+      method: 'POST',
+      headers: { ...H, ...extra },
+      body: JSON.stringify(b),
+    });
+
+  // 1. 原生透传：非流式
+  r = await responsesReq({ model: 'resp/resp-m1', input: 'hi' });
+  d = await j(r);
+  ok(
+    r.status === 200 &&
+      d.object === 'response' &&
+      d.status === 'completed' &&
+      d.output?.[0]?.content?.[0]?.text?.includes('responses pong from resp-m1') &&
+      d.usage?.input_tokens === 12 &&
+      d.usage?.output_tokens === 6 &&
+      r.headers.get('x-gateway-protocol') === 'responses->responses',
+    'Responses 原生透传（非流式）',
+    JSON.stringify(d)
+  );
+
+  // 2. 原生透传：流式 SSE
+  r = await responsesReq({ model: 'resp/resp-m1', input: 'hi', stream: true });
+  t = await r.text();
+  ok(
+    r.status === 200 &&
+      (r.headers.get('content-type') || '').includes('text/event-stream') &&
+      t.includes('event: response.created') &&
+      t.includes('event: response.output_text.delta') &&
+      t.includes('event: response.completed') &&
+      t.includes('responses pong from resp-m1'),
+    'Responses 原生透传（流式 SSE）',
+    t.slice(0, 300)
+  );
+
+  // 3. 跨协议互转：客户端 responses → 上游 openai (chat/completions)
+  r = await responsesReq({ model: 'good/m1', input: 'hello world', instructions: 'system instruction' });
+  d = await j(r);
+  up = seen.at(-1);
+  ok(
+    r.status === 200 &&
+      d.object === 'response' &&
+      d.status === 'completed' &&
+      d.output?.[0]?.content?.[0]?.text === 'pong from m1' &&
+      r.headers.get('x-gateway-protocol') === 'responses->openai' &&
+      up.body.messages.some((m) => m.role === 'system' && m.content === 'system instruction') &&
+      up.body.messages.some((m) => m.role === 'user' && m.content === 'hello world'),
+    '跨协议：responses 入口 → openai 上游（非流式）',
+    JSON.stringify(d)
+  );
+
+  // 4. 跨协议互转：客户端 responses → 上游 openai (chat/completions) 流式 SSE
+  r = await responsesReq({ model: 'good/m1', input: 'hello stream', stream: true });
+  t = await r.text();
+  ok(
+    r.status === 200 &&
+      (r.headers.get('content-type') || '').includes('text/event-stream') &&
+      t.includes('event: response.created') &&
+      t.includes('event: response.output_text.delta') &&
+      t.includes('event: response.completed') &&
+      t.includes('你') &&
+      r.headers.get('x-gateway-protocol') === 'responses->openai',
+    '跨协议：responses 入口 → openai 上游（流式 SSE）',
+    t.slice(0, 300)
+  );
+
+  // 5. 跨协议互转：客户端 responses → 上游 anthropic (messages)
+  r = await responsesReq({ model: 'anth/claude-x', input: 'hello claude' });
+  d = await j(r);
+  ok(
+    r.status === 200 &&
+      d.object === 'response' &&
+      d.status === 'completed' &&
+      d.output?.[0]?.content?.[0]?.text?.includes('claude pong from claude-x') &&
+      r.headers.get('x-gateway-protocol') === 'responses->anthropic',
+    '跨协议：responses 入口 → anthropic 上游（非流式）',
+    JSON.stringify(d)
+  );
+
+  // 6. 跨协议互转：客户端 openai (chat/completions) → 上游 responses
+  r = await chat({ model: 'resp/resp-m1', messages: [{ role: 'user', content: 'hello from chat' }] });
+  d = await j(r);
+  ok(
+    r.status === 200 &&
+      d.object === 'chat.completion' &&
+      d.choices?.[0]?.message?.content?.includes('responses pong from resp-m1') &&
+      r.headers.get('x-gateway-protocol') === 'openai->responses',
+    '跨协议：openai chat 入口 → responses 上游（非流式）',
+    JSON.stringify(d)
+  );
+
+  // 7. 跨协议互转：客户端 anthropic (messages) → 上游 responses
+  r = await msgs({ model: 'resp/resp-m1', max_tokens: 100, messages: [{ role: 'user', content: 'hello from messages' }] });
+  d = await j(r);
+  ok(
+    r.status === 200 &&
+      d.type === 'message' &&
+      d.content?.[0]?.text?.includes('responses pong from resp-m1') &&
+      r.headers.get('x-gateway-protocol') === 'anthropic->responses',
+    '跨协议：anthropic messages 入口 → responses 上游（非流式）',
+    JSON.stringify(d)
+  );
+
+  // 8. 容灾与未知接口
+  r = await responsesReq({ model: 'nope/nonexistent', input: 'hi' });
+  d = await j(r);
+  ok(r.status === 404 && d.error && d.error.message.includes('找不到模型'), 'responses 入口未知模型 -> 404');
+
+  r = await req('/v1/unknown_endpoint', { method: 'POST', headers: H, body: '{}' });
+  d = await j(r);
+  ok(r.status === 404 && d.error && d.error.message.includes('未知接口'), '未知接口依然返回 404');
 
   // 管理页带协议选项
   t = await (await req('/admin')).text();
