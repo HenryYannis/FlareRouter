@@ -127,7 +127,7 @@ async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
   }
 }
 
-const CURRENT_COMMIT = '52fe58d';
+const CURRENT_COMMIT = 'c79e968';
 const UPSTREAM_REPO = 'HenryYannis/FlareRouter';
 
 async function handleVersion() {
@@ -145,26 +145,50 @@ async function handleVersion() {
       return json({
         success: true,
         current: shortCurrent,
-        status: 'unknown',
+        status: 'latest',
         behindBy: 0,
+        aheadBy: 0,
         compareUrl: `https://github.com/${UPSTREAM_REPO}/commits/main`,
       }, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
     }
     const data = await res.json();
+    let mappedStatus = 'latest';
+    let behindCount = 0;
+    let aheadCount = 0;
+
+    if (data.status === 'identical') {
+      mappedStatus = 'latest';
+    } else if (data.status === 'ahead' || (data.ahead_by > 0 && !data.behind_by)) {
+      mappedStatus = 'behind';
+      behindCount = data.ahead_by || 0;
+    } else if (data.status === 'behind' || (data.behind_by > 0 && !data.ahead_by)) {
+      mappedStatus = 'ahead';
+      aheadCount = data.behind_by || 0;
+    } else if (data.status === 'diverged') {
+      if (data.ahead_by > 0) {
+        mappedStatus = 'behind';
+        behindCount = data.ahead_by;
+      } else {
+        mappedStatus = 'ahead';
+        aheadCount = data.behind_by || 0;
+      }
+    }
+
     return json({
       success: true,
       current: shortCurrent,
-      status: data.status,
-      behindBy: data.behind_by || 0,
-      aheadBy: data.ahead_by || 0,
+      status: mappedStatus,
+      behindBy: behindCount,
+      aheadBy: aheadCount,
       compareUrl: data.html_url || `https://github.com/${UPSTREAM_REPO}/compare/${shortCurrent}...main`,
     }, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
   } catch (e) {
     return json({
       success: true,
       current: shortCurrent,
-      status: 'unknown',
+      status: 'latest',
       behindBy: 0,
+      aheadBy: 0,
       compareUrl: `https://github.com/${UPSTREAM_REPO}/commits/main`,
     }, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
   }

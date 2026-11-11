@@ -1027,12 +1027,9 @@ footer a:hover { color: var(--primary); }
 
 /* 页脚版本状态指示器 */
 .footer-version-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  display: inline;
   font-size: var(--fs-footer);
   color: var(--muted);
-  vertical-align: middle;
   user-select: none;
 }
 .footer-version-badge .version-dot {
@@ -1041,6 +1038,8 @@ footer a:hover { color: var(--primary); }
   border-radius: 50%;
   background-color: var(--muted);
   display: inline-block;
+  vertical-align: 1.5px;
+  margin-right: 4px;
   transition: background-color 0.2s, box-shadow 0.2s;
 }
 .footer-version-badge.latest .version-dot {

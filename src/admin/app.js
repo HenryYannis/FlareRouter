@@ -113,7 +113,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     }
 
     var shortCommit = versionData.current;
-    if (versionData.status === 'identical') {
+    if (versionData.status === 'identical' || versionData.status === 'latest') {
       badge.className = 'footer-version-badge latest';
       badge.title = t('footer.version_latest') + ' (' + shortCommit + ')';
       text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(t('footer.version_latest')) + ' (' + esc(shortCommit) + ')</a>';
@@ -128,8 +128,9 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       badge.title = aheadText + ' (' + shortCommit + ')';
       text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(aheadText) + '</a>';
     } else {
-      badge.className = 'footer-version-badge';
-      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(shortCommit) + '</a>';
+      badge.className = 'footer-version-badge latest';
+      badge.title = t('footer.version_latest') + ' (' + shortCommit + ')';
+      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(t('footer.version_latest')) + ' (' + esc(shortCommit) + ')</a>';
     }
   }
 
