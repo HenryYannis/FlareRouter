@@ -1025,43 +1025,29 @@ footer .footer-brand { font-weight: var(--fw-ui); }
 footer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 footer a:hover { color: var(--primary); }
 
-/* 页脚版本状态指示器 */
+/* 页脚版本状态指示器（纯文字状态色） */
 .footer-version-badge {
   display: inline;
   font-size: var(--fs-footer);
-  color: var(--muted);
   user-select: none;
 }
-.footer-version-badge .version-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--muted);
-  display: inline-block;
-  vertical-align: 1.5px;
-  margin-right: 4px;
-  transition: background-color 0.2s, box-shadow 0.2s;
-}
-.footer-version-badge.latest .version-dot {
-  background-color: #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
-}
-.footer-version-badge.behind .version-dot {
-  background-color: #f59e0b;
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
-}
-.footer-version-badge.ahead .version-dot {
-  background-color: #3b82f6;
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
-}
 .footer-version-badge a.version-link {
-  color: inherit;
+  color: var(--muted);
   text-decoration: underline;
   text-underline-offset: 2px;
-  transition: color 0.15s;
+  transition: color 0.15s, opacity 0.15s;
+}
+.footer-version-badge.latest a.version-link {
+  color: #10b981;
+}
+.footer-version-badge.behind a.version-link {
+  color: #f59e0b;
+}
+.footer-version-badge.ahead a.version-link {
+  color: #3b82f6;
 }
 .footer-version-badge a.version-link:hover {
-  color: var(--primary);
+  opacity: 0.8;
 }
 
 /* 对话专属样式已抽离至 chat.css */

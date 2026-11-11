@@ -127,7 +127,7 @@ async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
   }
 }
 
-const CURRENT_COMMIT = 'c79e968';
+const CURRENT_COMMIT = 'e897e01';
 const UPSTREAM_REPO = 'HenryYannis/FlareRouter';
 
 async function handleVersion() {
@@ -159,18 +159,21 @@ async function handleVersion() {
     if (data.status === 'identical') {
       mappedStatus = 'latest';
     } else if (data.status === 'ahead' || (data.ahead_by > 0 && !data.behind_by)) {
-      mappedStatus = 'behind';
-      behindCount = data.ahead_by || 0;
+      if (data.ahead_by > 1) {
+        mappedStatus = 'behind';
+        behindCount = data.ahead_by;
+      } else {
+        mappedStatus = 'latest';
+      }
     } else if (data.status === 'behind' || (data.behind_by > 0 && !data.ahead_by)) {
       mappedStatus = 'ahead';
       aheadCount = data.behind_by || 0;
     } else if (data.status === 'diverged') {
-      if (data.ahead_by > 0) {
+      if (data.ahead_by > 1) {
         mappedStatus = 'behind';
         behindCount = data.ahead_by;
       } else {
-        mappedStatus = 'ahead';
-        aheadCount = data.behind_by || 0;
+        mappedStatus = 'latest';
       }
     }
 

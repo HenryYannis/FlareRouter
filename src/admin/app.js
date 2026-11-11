@@ -113,11 +113,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     }
 
     var shortCommit = versionData.current;
-    if (versionData.status === 'identical' || versionData.status === 'latest') {
+    if (versionData.status === 'identical' || versionData.status === 'latest' || (versionData.behindBy <= 1 && versionData.status !== 'ahead')) {
       badge.className = 'footer-version-badge latest';
       badge.title = t('footer.version_latest') + ' (' + shortCommit + ')';
       text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(t('footer.version_latest')) + ' (' + esc(shortCommit) + ')</a>';
-    } else if (versionData.status === 'behind' && versionData.behindBy > 0) {
+    } else if (versionData.status === 'behind' && versionData.behindBy > 1) {
       badge.className = 'footer-version-badge behind';
       var behindText = t('footer.version_behind', { count: versionData.behindBy });
       badge.title = behindText + ' (' + shortCommit + ')';
