@@ -108,29 +108,24 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
     if (!versionData) {
       badge.className = 'footer-version-badge';
-      text.textContent = t('footer.version_dev');
+      text.textContent = 'v1.0.0';
       return;
     }
 
-    var shortCommit = versionData.current;
-    if (versionData.status === 'identical' || versionData.status === 'latest' || (versionData.behindBy <= 1 && versionData.status !== 'ahead')) {
-      badge.className = 'footer-version-badge latest';
-      badge.title = t('footer.version_latest') + ' (' + shortCommit + ')';
-      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(t('footer.version_latest')) + ' (' + esc(shortCommit) + ')</a>';
-    } else if (versionData.status === 'behind' && versionData.behindBy > 1) {
-      badge.className = 'footer-version-badge behind';
-      var behindText = t('footer.version_behind', { count: versionData.behindBy });
-      badge.title = behindText + ' (' + shortCommit + ')';
-      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(behindText) + '</a>';
-    } else if (versionData.status === 'ahead' && versionData.aheadBy > 0) {
-      badge.className = 'footer-version-badge ahead';
-      var aheadText = t('footer.version_ahead', { count: versionData.aheadBy });
-      badge.title = aheadText + ' (' + shortCommit + ')';
-      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(aheadText) + '</a>';
+    var currentVer = versionData.current || 'v1.0.0';
+    var latestVer = versionData.latest || currentVer;
+    var url = versionData.releaseUrl || 'https://github.com/HenryYannis/FlareRouter/releases';
+
+    if (versionData.status === 'update') {
+      badge.className = 'footer-version-badge update';
+      var updateLabel = t('footer.version_update', { version: latestVer });
+      badge.title = updateLabel;
+      text.innerHTML = '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(updateLabel) + '</a>';
     } else {
       badge.className = 'footer-version-badge latest';
-      badge.title = t('footer.version_latest') + ' (' + shortCommit + ')';
-      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(t('footer.version_latest')) + ' (' + esc(shortCommit) + ')</a>';
+      var latestLabel = t('footer.version_latest', { version: currentVer });
+      badge.title = latestLabel;
+      text.innerHTML = '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(latestLabel) + '</a>';
     }
   }
 

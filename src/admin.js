@@ -127,14 +127,29 @@ async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
   }
 }
 
-const CURRENT_COMMIT = 'e897e01';
+const CURRENT_VERSION = 'v1.0.0';
 const UPSTREAM_REPO = 'HenryYannis/FlareRouter';
 
+function parseSemver(v) {
+  const m = String(v || '').trim().replace(/^v/i, '').split('-')[0].split('.');
+  return [parseInt(m[0], 10) || 0, parseInt(m[1], 10) || 0, parseInt(m[2], 10) || 0];
+}
+
+function compareSemver(a, b) {
+  const pa = parseSemver(a);
+  const pb = parseSemver(b);
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] > pb[i]) return 1;
+    if (pa[i] < pb[i]) return -1;
+  }
+  return 0;
+}
+
 async function handleVersion() {
-  const shortCurrent = CURRENT_COMMIT.slice(0, 7);
+  const fallbackUrl = `https://github.com/${UPSTREAM_REPO}/releases`;
   try {
-    const compareUrl = `https://api.github.com/repos/${UPSTREAM_REPO}/compare/${CURRENT_COMMIT}...main`;
-    const res = await fetch(compareUrl, {
+    const apiUrl = `https://api.github.com/repos/${UPSTREAM_REPO}/releases/latest`;
+    const res = await fetch(apiUrl, {
       headers: {
         'User-Agent': 'FlareRouter-Version-Check/1.0',
         'Accept': 'application/vnd.github.v3+json',
@@ -142,57 +157,33 @@ async function handleVersion() {
       cf: { cacheTtl: 3600, cacheEverything: true },
     });
     if (!res.ok) {
+      // 仓库尚未发布任何 Release 时（404）或网络限流，默认当前为最新正式版
       return json({
         success: true,
-        current: shortCurrent,
+        current: CURRENT_VERSION,
+        latest: CURRENT_VERSION,
         status: 'latest',
-        behindBy: 0,
-        aheadBy: 0,
-        compareUrl: `https://github.com/${UPSTREAM_REPO}/commits/main`,
+        releaseUrl: fallbackUrl,
       }, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
     }
     const data = await res.json();
-    let mappedStatus = 'latest';
-    let behindCount = 0;
-    let aheadCount = 0;
-
-    if (data.status === 'identical') {
-      mappedStatus = 'latest';
-    } else if (data.status === 'ahead' || (data.ahead_by > 0 && !data.behind_by)) {
-      if (data.ahead_by > 1) {
-        mappedStatus = 'behind';
-        behindCount = data.ahead_by;
-      } else {
-        mappedStatus = 'latest';
-      }
-    } else if (data.status === 'behind' || (data.behind_by > 0 && !data.ahead_by)) {
-      mappedStatus = 'ahead';
-      aheadCount = data.behind_by || 0;
-    } else if (data.status === 'diverged') {
-      if (data.ahead_by > 1) {
-        mappedStatus = 'behind';
-        behindCount = data.ahead_by;
-      } else {
-        mappedStatus = 'latest';
-      }
-    }
+    const latestTag = String(data.tag_name || '').trim() || CURRENT_VERSION;
+    const hasUpdate = compareSemver(latestTag, CURRENT_VERSION) > 0;
 
     return json({
       success: true,
-      current: shortCurrent,
-      status: mappedStatus,
-      behindBy: behindCount,
-      aheadBy: aheadCount,
-      compareUrl: data.html_url || `https://github.com/${UPSTREAM_REPO}/compare/${shortCurrent}...main`,
+      current: CURRENT_VERSION,
+      latest: latestTag,
+      status: hasUpdate ? 'update' : 'latest',
+      releaseUrl: data.html_url || fallbackUrl,
     }, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
   } catch (e) {
     return json({
       success: true,
-      current: shortCurrent,
+      current: CURRENT_VERSION,
+      latest: CURRENT_VERSION,
       status: 'latest',
-      behindBy: 0,
-      aheadBy: 0,
-      compareUrl: `https://github.com/${UPSTREAM_REPO}/commits/main`,
+      releaseUrl: fallbackUrl,
     }, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
   }
 }

@@ -126,10 +126,8 @@ var I18N = {
         brand: 'FlareRouter',
         tagline: '基于 Cloudflare Workers 的轻量 AI 网关',
         github: 'GitHub',
-        version_latest: '已是最新',
-        version_behind: '落后 {count} 个提交',
-        version_ahead: '领先 {count} 个提交',
-        version_dev: '开发版'
+        version_latest: '已是最新 ({version})',
+        version_update: '发现新版本 {version}'
       }
     },
     'zh-Hant': {
@@ -258,10 +256,8 @@ var I18N = {
         brand: 'FlareRouter',
         tagline: '基於 Cloudflare Workers 的輕量 AI 網關',
         github: 'GitHub',
-        version_latest: '已是最新',
-        version_behind: '落後 {count} 個提交',
-        version_ahead: '領先 {count} 個提交',
-        version_dev: '開發版'
+        version_latest: '已是最新 ({version})',
+        version_update: '發現新版本 {version}'
       }
     },
     en: {
@@ -390,10 +386,8 @@ var I18N = {
         brand: 'FlareRouter',
         tagline: 'Lightweight AI gateway on Cloudflare Workers',
         github: 'GitHub',
-        version_latest: 'Up to date',
-        version_behind: '{count} commits behind',
-        version_ahead: '{count} commits ahead',
-        version_dev: 'Dev'
+        version_latest: 'Up to date ({version})',
+        version_update: 'New version {version} available'
       }
     }
   };
