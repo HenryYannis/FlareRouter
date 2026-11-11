@@ -32,13 +32,13 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   }
 
   var LANG_CODE = {
-    zh: 'SC',
-    'zh-Hant': 'TC',
+    zh: '简',
+    'zh-Hant': '繁',
     en: 'EN'
   };
 
   function updateLangIcons(lang) {
-    var code = LANG_CODE[lang] || 'SC';
+    var code = LANG_CODE[lang] || '简';
     $$('.lang-icon').forEach(function (el) {
       el.textContent = code;
     });

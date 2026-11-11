@@ -356,10 +356,10 @@ header .btn.sm,
   overflow: hidden;
 }
 .lang-btn .lang-icon {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   line-height: 1;
   pointer-events: none;
   display: block;
