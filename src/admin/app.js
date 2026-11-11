@@ -62,6 +62,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     renderUsageDocs();
     renderErrorTable();
     if ($('#c-messages') && chatState && Array.isArray(chatState.messages)) renderChatMessages();
+    renderVersionBadge();
   }
 
   function initLang() {
@@ -91,6 +92,60 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       });
     });
     applyI18n();
+  }
+
+  // ---- 版本更新检测 ----
+  var versionData = null;
+  var versionChecked = false;
+
+  function renderVersionBadge() {
+    var badge = $('#footer-version');
+    if (!badge) return;
+    var text = badge.querySelector('.version-text');
+    if (!text) return;
+
+    if (!versionChecked) return;
+
+    if (!versionData) {
+      badge.className = 'footer-version-badge';
+      text.textContent = t('footer.version_dev');
+      return;
+    }
+
+    var shortCommit = versionData.current;
+    if (versionData.status === 'identical') {
+      badge.className = 'footer-version-badge latest';
+      badge.title = t('footer.version_latest') + ' (' + shortCommit + ')';
+      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(t('footer.version_latest')) + ' (' + esc(shortCommit) + ')</a>';
+    } else if (versionData.status === 'behind' && versionData.behindBy > 0) {
+      badge.className = 'footer-version-badge behind';
+      var behindText = t('footer.version_behind', { count: versionData.behindBy });
+      badge.title = behindText + ' (' + shortCommit + ')';
+      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(behindText) + '</a>';
+    } else if (versionData.status === 'ahead' && versionData.aheadBy > 0) {
+      badge.className = 'footer-version-badge ahead';
+      var aheadText = t('footer.version_ahead', { count: versionData.aheadBy });
+      badge.title = aheadText + ' (' + shortCommit + ')';
+      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(aheadText) + '</a>';
+    } else {
+      badge.className = 'footer-version-badge';
+      text.innerHTML = '<a href="' + esc(versionData.compareUrl) + '" target="_blank" rel="noopener noreferrer" class="version-link">' + esc(shortCommit) + '</a>';
+    }
+  }
+
+  async function initVersionCheck() {
+    try {
+      var res = await fetch('/admin/api/version');
+      if (!res.ok) throw new Error('API Error');
+      var data = await res.json();
+      if (!data.success || !data.current) throw new Error('Bad data');
+      versionData = data;
+    } catch (e) {
+      versionData = null;
+    } finally {
+      versionChecked = true;
+      renderVersionBadge();
+    }
   }
 
   function toast(msg) {
@@ -338,6 +393,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   initTheme();
   initLang();
+  initVersionCheck();
 
   function show(v) {
     $('#v-login').classList.toggle('hidden', v !== 'login');

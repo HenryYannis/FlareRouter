@@ -127,8 +127,52 @@ async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
   }
 }
 
+const CURRENT_COMMIT = '52fe58d';
+const UPSTREAM_REPO = 'HenryYannis/FlareRouter';
+
+async function handleVersion() {
+  const shortCurrent = CURRENT_COMMIT.slice(0, 7);
+  try {
+    const compareUrl = `https://api.github.com/repos/${UPSTREAM_REPO}/compare/${CURRENT_COMMIT}...main`;
+    const res = await fetch(compareUrl, {
+      headers: {
+        'User-Agent': 'FlareRouter-Version-Check/1.0',
+        'Accept': 'application/vnd.github.v3+json',
+      },
+      cf: { cacheTtl: 3600, cacheEverything: true },
+    });
+    if (!res.ok) {
+      return json({
+        success: true,
+        current: shortCurrent,
+        status: 'unknown',
+        behindBy: 0,
+        compareUrl: `https://github.com/${UPSTREAM_REPO}/commits/main`,
+      }, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
+    }
+    const data = await res.json();
+    return json({
+      success: true,
+      current: shortCurrent,
+      status: data.status,
+      behindBy: data.behind_by || 0,
+      aheadBy: data.ahead_by || 0,
+      compareUrl: data.html_url || `https://github.com/${UPSTREAM_REPO}/compare/${shortCurrent}...main`,
+    }, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
+  } catch (e) {
+    return json({
+      success: true,
+      current: shortCurrent,
+      status: 'unknown',
+      behindBy: 0,
+      compareUrl: `https://github.com/${UPSTREAM_REPO}/commits/main`,
+    }, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
+  }
+}
+
 export async function handleAdminApi(request, env, ctx, path) {
   const method = request.method;
+  if (path === '/admin/api/version' && method === 'GET') return handleVersion();
   if (path === '/admin/api/login' && method === 'POST') return handleLogin(request, env);
   if (path === '/admin/api/logout' && method === 'POST') return json({ ok: true }, 200, { 'Set-Cookie': cookieHeader('', 0) });
   if (!env.ADMIN_PASSWORD) return err('Worker 未设置 ADMIN_PASSWORD：请先执行 npx wrangler secret put ADMIN_PASSWORD', 503);

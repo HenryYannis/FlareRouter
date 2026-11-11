@@ -122,7 +122,15 @@ var I18N = {
       },
       common: { confirm: '确认', cancel: '取消', save: '保存', saving: '保存中…' },
       dialog: { confirmTitle: '操作确认', alertTitle: '提示', alertOk: '我知道了', promptTitle: '请输入' },
-      footer: { brand: 'FlareRouter', tagline: '基于 Cloudflare Workers 的轻量 AI 网关', github: 'GitHub' }
+      footer: {
+        brand: 'FlareRouter',
+        tagline: '基于 Cloudflare Workers 的轻量 AI 网关',
+        github: 'GitHub',
+        version_latest: '已是最新',
+        version_behind: '落后 {count} 个提交',
+        version_ahead: '领先 {count} 个提交',
+        version_dev: '开发版'
+      }
     },
     'zh-Hant': {
       title: 'FlareRouter 網關',
@@ -246,7 +254,15 @@ var I18N = {
       },
       common: { confirm: '確認', cancel: '取消', save: '儲存', saving: '儲存中…' },
       dialog: { confirmTitle: '操作確認', alertTitle: '提示', alertOk: '我知道了', promptTitle: '請輸入' },
-      footer: { brand: 'FlareRouter', tagline: '基於 Cloudflare Workers 的輕量 AI 網關', github: 'GitHub' }
+      footer: {
+        brand: 'FlareRouter',
+        tagline: '基於 Cloudflare Workers 的輕量 AI 網關',
+        github: 'GitHub',
+        version_latest: '已是最新',
+        version_behind: '落後 {count} 個提交',
+        version_ahead: '領先 {count} 個提交',
+        version_dev: '開發版'
+      }
     },
     en: {
       title: 'FlareRouter Gateway',
@@ -370,6 +386,14 @@ var I18N = {
       },
       common: { confirm: 'Confirm', cancel: 'Cancel', save: 'Save', saving: 'Saving…' },
       dialog: { confirmTitle: 'Please confirm', alertTitle: 'Notice', alertOk: 'OK', promptTitle: 'Input' },
-      footer: { brand: 'FlareRouter', tagline: 'Lightweight AI gateway on Cloudflare Workers', github: 'GitHub' }
+      footer: {
+        brand: 'FlareRouter',
+        tagline: 'Lightweight AI gateway on Cloudflare Workers',
+        github: 'GitHub',
+        version_latest: 'Up to date',
+        version_behind: '{count} commits behind',
+        version_ahead: '{count} commits ahead',
+        version_dev: 'Dev'
+      }
     }
   };
