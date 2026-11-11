@@ -1058,6 +1058,10 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#priv-words').value = (priv.customWords || []).join('\n');
   }
   $('#priv-save').addEventListener('click', async function () {
+    var saveBtn = $('#priv-save');
+    if (saveBtn.disabled) return;
+    saveBtn.disabled = true;
+    saveBtn.textContent = t('common.saving');
     try {
       var words = $('#priv-words').value.split('\n').map(function (w) { return w.trim(); }).filter(Boolean);
       var privacy = {
@@ -1070,6 +1074,9 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       toast(t('settings.privacySaved'));
     } catch (err) {
       await showAlert({ message: err.message });
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = t('settings.save');
     }
   });
   $('#s-save').addEventListener('click', async function () {

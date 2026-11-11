@@ -264,7 +264,7 @@ export class PrivacyManager {
 
     // 3. 日志明细：仅在产生全新脱敏词时写入，附带 7 天 TTL（604800 秒），防止垃圾堆积
     if (logTs && this.redactedDetails.length > 0) {
-      if (hasNewMasks || candidates.length > 0) {
+      if (hasNewMasks) {
         const logKey = `redact:log:${logTs}`;
         const logOpts = { expirationTtl: 7 * 86400 }; // 7 天自动清理
         tasks.push(

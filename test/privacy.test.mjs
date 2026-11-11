@@ -299,12 +299,14 @@ console.log('--- 开始测试隐私与脱敏模块 (PrivacyManager) ---');
 
   const pm = new PrivacyManager({ enabled: true });
   pm.secretMap.set(existingPh, '云端已存在的敏感词');
+  pm.redactedDetails.push({ kind: 'CUSTOM', placeholder: existingPh, original: '云端已存在的敏感词' });
 
-  await pm.persistToKV(mockEnv);
+  // 关键测试：即便带上 logTs，但因为全是已存在的暗号，绝对不能写 redact:log:*！
+  await pm.persistToKV(mockEnv, { logTs: 10002 });
 
   assert.equal(getCount, 1, '应执行 1 次读预检');
-  assert.equal(putCount, 0, '云端已存在的暗号绝对禁止执行 put 写入，用 10 万次读保护 1000 次写！');
-  console.log('PASS: Read-Before-Write 读先于写削峰验证');
+  assert.equal(putCount, 0, '云端已存在的暗号绝对禁止执行 put 写入（包括 redact:log:*），彻底杜绝冷启动实例重复写日志！');
+  console.log('PASS: Read-Before-Write 读先于写削峰验证（含 redact:log 零写入）');
 }
 
 console.log('--- 全部隐私与脱敏单元测试均顺利通过！ ---');

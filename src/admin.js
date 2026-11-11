@@ -513,6 +513,32 @@ export async function handleAdminApi(request, env, ctx, path) {
     if (raw) {
       try { return json({ items: JSON.parse(raw) }); } catch {}
     }
+    // 削峰兜底：若无专门时间戳明细（削峰已跳过重复写入），从 D1 对应日志中反查暗号原词
+    if (env.DB && typeof env.DB.prepare === 'function') {
+      try {
+        const row = await env.DB.prepare('SELECT prompt, error FROM call_logs WHERE ts = ? LIMIT 1').bind(Number(ts)).first();
+        const text = `${(row && row.prompt) || ''} ${(row && row.error) || ''}`;
+        const regex = /\{\{MASK_([A-Z0-9]+)_[a-f0-9]{16}\}\}/g;
+        const matches = text.match(regex);
+        if (matches && matches.length) {
+          const unique = [...new Set(matches)];
+          const items = (await Promise.all(
+            unique.map(async (ph) => {
+              try {
+                const orig = await env.CONFIG.get(`mask:${ph}`);
+                if (!orig) return null;
+                const m = ph.match(/\{\{MASK_([A-Z0-9]+)_/);
+                const kind = m ? m[1] : 'TEXT';
+                return { kind, placeholder: ph, original: orig };
+              } catch {
+                return null;
+              }
+            })
+          )).filter(Boolean);
+          if (items.length) return json({ items });
+        }
+      } catch {}
+    }
     return json({ items: [] });
   }
   if (path === '/admin/api/logs/clear' && method === 'POST') {

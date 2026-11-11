@@ -260,6 +260,7 @@ const mf = new Miniflare({
   bindings: { ADMIN_PASSWORD },
 });
 const db = await mf.getD1Database('DB');
+const kv = await mf.getKVNamespace('CONFIG');
 for (const f of readdirSync('migrations').filter((x) => x.endsWith('.sql')).sort()) {
   const sql = readFileSync(`migrations/${f}`, 'utf8').split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
   for (const stmt of sql.split(';').map((s) => s.replace(/--.*$/gm, '').trim()).filter(Boolean)) await db.prepare(stmt).run();
@@ -1139,6 +1140,15 @@ try {
   await sleep(200);
   const after = (await db.prepare('SELECT COUNT(*) AS n FROM call_logs').first()).n;
   ok(after === before - 1, `Cron 按保留天数清理（${before} -> ${after}）`);
+
+  // 脱敏明细接口与反查兜底测试
+  const testMaskPh = '{{MASK_CUSTOM_0123456789abcdef}}';
+  const testMaskTs = 1700000000000;
+  await kv.put(`mask:${testMaskPh}`, '机密原词测试');
+  await db.prepare("INSERT INTO call_logs (ts, endpoint, status, prompt) VALUES (?, 'chat/completions', 200, ?)").bind(testMaskTs, `用户提问中包含 ${testMaskPh}`).run();
+  r = await admin(`/admin/api/logs/redacted?ts=${testMaskTs}`);
+  d = await j(r);
+  ok(r.status === 200 && Array.isArray(d.items) && d.items.length === 1 && d.items[0].original === '机密原词测试', '脱敏明细接口支持从日志占位符反查兜底');
 
   r = await admin('/admin/api/logs/clear', {});
   d = await j(r);
