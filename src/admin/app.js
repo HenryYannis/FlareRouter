@@ -108,11 +108,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
     if (!versionData) {
       badge.className = 'footer-version-badge';
-      text.textContent = 'v1.0.0';
+      text.textContent = 'v1.0.1';
       return;
     }
 
-    var currentVer = versionData.current || 'v1.0.0';
+    var currentVer = versionData.current || 'v1.0.1';
     var latestVer = versionData.latest || currentVer;
     var url = versionData.releaseUrl || 'https://github.com/HenryYannis/FlareRouter/releases';
 

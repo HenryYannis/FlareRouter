@@ -1,6 +1,6 @@
 {
   "name": "flarerouter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Personal AI gateway on a single Cloudflare Worker: OpenAI + Anthropic APIs, failover, logs, admin page",
   "type": "module",
