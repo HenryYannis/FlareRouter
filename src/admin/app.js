@@ -432,28 +432,55 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   function renderProviders() {
     var ps = state.cfg.providers;
-    var h = '<tr><th>' + t('providers.thOrder') + '</th><th>' + t('providers.thNameId') + '</th><th class="hide-sm">' + t('providers.thBase') + '</th><th>' + t('providers.thKey') + '</th><th>' + t('providers.thModels') + '</th><th>' + t('providers.thEnable') + '</th><th class="col-actions">' + t('providers.thActions') + '</th></tr>';
-    if (!ps.length) h += '<tr><td colspan="7" class="muted">' + t('providers.empty') + '</td></tr>';
+    var h = '<tr>' +
+      '<th class="col-order">' + t('providers.thOrder') + '</th>' +
+      '<th class="col-prov-name">' + t('providers.thNameId') + '</th>' +
+      '<th class="col-prov-base hide-sm">' + t('providers.thBase') + '</th>' +
+      '<th class="col-prov-key">' + t('providers.thKey') + '</th>' +
+      '<th class="col-prov-models">' + t('providers.thModels') + '</th>' +
+      '<th class="col-enable">' + t('providers.thEnable') + '</th>' +
+      '<th class="col-actions">' + t('providers.thActions') + '</th>' +
+      '</tr>';
+    if (!ps.length) h += '<tr><td colspan="7" class="muted" style="text-align:center;padding:24px 8px">' + t('providers.empty') + '</td></tr>';
     ps.forEach(function (p, i) {
       h += '<tr class="provider-row" draggable="true" data-drag-idx="' + i + '">' +
-        '<td class="mono col-order">' +
-          '<span class="drag-handle" title="' + esc(t('providers.dragOrder')) + '" aria-label="' + esc(t('providers.dragOrder')) + '">' +
-            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>' +
-          '</span>' +
-          '<button class="btn sm" data-up="' + i + '"' + (i === 0 ? ' disabled' : '') + '>↑</button> ' +
-          '<button class="btn sm" data-down="' + i + '"' + (i === ps.length - 1 ? ' disabled' : '') + '>↓</button>' +
+        '<td class="col-order">' +
+          '<div class="order-controls">' +
+            '<span class="drag-handle" title="' + esc(t('providers.dragOrder')) + '" aria-label="' + esc(t('providers.dragOrder')) + '">' +
+              '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>' +
+            '</span>' +
+            '<button class="btn sm icon-btn" data-up="' + i + '"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+            '<button class="btn sm icon-btn" data-down="' + i + '"' + (i === ps.length - 1 ? ' disabled' : '') + '>↓</button>' +
+          '</div>' +
         '</td>' +
-        '<td><div>' + esc(p.name) + '</div><div class="muted mono small">' + esc(p.id) + '</div>' + (p.note ? '<div class="muted small">' + esc(p.note) + '</div>' : '') + '</td>' +
-        '<td class="hide-sm mono small" style="word-break:break-all">' + esc(p.baseUrl) + (p.protocol === 'anthropic' ? ' <span class="tag">Anthropic</span>' : p.protocol === 'responses' ? ' <span class="tag">Responses</span>' : '') + '</td>' +
-        '<td class="mono small">' + (p.hasKey ? esc(p.apiKeyPreview) : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') + '</td>' +
-        '<td class="small" title="' + esc(p.models.join(', ')) + '">' + p.models.length + '<div class="muted mono">' + esc(p.models[0] || '') + '</div></td>' +
-        '<td><label class="switch"><input type="checkbox" data-toggle="' + esc(p.id) + '"' + (p.enabled ? ' checked' : '') + '><span></span></label></td>' +
-        '<td class="col-actions" style="white-space:nowrap">' +
-          (p.consoleUrl ?
-            '<a class="btn sm" href="' + esc(p.consoleUrl) + '" target="_blank" rel="noopener noreferrer">' + t('providers.visit') + '</a> ' :
-            '<button class="btn sm" disabled title="' + t('providers.noConsoleUrl') + '">' + t('providers.visit') + '</button> ') +
-          '<button class="btn sm" data-edit="' + i + '">' + t('providers.edit') + '</button> ' +
-          '<button class="btn sm danger" data-del="' + esc(p.id) + '">' + t('providers.del') + '</button></td>' +
+        '<td class="col-prov-name">' +
+          '<div class="prov-name">' + esc(p.name) + '</div>' +
+          '<div class="muted mono small prov-id">' + esc(p.id) + '</div>' +
+          (p.note ? '<div class="muted small prov-note">' + esc(p.note) + '</div>' : '') +
+        '</td>' +
+        '<td class="col-prov-base hide-sm">' +
+          '<div class="mono small prov-url">' + esc(p.baseUrl) + '</div>' +
+          (p.protocol === 'anthropic' ? '<span class="tag tag-proto">Anthropic</span>' : p.protocol === 'responses' ? '<span class="tag tag-proto">Responses</span>' : '') +
+        '</td>' +
+        '<td class="col-prov-key mono small">' +
+          (p.hasKey ? '<span class="prov-key-text">' + esc(p.apiKeyPreview) + '</span>' : '<span class="tag warn">' + t('providers.keyEmptyTag') + '</span>') +
+        '</td>' +
+        '<td class="col-prov-models" title="' + esc(p.models.join(', ')) + '">' +
+          '<span class="tag tag-models' + (p.models.length ? '' : ' warn') + '">' + p.models.length + ' ' + t('providers.thModels') + '</span>' +
+          '<div class="muted mono small prov-model-sub">' + esc(p.models[0] || '-') + '</div>' +
+        '</td>' +
+        '<td class="col-enable">' +
+          '<label class="switch"><input type="checkbox" data-toggle="' + esc(p.id) + '"' + (p.enabled ? ' checked' : '') + '><span></span></label>' +
+        '</td>' +
+        '<td class="col-actions">' +
+          '<div class="actions-group">' +
+            (p.consoleUrl ?
+              '<a class="btn sm" href="' + esc(p.consoleUrl) + '" target="_blank" rel="noopener noreferrer">' + t('providers.visit') + '</a>' :
+              '<button class="btn sm" disabled title="' + t('providers.noConsoleUrl') + '">' + t('providers.visit') + '</button>') +
+            '<button class="btn sm" data-edit="' + i + '">' + t('providers.edit') + '</button>' +
+            '<button class="btn sm danger" data-del="' + esc(p.id) + '">' + t('providers.del') + '</button>' +
+          '</div>' +
+        '</td>' +
         '</tr>';
     });
     $('#prov-table').innerHTML = h;
