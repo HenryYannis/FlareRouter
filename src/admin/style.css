@@ -1,10 +1,11 @@
-/* FlareRouter 管理页：色板对齐小宝科技站 / Apple（纯色底 + 玻璃；无星空粒子） */
+/* FlareRouter 管理页：色板对齐小宝科技站（Vercel 极简清爽浅灰 + 少数派温润深炭夜色） */
 :root {
-  --bg: #f5f5f7;
-  --card: rgba(255, 255, 255, 0.72);
+  --bg: #fafafa;
+  --bg-darker: #f0f0f0;
+  --card: rgba(255, 255, 255, 0.9);
   --text: #1d1d1f;
   --muted: #6e6e73;
-  --link: #0066cc;
+  --link: #0071e3;
   --border: rgba(0, 0, 0, 0.08);
   --primary: #0071e3;
   --primary-rgb: 0, 113, 227;
@@ -17,15 +18,16 @@
   --danger-active: #b91c1c;
   --ok: #10b981;
   --warn: #f59e0b;
-  --soft: #e8e8ed;
+  --soft: #f0f0f0;
   --code: rgba(255, 255, 255, 0.85);
+  --chat-bg: rgba(0, 0, 0, 0.02);
   --focus: rgba(0, 113, 227, 0.2);
-  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg: rgba(255, 255, 255, 0.88);
   --glass-border: transparent;
   --background-blur: blur(20px);
   --radius: 14px;
   --radius-sm: 8px;
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   /* 动画曲线与字体栈对齐小宝科技站 */
   --ease-liquid: cubic-bezier(.4, 0, .2, 1);
   --ease-bounce: cubic-bezier(.68, -.55, .265, 1.55);
@@ -51,13 +53,14 @@
 }
 
 html.day-theme {
-  background-color: #f5f5f7;
+  background-color: #fafafa;
   color-scheme: light;
-  --bg: #f5f5f7;
-  --card: rgba(255, 255, 255, 0.72);
+  --bg: #fafafa;
+  --bg-darker: #f0f0f0;
+  --card: rgba(255, 255, 255, 0.9);
   --text: #1d1d1f;
   --muted: #6e6e73;
-  --link: #0066cc;
+  --link: #0071e3;
   --border: rgba(0, 0, 0, 0.08);
   --primary: #0071e3;
   --primary-rgb: 0, 113, 227;
@@ -70,23 +73,25 @@ html.day-theme {
   --danger-active: #b91c1c;
   --ok: #10b981;
   --warn: #f59e0b;
-  --soft: #e8e8ed;
+  --soft: #f0f0f0;
   --code: rgba(255, 255, 255, 0.85);
+  --chat-bg: rgba(0, 0, 0, 0.02);
   --focus: rgba(0, 113, 227, 0.2);
-  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg: rgba(255, 255, 255, 0.88);
   --glass-border: transparent;
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 html.night-theme {
-  background-color: #000000;
+  background-color: #1f1e23;
   color-scheme: dark;
-  --bg: #000000;
-  --card: rgba(255, 255, 255, 0.12);
-  --text: #f5f5f7;
+  --bg: #1f1e23;
+  --bg-darker: #17161a;
+  --card: #27262c;
+  --text: #d4d3d8;
   --muted: #86868b;
   --link: #2997ff;
-  --border: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.1);
   --primary: #0071e3;
   --primary-rgb: 0, 113, 227;
   --primary-hover: #2997ff;
@@ -98,12 +103,13 @@ html.night-theme {
   --danger-active: #dc2626;
   --ok: #34d399;
   --warn: #f59e0b;
-  --soft: rgba(255, 255, 255, 0.06);
-  --code: rgba(18, 20, 29, 0.9);
+  --soft: #2a2930;
+  --code: #17161a;
+  --chat-bg: #17161a;
   --focus: rgba(0, 113, 227, 0.3);
-  --glass-bg: rgba(255, 255, 255, 0.12);
-  --glass-border: transparent;
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --glass-bg: rgba(39, 38, 44, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 * { box-sizing: border-box; }

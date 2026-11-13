@@ -108,11 +108,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
     if (!versionData) {
       badge.className = 'footer-version-badge';
-      text.textContent = 'v1.0.1';
+      text.textContent = 'v1.0.2';
       return;
     }
 
-    var currentVer = versionData.current || 'v1.0.1';
+    var currentVer = versionData.current || 'v1.0.2';
     var latestVer = versionData.latest || currentVer;
     var url = versionData.releaseUrl || 'https://github.com/HenryYannis/FlareRouter/releases';
 
@@ -262,7 +262,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     document.documentElement.classList.add(isDark ? 'night-theme' : 'day-theme');
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-    var col = isDark ? '#000000' : '#f5f5f7';
+    var col = isDark ? '#1f1e23' : '#fafafa';
     $$('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', col); });
     updateThemeButtons(isDark);
   }

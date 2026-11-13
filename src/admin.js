@@ -127,7 +127,7 @@ async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
   }
 }
 
-const CURRENT_VERSION = 'v1.0.1';
+const CURRENT_VERSION = 'v1.0.2';
 const UPSTREAM_REPO = 'HenryYannis/FlareRouter';
 
 function parseSemver(v) {
