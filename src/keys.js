@@ -18,15 +18,7 @@ export async function verifyApiKey(env, ctx, token) {
   if (hit && now - hit.at < AUTH_CACHE_TTL_MS) {
     row = hit.key;
   } else {
-    try {
-      row = await env.DB.prepare('SELECT id, name, revoked, quota_limit, quota_used FROM api_keys WHERE key_hash = ?').bind(hash).first();
-    } catch (e) {
-      if (/no column|no such column/i.test((e && e.message) || '')) {
-        row = await env.DB.prepare('SELECT id, name, revoked FROM api_keys WHERE key_hash = ?').bind(hash).first();
-      } else {
-        throw e;
-      }
-    }
+    row = await env.DB.prepare('SELECT id, name, revoked, quota_limit, quota_used FROM api_keys WHERE key_hash = ?').bind(hash).first();
     authCache.set(hash, { key: row || null, at: now });
   }
   if (!row || row.revoked) return null;
@@ -43,27 +35,10 @@ export async function verifyApiKey(env, ctx, token) {
 }
 
 export async function listKeys(env) {
-  try {
-    const { results } = await env.DB.prepare(
-      'SELECT id, name, preview, raw_key, created_at, last_used_at, revoked, quota_limit, quota_used FROM api_keys ORDER BY created_at DESC'
-    ).all();
-    return results || [];
-  } catch (e) {
-    if (/no column|no such column/i.test((e && e.message) || '')) {
-      try {
-        const { results } = await env.DB.prepare(
-          'SELECT id, name, preview, raw_key, created_at, last_used_at, revoked FROM api_keys ORDER BY created_at DESC'
-        ).all();
-        return results || [];
-      } catch (e2) {
-        const { results } = await env.DB.prepare(
-          'SELECT id, name, preview, created_at, last_used_at, revoked FROM api_keys ORDER BY created_at DESC'
-        ).all();
-        return results || [];
-      }
-    }
-    throw e;
-  }
+  const { results } = await env.DB.prepare(
+    'SELECT id, name, preview, raw_key, created_at, last_used_at, revoked, quota_limit, quota_used FROM api_keys ORDER BY created_at DESC'
+  ).all();
+  return results || [];
 }
 
 export async function createKey(env, name) {
@@ -73,19 +48,9 @@ export async function createKey(env, name) {
   const preview = `${key.slice(0, 9)}…${key.slice(-4)}`;
   const now = Date.now();
   const nameVal = String(name || '未命名').slice(0, 60);
-  try {
-    await env.DB.prepare(
-      'INSERT INTO api_keys (id, name, key_hash, preview, raw_key, created_at, revoked) VALUES (?, ?, ?, ?, ?, ?, 0)'
-    ).bind(id, nameVal, hash, preview, key, now).run();
-  } catch (e) {
-    if (/no column|no such column/i.test((e && e.message) || '')) {
-      await env.DB.prepare(
-        'INSERT INTO api_keys (id, name, key_hash, preview, created_at, revoked) VALUES (?, ?, ?, ?, ?, 0)'
-      ).bind(id, nameVal, hash, preview, now).run();
-    } else {
-      throw e;
-    }
-  }
+  await env.DB.prepare(
+    'INSERT INTO api_keys (id, name, key_hash, preview, raw_key, created_at, revoked) VALUES (?, ?, ?, ?, ?, ?, 0)'
+  ).bind(id, nameVal, hash, preview, key, now).run();
   authCache.clear();
   return { id, name: nameVal, key, raw_key: key, preview, created_at: now };
 }

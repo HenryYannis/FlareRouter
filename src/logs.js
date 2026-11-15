@@ -3,19 +3,9 @@
 const MAX_TEXT = 4000;
 const cut = (s, n = MAX_TEXT) => (s == null ? null : String(s).slice(0, n));
 
-// 含 cache_read_tokens（0004）；缺列时退回 COLS_LEGACY
 const COLS = `ts, key_id, key_name, endpoint, requested_model, provider_id, provider_name, model,
        stream, status, latency_ms, ttfb_ms, prompt_tokens, completion_tokens, total_tokens, cache_read_tokens,
-       fallback, attempts, trail, error, prompt`;
-
-const COLS_V6 = `${COLS}, client_protocol, upstream_protocol, redacted_hits`;
-const COLS_V5 = `${COLS}, client_protocol, upstream_protocol`;
-
-const COLS_LEGACY = `ts, key_id, key_name, endpoint, requested_model, provider_id, provider_name, model,
-       stream, status, latency_ms, ttfb_ms, prompt_tokens, completion_tokens, total_tokens,
-       fallback, attempts, trail, error, prompt`;
-
-const missingCol = (e) => /no column|no such column|has no column/i.test((e && e.message) || '');
+       fallback, attempts, trail, error, prompt, client_protocol, upstream_protocol, redacted_hits`;
 
 // 先缩短每条 error，仍超长再丢掉末尾的尝试，保证入库的是合法 JSON 且不超过 8000。
 function encodeTrail(trail) {
@@ -51,76 +41,45 @@ function encodeTrail(trail) {
 export function writeLog(env, ctx, entry) {
   let p;
   try {
-  const baseLegacy = [
-    entry.ts,
-    entry.keyId || null,
-    entry.keyName || null,
-    entry.endpoint || '',
-    entry.requestedModel || null,
-    entry.providerId || null,
-    entry.providerName || null,
-    entry.model || null,
-    entry.stream ? 1 : 0,
-    entry.status || 0,
-    entry.latencyMs || 0,
-    entry.ttfbMs ?? null,
-    entry.promptTokens ?? null,
-    entry.completionTokens ?? null,
-    entry.totalTokens ?? null,
-    entry.fallback ? 1 : 0,
-    entry.attempts ?? 1,
-    entry.trail && entry.trail.length ? encodeTrail(entry.trail) : null,
-    cut(entry.error),
-    cut(entry.prompt),
-  ];
-  // cache_read_tokens 插在 total_tokens 之后
-  const base = [
-    ...baseLegacy.slice(0, 15),
-    entry.cacheReadTokens ?? null,
-    ...baseLegacy.slice(15),
-  ];
-  if (ctx && ctx.waitUntil && entry.keyId && entry.keyId !== 'admin' && Number(entry.totalTokens) > 0) {
-    ctx.waitUntil(
-      env.DB.prepare('UPDATE api_keys SET quota_used = COALESCE(quota_used, 0) + ? WHERE id = ?')
-        .bind(Number(entry.totalTokens), entry.keyId)
-        .run()
-        .catch(() => {})
-    );
-  }
-  const proto = [entry.clientProtocol || null, entry.upstreamProtocol || null];
-  const redactedHits = Math.max(0, Number(entry.redactedHits || 0));
-
-  const doInsertLegacy = () => env.DB.prepare(`INSERT INTO call_logs (${COLS}, client_protocol, upstream_protocol) VALUES (${Array(23).fill('?').join(', ')})`)
-    .bind(...base, ...proto)
-    .run()
-    .catch((e) => {
-      if (!missingCol(e)) throw e;
-      // 缺 cache_read_tokens：退回 0002 形态（协议列仍在）
-      return env.DB.prepare(`INSERT INTO call_logs (${COLS_LEGACY}, client_protocol, upstream_protocol) VALUES (${Array(22).fill('?').join(', ')})`)
-        .bind(...baseLegacy, ...proto)
-        .run()
-        .catch((e2) => {
-          // 还没跑 0002（缺协议列）：再退回最旧 20 列
-          if (!missingCol(e2)) throw e2;
-          return env.DB.prepare(`INSERT INTO call_logs (${COLS_LEGACY}) VALUES (${Array(20).fill('?').join(', ')})`).bind(...baseLegacy).run();
-        });
-    })
-    .catch((e) => console.error('写日志失败', e && e.message));
-
-  if (redactedHits > 0) {
-    p = env.DB.prepare(`INSERT INTO call_logs (${COLS_V6}) VALUES (${Array(24).fill('?').join(', ')})`)
-      .bind(...base, ...proto, redactedHits)
+    const vals = [
+      entry.ts,
+      entry.keyId || null,
+      entry.keyName || null,
+      entry.endpoint || '',
+      entry.requestedModel || null,
+      entry.providerId || null,
+      entry.providerName || null,
+      entry.model || null,
+      entry.stream ? 1 : 0,
+      entry.status || 0,
+      entry.latencyMs || 0,
+      entry.ttfbMs ?? null,
+      entry.promptTokens ?? null,
+      entry.completionTokens ?? null,
+      entry.totalTokens ?? null,
+      entry.cacheReadTokens ?? null,
+      entry.fallback ? 1 : 0,
+      entry.attempts ?? 1,
+      entry.trail && entry.trail.length ? encodeTrail(entry.trail) : null,
+      cut(entry.error),
+      cut(entry.prompt),
+      entry.clientProtocol || null,
+      entry.upstreamProtocol || null,
+      Math.max(0, Number(entry.redactedHits || 0)),
+    ];
+    if (ctx && ctx.waitUntil && entry.keyId && entry.keyId !== 'admin' && Number(entry.totalTokens) > 0) {
+      ctx.waitUntil(
+        env.DB.prepare('UPDATE api_keys SET quota_used = COALESCE(quota_used, 0) + ? WHERE id = ?')
+          .bind(Number(entry.totalTokens), entry.keyId)
+          .run()
+          .catch(() => {})
+      );
+    }
+    p = env.DB.prepare(`INSERT INTO call_logs (${COLS}) VALUES (${Array(24).fill('?').join(', ')})`)
+      .bind(...vals)
       .run()
-      .catch((e) => {
-        if (!missingCol(e)) throw e;
-        // 缺 redacted_hits 时退回 23 列
-        return doInsertLegacy();
-      })
       .catch((e) => console.error('写日志失败', e && e.message));
-  } else {
-    p = doInsertLegacy();
-  }
-  ctx.waitUntil(p);
+    ctx.waitUntil(p);
   } catch (e) {
     console.error('写日志失败', e && e.message);
     p = Promise.resolve();
@@ -164,66 +123,28 @@ export async function queryLogs(env, q) {
 }
 
 export async function statsSummary(env, sinceTs) {
-  let row;
-  try {
-    row = await env.DB.prepare(
-      `SELECT COUNT(*) AS total,
-              SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
-              SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
-              SUM(COALESCE(total_tokens, 0)) AS tokens,
-              AVG(latency_ms) AS avg_latency,
-              SUM(cache_read_tokens) AS cache_read_tokens,
-              SUM(CASE WHEN cache_read_tokens IS NOT NULL THEN COALESCE(prompt_tokens, 0) ELSE 0 END) AS prompt_tokens_for_cache,
-              SUM(COALESCE(redacted_hits, 0)) AS redacted_hits
-         FROM call_logs WHERE ts >= ?`
-    ).bind(sinceTs).first();
-  } catch (e) {
-    if (!missingCol(e)) throw e;
-    try {
-      row = await env.DB.prepare(
-        `SELECT COUNT(*) AS total,
-                SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
-                SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
-                SUM(COALESCE(total_tokens, 0)) AS tokens,
-                AVG(latency_ms) AS avg_latency,
-                SUM(cache_read_tokens) AS cache_read_tokens,
-                SUM(CASE WHEN cache_read_tokens IS NOT NULL THEN COALESCE(prompt_tokens, 0) ELSE 0 END) AS prompt_tokens_for_cache
-           FROM call_logs WHERE ts >= ?`
-      ).bind(sinceTs).first();
-    } catch (e2) {
-      if (!missingCol(e2)) throw e2;
-      row = await env.DB.prepare(
-        `SELECT COUNT(*) AS total,
-                SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
-                SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
-                SUM(COALESCE(total_tokens, 0)) AS tokens,
-                AVG(latency_ms) AS avg_latency
-           FROM call_logs WHERE ts >= ?`
-      ).bind(sinceTs).first();
-    }
-  }
-  let byProvider;
-  try {
-    byProvider = await env.DB.prepare(
-      `SELECT provider_id, provider_name, COUNT(*) AS total,
-              SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
-              SUM(COALESCE(total_tokens, 0)) AS tokens,
-              SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
-              SUM(COALESCE(redacted_hits, 0)) AS redacted_hits,
-              ROUND(AVG(latency_ms)) AS avg_latency
-         FROM call_logs WHERE ts >= ? GROUP BY provider_id ORDER BY total DESC`
-    ).bind(sinceTs).all();
-  } catch (e) {
-    if (!missingCol(e)) throw e;
-    byProvider = await env.DB.prepare(
-      `SELECT provider_id, provider_name, COUNT(*) AS total,
-              SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
-              SUM(COALESCE(total_tokens, 0)) AS tokens,
-              SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
-              ROUND(AVG(latency_ms)) AS avg_latency
-         FROM call_logs WHERE ts >= ? GROUP BY provider_id ORDER BY total DESC`
-    ).bind(sinceTs).all();
-  }
+  const row = await env.DB.prepare(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
+            SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
+            SUM(COALESCE(total_tokens, 0)) AS tokens,
+            AVG(latency_ms) AS avg_latency,
+            SUM(cache_read_tokens) AS cache_read_tokens,
+            SUM(CASE WHEN cache_read_tokens IS NOT NULL THEN COALESCE(prompt_tokens, 0) ELSE 0 END) AS prompt_tokens_for_cache,
+            SUM(COALESCE(redacted_hits, 0)) AS redacted_hits
+       FROM call_logs WHERE ts >= ?`
+  ).bind(sinceTs).first();
+
+  const byProvider = await env.DB.prepare(
+    `SELECT provider_id, provider_name, COUNT(*) AS total,
+            SUM(CASE WHEN status >= 200 AND status < 300 THEN 1 ELSE 0 END) AS ok,
+            SUM(COALESCE(total_tokens, 0)) AS tokens,
+            SUM(CASE WHEN fallback = 1 THEN 1 ELSE 0 END) AS fallback,
+            SUM(COALESCE(redacted_hits, 0)) AS redacted_hits,
+            ROUND(AVG(latency_ms)) AS avg_latency
+       FROM call_logs WHERE ts >= ? GROUP BY provider_id ORDER BY total DESC`
+  ).bind(sinceTs).all();
+
   return { ...(row || {}), byProvider: byProvider.results || [] };
 }
 

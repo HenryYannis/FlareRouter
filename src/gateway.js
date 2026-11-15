@@ -108,7 +108,7 @@ export function resolveTargets(cfg, requestedModel, { allowFallback = true } = {
   let primary = [];
 
   const lowReq = req.toLowerCase();
-  if (!req || lowReq === 'auto' || lowReq === 'flarerouter/auto' || lowReq === 'gateway/auto') {
+  if (!req || lowReq === 'auto' || lowReq === 'flarerouter/auto') {
     const chain = resolveChain(cfg);
     if (!chain.length) return { targets: [], error: { status: 503, message: '没有可用的服务商：请先在管理页添加并启用服务商、填写模型列表。' } };
     return { targets: fallbackOn ? chain : chain.slice(0, 1) };

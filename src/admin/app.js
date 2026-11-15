@@ -67,7 +67,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   function initLang() {
     var saved = null;
-    try { saved = localStorage.getItem('gw_lang'); } catch (e) {}
+    try { saved = localStorage.getItem('fr_lang'); } catch (e) {}
     if (saved === 'zh' || saved === 'zh-Hant' || saved === 'en') {
       state.lang = saved;
     } else {
@@ -78,7 +78,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       sel.value = state.lang;
       sel.addEventListener('change', function () {
         state.lang = this.value;
-        try { localStorage.setItem('gw_lang', this.value); } catch (e) {}
+        try { localStorage.setItem('fr_lang', this.value); } catch (e) {}
         applyI18n();
         if (state.cfg) {
           renderProviders();
@@ -1239,12 +1239,12 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     state.keys = items || [];
     $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thQuota') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th class="col-actions">' + t('keys.thActions') + '</th></tr>' +
       (state.keys.length ? state.keys.map(function (k) {
-        var hasRaw = !!k.raw_key;
         var isUnmasked = !!state.unmaskedKeys[k.id];
-        var displayKey = hasRaw ? (isUnmasked ? k.raw_key : '*'.repeat(k.raw_key.length)) : k.preview;
+        var rawKey = k.raw_key || k.preview || '';
+        var displayKey = isUnmasked ? rawKey : '*'.repeat(rawKey.length);
         var keyHtml = '<span class="key-cell">' +
-          '<span class="mono small key-val' + (hasRaw ? ' click' : '') + '"' + (hasRaw ? ' data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '"' : '') + '>' + esc(displayKey) + '</span>' +
-          (hasRaw ? ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isUnmasked ? '🙈' : '👁') + '</button>' : ' <span class="muted small" title="' + t('keys.legacyNoRaw') + '">(' + t('keys.legacyNoRaw') + ')</span>') +
+          '<span class="mono small key-val click" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + esc(displayKey) + '</span>' +
+          ' <button class="btn sm" data-ktoggle="' + esc(k.id) + '" title="' + t('keys.showHide') + '">' + (isUnmasked ? '🙈' : '👁') + '</button>' +
           '</span>';
         var used = Number(k.quota_used) || 0;
         var limit = Number(k.quota_limit) || 0;
@@ -1263,7 +1263,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           '<td class="small">' + fmtTime(k.created_at) + '</td>' +
           '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
           '<td class="col-actions" style="white-space:nowrap">' +
-          (hasRaw ? '<button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button> ' : '') +
+          '<button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button> ' +
           '<button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' +
           '<button class="btn sm" data-quota="' + esc(k.id) + '">' + t('keys.quota') + '</button> ' +
           '<button class="btn sm" data-rotate="' + esc(k.id) + '">' + t('keys.rotate') + '</button> ' +

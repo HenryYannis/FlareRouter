@@ -1188,20 +1188,18 @@ try {
   }
   r = await req('/admin/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '1.2.3.4' }, body: JSON.stringify({ password: ADMIN_PASSWORD }) });
   ok(r.status === 429, '连续 10 次错误后锁定');
-  // 未跑迁移时日志逐级退回旧列
+  // 日志标准列全字段直接写入
   {
     const { writeLog } = await import('../src/logs.js');
     const calls = [];
     const fakeDb = { prepare: (q) => ({ bind: (...a) => ({ run: async () => {
       calls.push({ q, n: a.length });
-      if (q.includes('cache_read_tokens')) throw new Error('D1_ERROR: table call_logs has no column named cache_read_tokens');
-      if (q.includes('client_protocol')) throw new Error('D1_ERROR: table call_logs has no column named client_protocol');
       return {};
     } }) }) };
     const waits = [];
     await writeLog({ DB: fakeDb }, { waitUntil: (p) => waits.push(p) }, { ts: 1, endpoint: 'messages', status: 200, clientProtocol: 'anthropic', upstreamProtocol: 'openai', cacheReadTokens: 3 });
     await Promise.all(waits);
-    ok(calls.length === 3 && calls[0].n === 23 && calls[1].n === 22 && calls[2].n === 20 && !calls[2].q.includes('client_protocol') && !calls[2].q.includes('cache_read_tokens'), '日志：缺缓存/协议列时逐级退回旧列写入，不丢日志', JSON.stringify(calls.map((c) => ({ n: c.n, cache: c.q.includes('cache_read_tokens'), proto: c.q.includes('client_protocol') }))));
+    ok(calls.length === 1 && calls[0].n === 24 && calls[0].q.includes('client_protocol') && calls[0].q.includes('cache_read_tokens'), '日志：全字段单次直接写入', JSON.stringify(calls));
     const bound = [];
     const fakeDb2 = { prepare: () => ({ bind: (...a) => ({ run: async () => { bound.push(a); return {}; } }) }) };
     const waits2 = [];

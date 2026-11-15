@@ -7,7 +7,7 @@ import { handleProxy, listModels } from './gateway.js';
 import { anthropicHeaders, anthropicUrl } from './anthropic.js';
 import { errText, json, maskKey, readBodyLimited, timingSafeEqualStr } from './util.js';
 
-const COOKIE = 'gw_admin';
+const COOKIE = 'fr_admin';
 const SESSION_TTL_S = 7 * 24 * 3600;
 const LOGIN_MAX_FAILS = 10;
 const LOGIN_LOCK_S = 15 * 60;

@@ -25,7 +25,7 @@
     for (var i = 0; i < tc.length; i++) tc[i].setAttribute('content', col);
 
     var savedLang = null;
-    try { savedLang = localStorage.getItem('gw_lang'); } catch (e) {}
+    try { savedLang = localStorage.getItem('fr_lang'); } catch (e) {}
     if (savedLang !== 'zh' && savedLang !== 'zh-Hant' && savedLang !== 'en') {
       var nav = String(navigator.language || '').toLowerCase();
       savedLang = /^zh-(hant|tw|hk|mo)/.test(nav) ? 'zh-Hant' : (nav.indexOf('zh') === 0 ? 'zh' : 'en');
