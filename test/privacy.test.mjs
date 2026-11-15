@@ -57,6 +57,20 @@ console.log('--- 开始测试隐私与脱敏模块 (PrivacyManager) ---');
   console.log('PASS: 自定义私有词脱敏');
 }
 
+// 4.1 自定义私有词多分隔符兼容（逗号、换行、分号、去重）
+{
+  const pm = new PrivacyManager({
+    enabled: true,
+    customWords: '李四, 王五; 赵六\n孙七，周八；吴九, 李四',
+  });
+  assert.equal(pm.options.customWords.length, 6, '应支持中英文逗号分号与换行拆分并去重');
+  const text = '李四与王五、赵六、孙七、周八、吴九在开会。';
+  const masked = pm.maskText(text);
+  assert.ok(!masked.includes('李四') && !masked.includes('周八'), '全部词汇均应脱敏');
+  assert.equal(pm.restoreText(masked), text, '还原成功');
+  console.log('PASS: 自定义词多分隔符混合输入与容错');
+}
+
 // 5. IPv4 地址与本地 IP 避让
 {
   const pm = new PrivacyManager({ enabled: true, maskIp: true });

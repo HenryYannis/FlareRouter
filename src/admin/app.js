@@ -63,6 +63,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     renderErrorTable();
     if ($('#c-messages') && chatState && Array.isArray(chatState.messages)) renderChatMessages();
     renderVersionBadge();
+    if (typeof updateWordsCount === 'function') updateWordsCount();
   }
 
   function initLang() {
@@ -1127,6 +1128,29 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       'curl ' + base + '/responses \\\n  -H "Authorization: Bearer sk-fr-xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"model":"' + ex + '","stream":true,"input":"Hello"}\'';
   }
 
+  function parseWords(text) {
+    if (!text) return [];
+    var seen = new Set();
+    var res = [];
+    var tokens = String(text).split(/[\n,，;；]+/);
+    for (var i = 0; i < tokens.length; i++) {
+      var w = tokens[i].trim();
+      if (w && !seen.has(w)) {
+        seen.add(w);
+        res.push(w);
+      }
+    }
+    return res;
+  }
+
+  function updateWordsCount() {
+    var el = $('#priv-words');
+    var countEl = $('#priv-words-count');
+    if (!el || !countEl) return;
+    var words = parseWords(el.value);
+    countEl.textContent = words.length > 0 ? t('settings.privacyWordsCount', { count: words.length }) : '';
+  }
+
   function renderSettings() {
     $('#s-ret').value = state.cfg.settings.logRetentionDays;
     $('#s-prompts').checked = !!state.cfg.settings.logPrompts;
@@ -1135,14 +1159,16 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#priv-secrets').checked = priv.maskSecrets !== false;
     $('#priv-ip').checked = priv.maskIp !== false;
     $('#priv-words').value = (priv.customWords || []).join('\n');
+    updateWordsCount();
   }
+  $('#priv-words').addEventListener('input', updateWordsCount);
   $('#priv-save').addEventListener('click', async function () {
     var saveBtn = $('#priv-save');
     if (saveBtn.disabled) return;
     saveBtn.disabled = true;
     saveBtn.textContent = t('common.saving');
     try {
-      var words = $('#priv-words').value.split('\n').map(function (w) { return w.trim(); }).filter(Boolean);
+      var words = parseWords($('#priv-words').value);
       var privacy = {
         enabled: $('#priv-on').checked,
         maskSecrets: $('#priv-secrets').checked,
@@ -1150,6 +1176,8 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         customWords: words,
       };
       setCfg(await api('/admin/api/settings', { body: { privacy: privacy } }));
+      $('#priv-words').value = words.join('\n');
+      updateWordsCount();
       toast(t('settings.privacySaved'));
     } catch (err) {
       await showAlert({ message: err.message });

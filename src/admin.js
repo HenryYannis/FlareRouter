@@ -425,11 +425,14 @@ export async function handleAdminApi(request, env, ctx, path) {
         enabled: Boolean(b.privacy.enabled),
         maskSecrets: b.privacy.maskSecrets !== false,
         maskIp: b.privacy.maskIp !== false,
-        customWords: Array.isArray(b.privacy.customWords)
-          ? b.privacy.customWords.map((w) => String(w || '').trim()).filter(Boolean)
-          : (typeof b.privacy.customWords === 'string'
-              ? b.privacy.customWords.split('\n').map((w) => w.trim()).filter(Boolean)
-              : []),
+        customWords: Array.from(new Set(
+          (Array.isArray(b.privacy.customWords)
+            ? b.privacy.customWords.flatMap((w) => String(w || '').split(/[\n,，;；]+/))
+            : (typeof b.privacy.customWords === 'string'
+                ? b.privacy.customWords.split(/[\n,，;；]+/)
+                : [])
+          ).map((w) => w.trim()).filter(Boolean)
+        )),
       };
     }
     return json(publicConfig(await saveConfig(env, cfg)));

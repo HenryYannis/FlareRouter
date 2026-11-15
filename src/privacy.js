@@ -49,7 +49,14 @@ export class PrivacyManager {
       enabled: options.enabled ?? false,
       maskSecrets: options.maskSecrets ?? true,
       maskIp: options.maskIp ?? true,
-      customWords: Array.isArray(options.customWords) ? options.customWords.filter(Boolean) : [],
+      customWords: Array.from(new Set(
+        (Array.isArray(options.customWords)
+          ? options.customWords.flatMap((w) => String(w || '').split(/[\n,，;；]+/))
+          : (typeof options.customWords === 'string'
+              ? options.customWords.split(/[\n,，;；]+/)
+              : [])
+        ).map((w) => (typeof w === 'string' ? w.trim() : String(w || '').trim())).filter(Boolean)
+      )),
     };
     // placeholder -> original
     this.secretMap = new Map();

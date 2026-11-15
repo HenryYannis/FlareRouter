@@ -251,9 +251,12 @@
           <label class="row small"><input type="checkbox" id="priv-secrets"> <span data-i18n="settings.privacyMaskSecrets">拦截 API 密钥与数据库凭据</span></label>
           <label class="row small"><input type="checkbox" id="priv-ip"> <span data-i18n="settings.privacyMaskIp">拦截 IPv4 地址</span></label>
         </div>
-        <label class="f" for="priv-words" style="margin-top:8px" data-i18n="settings.privacyWordsLabel">自定义私有词表</label>
-        <textarea id="priv-words" spellcheck="false" style="margin-top:6px;min-height:80px;width:100%" data-i18n-placeholder="settings.privacyWordsPlaceholder" placeholder="每行一个，严格精确匹配（例如个人姓名、私有域名、项目代号）"></textarea>
-        <div class="muted small" style="margin-top:4px" data-i18n="settings.privacyWordsTip">这些词在发往模型前会被替换为暗号，模型返回时自动还原。</div>
+        <div class="row" style="justify-content:space-between;align-items:center;margin-top:8px">
+          <label class="f" for="priv-words" data-i18n="settings.privacyWordsLabel">自定义私有词表</label>
+          <span id="priv-words-count" class="muted small"></span>
+        </div>
+        <textarea id="priv-words" spellcheck="false" style="margin-top:6px;min-height:80px;width:100%" data-i18n-placeholder="settings.privacyWordsPlaceholder" placeholder="支持换行或逗号（,，;；）分隔，严格精确匹配（例如个人姓名、私有域名、项目代号）"></textarea>
+        <div class="muted small" style="margin-top:4px" data-i18n="settings.privacyWordsTip">支持换行或中英文逗号分隔，精确匹配。这些词在发往模型前会被替换为暗号，模型返回时自动还原。</div>
         <div class="card-actions-end" style="margin-top:12px"><button class="btn primary" id="priv-save" data-i18n="settings.save">保存</button></div>
       </div>
       <div class="card">
