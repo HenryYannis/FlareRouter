@@ -449,7 +449,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
     }
 
     const isFallback = i > 0;
-    const gwHeaders = {
+    const routerHeaders = {
       'x-gateway-provider': provider.id,
       'x-gateway-model': model,
       'x-gateway-fallback': isFallback ? '1' : '0',
@@ -481,7 +481,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       const jsonNotSse = ct.includes('application/json') && !ct.includes('text/event-stream');
       if (!jsonNotSse) {
         const handler = resolveStreamHandler(clientProtocol, up.upstreamProtocol, { clientModel: body.model, includeUsage });
-        return pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate: () => estimatePrompt(clientProtocol, body), privacyCtx });
+        return pipeStream(res, env, ctx, { t0, tA, handler, logCommon, routerHeaders, promptEstimate: () => estimatePrompt(clientProtocol, body), privacyCtx });
       }
       prefetchedText = await res.text();
       let peeked = null;
@@ -585,7 +585,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
       totalTokens,
       cacheReadTokens,
     });
-    return new Response(outText, { status: res.status, headers: { 'Content-Type': contentType, ...CORS_HEADERS, ...gwHeaders } });
+    return new Response(outText, { status: res.status, headers: { 'Content-Type': contentType, ...CORS_HEADERS, ...routerHeaders } });
   }
 
   // 全部失败：把每一次尝试的原始错误都返回
@@ -662,7 +662,7 @@ export async function handleCountTokens(request, env) {
   return json(anthropicErrorBody(message, st >= 400 ? st : 502, { attempts: trail }), st >= 400 ? st : 502, CORS_HEADERS);
 }
 
-function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, promptEstimate, privacyCtx }) {
+function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, routerHeaders, promptEstimate, privacyCtx }) {
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
   const reader = res.body.getReader();
@@ -760,7 +760,7 @@ function pipeStream(res, env, ctx, { t0, tA, handler, logCommon, gwHeaders, prom
       'Content-Type': handler.raw ? res.headers.get('content-type') || 'text/event-stream; charset=utf-8' : 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
       ...CORS_HEADERS,
-      ...gwHeaders,
+      ...routerHeaders,
     },
   });
 }

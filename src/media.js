@@ -188,7 +188,7 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
     }
 
     const isFallback = i > 0;
-    const gwHeaders = {
+    const routerHeaders = {
       'Cache-Control': 'no-store',
       ...CORS_HEADERS,
       'x-gateway-provider': provider.id,
@@ -220,7 +220,7 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
         status: res.status,
         headers: {
           'Content-Type': upCt || 'audio/mpeg',
-          ...gwHeaders,
+          ...routerHeaders,
         },
       });
     }
@@ -237,7 +237,7 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
       status: res.status,
       headers: {
         'Content-Type': upCt || 'application/json; charset=utf-8',
-        ...gwHeaders,
+        ...routerHeaders,
       },
     });
   }

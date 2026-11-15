@@ -108,11 +108,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
     if (!versionData) {
       badge.className = 'footer-version-badge';
-      text.textContent = 'v1.0.2';
+      text.textContent = window.__FR_VERSION__ || '';
       return;
     }
 
-    var currentVer = versionData.current || 'v1.0.2';
+    var currentVer = (versionData && versionData.current) || window.__FR_VERSION__ || '';
     var latestVer = versionData.latest || currentVer;
     var url = versionData.releaseUrl || 'https://github.com/HenryYannis/FlareRouter/releases';
 
@@ -268,12 +268,12 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   }
   function initTheme() {
     var saved = null;
-    try { saved = localStorage.getItem('gw-theme'); } catch (e) {}
+    try { saved = localStorage.getItem('fr_theme'); } catch (e) {}
     var isDark = saved ? (saved === 'dark') : systemPrefersDark();
     applyTheme(isDark);
     if (window.matchMedia) {
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-        try { localStorage.removeItem('gw-theme'); } catch (err) {}
+        try { localStorage.removeItem('fr_theme'); } catch (err) {}
         applyTheme(e.matches);
       });
     }
@@ -281,8 +281,8 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       b.addEventListener('click', function () {
         var nextDark = document.documentElement.getAttribute('data-theme') !== 'dark';
         try {
-          if (nextDark === systemPrefersDark()) localStorage.removeItem('gw-theme');
-          else localStorage.setItem('gw-theme', nextDark ? 'dark' : 'light');
+          if (nextDark === systemPrefersDark()) localStorage.removeItem('fr_theme');
+          else localStorage.setItem('fr_theme', nextDark ? 'dark' : 'light');
         } catch (err) {}
         applyTheme(nextDark);
       });
@@ -312,7 +312,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       solutions: { zh: '前往服务商控制台充值。<div class="muted small" style="margin-top:3px">💡 <b>网关特性：</b>开启容灾链时，网关遇到 402 会自动 0ms 快速熔断跳过该服务商，尝试后续服务商。</div>', 'zh-Hant': '前往服務商控制台儲值。<div class="muted small" style="margin-top:3px">💡 <b>網關特性：</b>開啟容災鏈時，遇到 402 會自動 0ms 快速熔斷跳過該商並嘗試下一家。</div>', en: 'Top up credits in upstream console.<div class="muted small" style="margin-top:3px">💡 <b>Gateway:</b> Automatically fast-fails over (0ms) to next provider if failover chain is enabled.</div>' } },
     { code: 404, name: 'Not Found', cls: 'c4xx',
       causes: { zh: '请求的模型名称不存在或拼写错误；Base URL 缺少 /v1；指定的服务商未配置该模型。', 'zh-Hant': '請求的模型名稱不存在或拼寫錯誤；Base URL 缺少 /v1；指定的服務商未配置該模型。', en: 'Model name not found or misspelled; Base URL missing /v1 path; model not registered under provider.' },
-      solutions: { zh: '访问 GET /v1/models 查看可用模型列表；按「服务商ID/模型」或 auto 调用；确认 Base URL 为 https://域名/v1。', 'zh-Hant': '訪問 GET /v1/models 查看可用模型列表；按「服務商ID/模型」或 auto 調用；確認 Base URL 為 https://網域名稱/v1。', en: 'Query GET /v1/models for available list; use "provider/model" or "auto"; ensure Base URL ends with /v1.' } },
+      solutions: { zh: '访问 GET /v1/models 查看可用模型列表；按「服务商ID/模型」或 FlareRouter/auto（或 auto）调用；确认 Base URL 为 https://域名/v1。', 'zh-Hant': '訪問 GET /v1/models 查看可用模型列表；按「服務商ID/模型」或 FlareRouter/auto（或 auto）調用；確認 Base URL 為 https://網域名稱/v1。', en: 'Query GET /v1/models for available list; use "provider/model" or "FlareRouter/auto" (or "auto"); ensure Base URL ends with /v1.' } },
     { code: 429, name: 'Too Many Requests', cls: 'c4xx',
       causes: { zh: '① <b>网关限额超限</b>：当前 Key 消耗达到后台设置的 Token 限额（可在「密钥」页查看红色已超额标识）；② <b>上游限流/欠费</b>：上游并发超频（RPM/TPM）或配额耗尽。', 'zh-Hant': '① <b>網關限額超額</b>：目前 Key 消耗達到後台設置的 Token 上限（可在「密鑰」頁檢視紅色已超額標記）；② <b>上游限流/超額</b>：上游併發超頻或配額用盡。', en: '① <b>Gateway Quota</b>: Key hit Token limit (marked red in "Keys"); ② <b>Upstream Rate Limit</b>: Provider RPM/TPM limit or credit exhausted.' },
       solutions: { zh: '若是网关限额，在「密钥」页提高上限或重置已用额度为 0；若是上游问题，网关会自动熔断并尝试容灾链下一家。<div class="muted small" style="margin-top:3px">💡 <b>提示：</b>网关密钥超额时，模型列表（/v1/models）仍保持可正常拉取。</div>', 'zh-Hant': '若為網關密鑰超額，在「密鑰」頁調高限額或重置已用額度為 0；若為上游問題，網關會自動熔斷並嘗試容災鏈下一家。<div class="muted small" style="margin-top:3px">💡 <b>提示：</b>網關密鑰超額時，模型列表（/v1/models）仍可正常取得。</div>', en: 'If gateway quota, raise limit or reset usage in "Keys"; if upstream, gateway automatically failovers to the next provider.<div class="muted small" style="margin-top:3px">💡 <b>Tip:</b> GET /v1/models remains accessible even when quota is exceeded.</div>' } },
@@ -1263,7 +1263,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           '<td class="small">' + fmtTime(k.created_at) + '</td>' +
           '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
           '<td class="col-actions" style="white-space:nowrap">' +
-          '<button class="btn sm" data-kcopy="' + esc(k.raw_key) + '">' + t('keys.copy') + '</button> ' +
+          '<button class="btn sm" data-kcopy="' + esc(rawKey) + '">' + t('keys.copy') + '</button> ' +
           '<button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' +
           '<button class="btn sm" data-quota="' + esc(k.id) + '">' + t('keys.quota') + '</button> ' +
           '<button class="btn sm" data-rotate="' + esc(k.id) + '">' + t('keys.rotate') + '</button> ' +

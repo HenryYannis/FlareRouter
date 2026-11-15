@@ -2,7 +2,7 @@
 // MIT License © 2026 程小宝 (Cheng Xiaobao)
 
 import { getConfig } from './config.js';
-import { handleAdminApi } from './admin.js';
+import { handleAdminApi, CURRENT_VERSION } from './admin.js';
 import { handleCountTokens, handleProxy, listModels, protocolError } from './gateway.js';
 import { MEDIA_ENDPOINTS, handleMedia } from './media.js';
 import { verifyApiKey } from './keys.js';
@@ -18,7 +18,7 @@ import { APPLE_TOUCH_ICON_B64 } from './admin/apple-touch-icon.js';
 
 function adminPage() {
   const css = `${ADMIN_CSS}\n${ADMIN_CHAT_CSS}`;
-  const js = `(function () {\n'use strict';\n${ADMIN_I18N}\n${ADMIN_APP}\n${ADMIN_CHAT}\n})();`;
+  const js = `(function () {\n'use strict';\nwindow.__FR_VERSION__ = ${JSON.stringify(CURRENT_VERSION)};\n${ADMIN_I18N}\n${ADMIN_APP}\n${ADMIN_CHAT}\n})();`;
   return ADMIN_HTML
     .replace('<!--INJECT_CSS-->', () => `<style>\n${css}\n</style>`)
     .replace('<!--INJECT_JS-->', () => `<script>\n${js}\n</script>`);

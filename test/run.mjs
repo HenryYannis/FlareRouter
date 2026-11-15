@@ -271,6 +271,11 @@ const req = (path, init = {}) => mf.dispatchFetch(B + path, init);
 const j = async (r) => { const t = await r.text(); try { return JSON.parse(t); } catch { return t; } };
 
 try {
+  // ---- 版本号一致性 ----
+  const { VERSION, CURRENT_VERSION } = await import('../src/version.js');
+  const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+  ok(CURRENT_VERSION === 'v' + pkg.version && VERSION === pkg.version, '版本号单一真值：version.js 与 package.json 统一');
+
   // ---- 管理页与登录 ----
   let r = await req('/admin');
   let t = await r.text();
@@ -1239,7 +1244,7 @@ try {
     let res;
     let threw = null;
     try {
-      res = await handleProxy(new Request('https://gw/v1/chat/completions', {
+      res = await handleProxy(new Request('https://flarerouter/v1/chat/completions', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ model: 'good/m', messages: [{ role: 'user', content: 'hi' }] }),

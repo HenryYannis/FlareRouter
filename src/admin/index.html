@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script>
   (function () {
-    var savedTheme = localStorage.getItem('gw-theme');
+    var savedTheme = localStorage.getItem('fr_theme');
     var isDark = savedTheme ? (savedTheme === 'dark') : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.add(isDark ? 'night-theme' : 'day-theme');
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');

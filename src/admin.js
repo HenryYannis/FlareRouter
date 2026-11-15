@@ -6,6 +6,8 @@ import { clearLogs, queryLogs, statsSummary } from './logs.js';
 import { handleProxy, listModels } from './gateway.js';
 import { anthropicHeaders, anthropicUrl } from './anthropic.js';
 import { errText, json, maskKey, readBodyLimited, timingSafeEqualStr } from './util.js';
+import { CURRENT_VERSION } from './version.js';
+export { CURRENT_VERSION };
 
 const COOKIE = 'fr_admin';
 const SESSION_TTL_S = 7 * 24 * 3600;
@@ -127,7 +129,6 @@ async function fetchUpstreamModels(baseUrl, apiKey, protocol) {
   }
 }
 
-const CURRENT_VERSION = 'v1.0.2';
 const UPSTREAM_REPO = 'HenryYannis/FlareRouter';
 
 function parseSemver(v) {
@@ -439,7 +440,7 @@ export async function handleAdminApi(request, env, ctx, path) {
   if (path === '/admin/api/export' && method === 'GET') {
     const cfg = await getConfig(env, { fresh: true });
     return new Response(JSON.stringify(cfg, null, 2), {
-      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': 'attachment; filename="ai-gateway-config.json"' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': 'attachment; filename="flarerouter-config.json"' },
     });
   }
 
@@ -512,7 +513,7 @@ export async function handleAdminApi(request, env, ctx, path) {
       messages = [{ role: 'user', content: String(b.prompt || '你好，用一句话介绍你自己。').slice(0, MAX_CONTENT) }];
     }
     const payload = {
-      model: b.model || 'auto',
+      model: b.model || 'FlareRouter/auto',
       stream: !!b.stream,
       messages,
     };

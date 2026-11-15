@@ -2,7 +2,7 @@
   var CHAT_LS_KEY = 'fr_chat_v1';
   var CHAT_MAX_ATTACH = 5;
   var CHAT_MAX_ATTACH_BYTES = 4 * 1024 * 1024;
-  var chatState = { model: 'auto', noFallback: true, messages: [] };
+  var chatState = { model: 'FlareRouter/auto', noFallback: true, messages: [] };
   var chatAbort = null;
   var chatBusy = false;
   var pendingAttachments = [];
@@ -72,7 +72,7 @@
       if (!raw) return;
       var o = JSON.parse(raw);
       if (!o || typeof o !== 'object') return;
-      chatState.model = typeof o.model === 'string' ? o.model : 'auto';
+      chatState.model = (typeof o.model === 'string' && o.model !== 'auto') ? o.model : 'FlareRouter/auto';
       if (typeof o.noFallback === 'boolean') {
         chatState.noFallback = o.noFallback;
       }

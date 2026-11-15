@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
   id            TEXT PRIMARY KEY,
   name          TEXT NOT NULL,
   key_hash      TEXT NOT NULL UNIQUE,   -- SHA-256(明文密钥)，明文不落库
-  preview       TEXT NOT NULL,          -- 脱敏预览，如 sk-gw-ab12…9f3c
+  preview       TEXT NOT NULL,          -- 脱敏预览，如 sk-fr-ab12…9f3c
   created_at    INTEGER NOT NULL,       -- 毫秒时间戳
   last_used_at  INTEGER,
   revoked       INTEGER NOT NULL DEFAULT 0
