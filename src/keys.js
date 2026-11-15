@@ -80,21 +80,10 @@ export async function rotateKey(env, id) {
   const key = `sk-fr-${randomHex(24)}`;
   const hash = await sha256Hex(key);
   const preview = `${key.slice(0, 9)}…${key.slice(-4)}`;
-  try {
-    const r = await env.DB.prepare(
-      'UPDATE api_keys SET key_hash = ?, preview = ?, raw_key = ?, revoked = 0 WHERE id = ?'
-    ).bind(hash, preview, key, id).run();
-    if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
-  } catch (e) {
-    if (/no column|no such column/i.test((e && e.message) || '')) {
-      const r = await env.DB.prepare(
-        'UPDATE api_keys SET key_hash = ?, preview = ?, revoked = 0 WHERE id = ?'
-      ).bind(hash, preview, id).run();
-      if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
-    } else {
-      throw e;
-    }
-  }
+  const r = await env.DB.prepare(
+    'UPDATE api_keys SET key_hash = ?, preview = ?, raw_key = ?, revoked = 0 WHERE id = ?'
+  ).bind(hash, preview, key, id).run();
+  if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
   authCache.clear();
   return { id, key, raw_key: key, preview };
 }
@@ -102,20 +91,11 @@ export async function rotateKey(env, id) {
 export async function setKeyQuota(env, id, { quotaLimit, resetUsed } = {}) {
   if (!id) throw new Error('缺少密钥 id');
   const limit = Math.max(0, parseInt(quotaLimit, 10) || 0);
-  try {
-    if (resetUsed) {
-      const r = await env.DB.prepare('UPDATE api_keys SET quota_limit = ?, quota_used = 0 WHERE id = ?').bind(limit, id).run();
-      if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
-    } else {
-      const r = await env.DB.prepare('UPDATE api_keys SET quota_limit = ? WHERE id = ?').bind(limit, id).run();
-      if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
-    }
-  } catch (e) {
-    if (/no column|no such column/i.test((e && e.message) || '')) {
-      throw new Error('请先执行数据库迁移 0005_key_quota.sql');
-    }
-    throw e;
-  }
+  const sql = resetUsed
+    ? 'UPDATE api_keys SET quota_limit = ?, quota_used = 0 WHERE id = ?'
+    : 'UPDATE api_keys SET quota_limit = ? WHERE id = ?';
+  const r = await env.DB.prepare(sql).bind(limit, id).run();
+  if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
   authCache.clear();
   return { id, quotaLimit: limit, resetUsed: !!resetUsed };
 }
