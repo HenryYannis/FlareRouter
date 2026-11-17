@@ -209,6 +209,7 @@ nav button {
   -webkit-user-select: none;
   font-family: inherit;
   font-size: var(--fs-nav);
+  font-weight: var(--fw-ui);
   transition: var(--transition);
   white-space: nowrap;
   flex: 1;
