@@ -350,11 +350,10 @@ header .btn.sm,
 .theme-toggle {
   cursor: pointer;
 }
-.theme-toggle .theme-icon-moon,
-.theme-toggle .theme-icon-sun {
-  font-size: 14px;
-  line-height: 1;
-  display: block;
+.theme-toggle svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
 }
 .lang-btn {
   position: relative;
@@ -363,7 +362,7 @@ header .btn.sm,
 }
 .lang-btn .lang-icon {
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1;
