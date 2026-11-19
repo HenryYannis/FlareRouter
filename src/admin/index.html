@@ -423,9 +423,13 @@
         <div class="bold small muted" style="margin-bottom:6px" data-i18n="keys.sectionBasic">基本信息</div>
         <label class="f" for="kc-name" data-i18n="keys.labelKeyName">密钥名称</label>
         <input type="text" id="kc-name" style="width:100%" placeholder="例如：笔记本 / Cherry Studio">
-        <div class="row" style="margin-top:10px;justify-content:space-between;align-items:center;background:var(--code);padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border)">
-          <div style="font-family:monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px" id="kc-key-preview"></div>
-          <button type="button" class="btn sm danger" id="kc-rotate-btn" data-i18n="keys.rotateInDialog">轮换密钥</button>
+        <label class="f" style="margin-top:10px" data-i18n="keys.labelKeyVal">调用密钥</label>
+        <div class="row" style="justify-content:space-between;align-items:center;background:var(--code);padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border)">
+          <span style="font-family:monospace;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="kc-key-preview"></span>
+          <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px">
+            <button type="button" class="btn sm" id="kc-copy-btn" data-i18n="keys.copy">复制</button>
+            <button type="button" class="btn sm danger" id="kc-rotate-btn" data-i18n="keys.rotate">轮换</button>
+          </div>
         </div>
       </div>
 
@@ -436,6 +440,7 @@
         <label class="f" for="kc-limit" data-i18n="keys.labelQuotaLimit">Token 限额（0 或留空为无限制）</label>
         <input type="number" id="kc-limit" min="0" step="1000" placeholder="例如：1000000" style="width:100%" data-i18n-placeholder="keys.quotaPlaceholder">
         <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn sm" id="kc-btn-reset-used" data-i18n="keys.btnResetUsed">重置已用</button>
           <button type="button" class="btn sm" data-kc-preset="0" data-i18n="keys.unlimited">无限制</button>
           <button type="button" class="btn sm" data-kc-preset="100000">100K</button>
           <button type="button" class="btn sm" data-kc-preset="500000">500K</button>
@@ -443,9 +448,6 @@
           <button type="button" class="btn sm" data-kc-preset="5000000">5M</button>
           <button type="button" class="btn sm" data-kc-preset="10000000">10M</button>
         </div>
-        <label class="row small" style="margin-top:10px;cursor:pointer">
-          <input type="checkbox" id="kc-reset-used"> <span data-i18n="keys.resetUsedOption">重置当前已用额度为 0</span>
-        </label>
       </div>
 
       <!-- 模型访问控制 -->

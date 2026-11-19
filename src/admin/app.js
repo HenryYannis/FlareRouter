@@ -1263,6 +1263,13 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     return String(v);
   }
 
+  function formatKeyEllipsis(key) {
+    var s = String(key || '').trim();
+    if (!s) return '';
+    if (s.length <= 22) return s;
+    return s.slice(0, 12) + '……' + s.slice(-8);
+  }
+
   function parsePatterns(str) {
     if (!str) return [];
     return str.split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
@@ -1394,12 +1401,21 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         if (!cfgK) return;
         state.configKeyId = cfgId;
         state.configKeyItem = cfgK;
+        state.configRawKey = cfgK.raw_key || cfgK.preview || '';
+        state.resetUsedPending = false;
+        state.curUsedTokens = Number(cfgK.quota_used || 0);
 
         $('#kc-name').value = cfgK.name || '';
-        $('#kc-key-preview').textContent = cfgK.raw_key || cfgK.preview || '';
-        $('#kc-cur-used').textContent = t('keys.curUsedTokens', { tokens: Number(cfgK.quota_used || 0).toLocaleString() });
+        $('#kc-key-preview').textContent = formatKeyEllipsis(state.configRawKey);
+        $('#kc-key-preview').title = state.configRawKey;
+        $('#kc-cur-used').textContent = t('keys.curUsedTokens', { tokens: state.curUsedTokens.toLocaleString() });
         $('#kc-limit').value = cfgK.quota_limit > 0 ? cfgK.quota_limit : '';
-        $('#kc-reset-used').checked = false;
+
+        var resetBtn = $('#kc-btn-reset-used');
+        if (resetBtn) {
+          resetBtn.classList.remove('primary');
+          resetBtn.textContent = t('keys.btnResetUsed');
+        }
 
         var policy = cfgK.model_policy || 'all';
         var rBtn = $('#dlg-key-config input[name="kc-policy"][value="' + policy + '"]');
@@ -1468,6 +1484,29 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     renderQuickModels();
   });
 
+  // 配置弹窗：复制密钥
+  $('#kc-copy-btn').addEventListener('click', function () {
+    var raw = state.configRawKey;
+    if (!raw) return;
+    navigator.clipboard.writeText(raw).then(function () {
+      toast(t('header.copied'));
+    });
+  });
+
+  // 配置弹窗：切换重置已用额度
+  $('#kc-btn-reset-used').addEventListener('click', function () {
+    state.resetUsedPending = !state.resetUsedPending;
+    if (state.resetUsedPending) {
+      this.classList.add('primary');
+      this.textContent = t('keys.btnResetUsedActive');
+      $('#kc-cur-used').textContent = t('keys.curUsedResetPending', { tokens: (state.curUsedTokens || 0).toLocaleString() });
+    } else {
+      this.classList.remove('primary');
+      this.textContent = t('keys.btnResetUsed');
+      $('#kc-cur-used').textContent = t('keys.curUsedTokens', { tokens: (state.curUsedTokens || 0).toLocaleString() });
+    }
+  });
+
   // 配置弹窗：内联轮换密钥
   $('#kc-rotate-btn').addEventListener('click', async function () {
     var rotBtn = $('#kc-rotate-btn');
@@ -1483,7 +1522,9 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       var rotRes = await api('/admin/api/keys/rotate', { body: { id: id } });
       await loadKeys();
       if (rotRes && rotRes.key) {
-        $('#kc-key-preview').textContent = rotRes.key;
+        state.configRawKey = rotRes.key;
+        $('#kc-key-preview').textContent = formatKeyEllipsis(rotRes.key);
+        $('#kc-key-preview').title = rotRes.key;
         try { await navigator.clipboard.writeText(rotRes.key); toast(t('header.copied')); } catch (e) {}
         await showAlert({ type: 'success', title: t('keys.rotateTitle'), message: t('keys.rotateNotice', { name: targetName }) + '\n\n' + rotRes.key });
       }
@@ -1518,7 +1559,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
     var limitVal = parseInt($('#kc-limit').value, 10);
     var limit = isNaN(limitVal) || limitVal < 0 ? 0 : limitVal;
-    var resetUsed = $('#kc-reset-used').checked;
+    var resetUsed = !!state.resetUsedPending;
 
     var policyEl = $('#dlg-key-config input[name="kc-policy"]:checked');
     var modelPolicy = policyEl ? policyEl.value : 'all';
