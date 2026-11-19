@@ -92,6 +92,8 @@ async function route(request, env, ctx) {
       modelList.data = modelList.data.filter(
         (m) => isModelAllowed(m.id, caller.modelPolicy, caller.modelPatterns)
       );
+      modelList.first_id = modelList.data[0] ? modelList.data[0].id : null;
+      modelList.last_id = modelList.data.length ? modelList.data[modelList.data.length - 1].id : null;
     }
     return json(modelList, 200, { ...CORS_HEADERS, 'Cache-Control': 'no-store' });
   }

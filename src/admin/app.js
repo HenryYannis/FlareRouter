@@ -1542,7 +1542,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       await showAlert({ message: err.message });
     } finally {
       rotBtn.disabled = false;
-      rotBtn.textContent = t('keys.rotateInDialog');
+      rotBtn.textContent = t('keys.rotate');
     }
   });
 
