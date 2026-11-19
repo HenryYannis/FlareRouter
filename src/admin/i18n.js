@@ -36,6 +36,7 @@ var I18N = {
         tipResponses: 'Base URL 一般以 /v1 结尾，请求发往 /responses，模型列表取 /models。',
         tipOpenAI: 'Base URL 一般以 /v1 结尾，请求发往 /chat/completions，模型列表取 /models。',
         keyEmptyTag: '未填', keyPlaceholderEdit: '留空则清除已保存的 Key', keyPlaceholderNew: '必填（部分本地服务可留空）',
+        namePlaceholder: '例如：OpenRouter', idPlaceholder: '例如：openrouter', notePlaceholder: '可选备注信息',
         labelModels: '模型列表（逗号或换行分隔，第一个为默认；留空可点「从服务商拉取」）', fetchModels: '从服务商拉取', fetching: '拉取中…',
         fetchPopulated: '已写入全部 {count} 个模型', fetchPruned: '已移除 {count} 个服务商不再提供的旧模型', searchModels: '搜索…', selectAll: '全选可见', selectNone: '取消可见',
         noMatchModels: '没有匹配的模型（共 {count} 个）', labelTimeout: '超时（毫秒，拿到响应头为止）', labelNote: '备注',
@@ -54,7 +55,8 @@ var I18N = {
         pickerSearch: '搜索服务商或模型名称…', pickerPickFirst: '只选各商首模', pickerPickVision: '只选视觉', pickerPickTools: '只选工具', pickerPickImage: '只选生图', pickerSelectAll: '全选可见', pickerClearAll: '清空已选',
         capText: '文本', capVision: '视觉', capImage: '生图', capTools: '工具', capThinking: '思考', capAudio: '音频', capEmbedding: '嵌入', capRerank: '重排',
         pickerSelectedCount: '已选 {count} 个模型', pickerConfirm: '加入容灾链', pickerCancel: '取消',
-        pickerToastAdded: '已导入容灾链（共 {count} 个模型），请点击「保存设置」生效', groupAll: '全选', groupNone: '清空'
+        pickerToastAdded: '已导入容灾链（共 {count} 个模型），请点击「保存设置」生效', groupAll: '全选', groupNone: '清空',
+        visibleModelsCount: '{count} 个模型'
       },
       keys: {
         title: '调用密钥', namePlaceholder: '名称，例如：笔记本 / Cherry Studio', generate: '生成新密钥',
@@ -69,9 +71,9 @@ var I18N = {
         rotateConfirm: '确定轮换密钥「{name}」？原密钥将立即失效，系统将为此记录生成全新的 API 密钥。',
         rotateTitle: '密钥已轮换',
         rotateNotice: '已为「{name}」轮换密钥，原密钥已作废。新密钥已自动复制到剪贴板：',
-        delConfirm: '彻底删除该密钥记录？', empty: '还没有调用密钥。',
+        delConfirm: '彻底删除该密钥记录？', deleted: '已删除', empty: '还没有调用密钥。',
         unnamed: '未命名',
-        quotaTitle: '设置密钥额度与限额', labelQuotaLimit: 'Token 限额（0 或留空为无限制）',
+        quotaTitle: '设置密钥额度与限额', labelQuotaLimit: 'Token 限额（0 或留空为无限制）', quotaPlaceholder: '例如：1000000',
         resetUsedOption: '重置当前已用额度为 0', curUsedTokens: '当前已消耗：{tokens} Tokens',
         unlimited: '无限制', quotaExceeded: '已超额', quotaSaved: '限额已更新'
       },
@@ -107,6 +109,7 @@ var I18N = {
         errTooMany: '最多上传 {max} 个文件', errTooLarge: '文件过大（上限 {max} MiB）：{name}',
         empty: '还没有消息。选一个模型，开始测试。', thinking: '生成中…',
         thinkLabel: '思考过程', errAborted: '已停止', localOnly: '会话仅保存在本机浏览器',
+        roleUser: '你', attachIconFile: '文件', defaultFilename: '文件',
         metaInfo: 'HTTP {status} · 服务商 {provider} · 模型 {model} · 尝试 {attempts} 次',
         ttfbTotal: '首包 {ttfb} ms · 总 {total} ms', totalOnly: '{total} ms'
       },
@@ -127,6 +130,7 @@ var I18N = {
         brand: 'FlareRouter',
         tagline: '基于 Cloudflare Workers 的轻量 AI 网关',
         github: 'GitHub',
+        versionTitle: '版本状态',
         version_latest: '已是最新 ({version})',
         version_update: '发现新版本 {version}'
       }
@@ -167,6 +171,7 @@ var I18N = {
         tipResponses: 'Base URL 一般以 /v1 結尾，請求發往 /responses，模型列表取 /models。',
         tipOpenAI: 'Base URL 一般以 /v1 結尾，請求發往 /chat/completions，模型列表取 /models。',
         keyEmptyTag: '未填', keyPlaceholderEdit: '留空則清除已儲存的 Key', keyPlaceholderNew: '必填（部分本地服務可留空）',
+        namePlaceholder: '例如：OpenRouter', idPlaceholder: '例如：openrouter', notePlaceholder: '可選備註資訊',
         labelModels: '模型列表（逗號或換行分隔，第一個為預設；留空可點「從服務商拉取」）', fetchModels: '從服務商拉取', fetching: '拉取中…',
         fetchPopulated: '已寫入全部 {count} 個模型', fetchPruned: '已移除 {count} 個服務商不再提供的舊模型', searchModels: '搜尋…', selectAll: '全選可見', selectNone: '取消可見',
         noMatchModels: '沒有匹配的模型（共 {count} 個）', labelTimeout: '超時（毫秒，拿到回應頭為止）', labelNote: '備註',
@@ -185,7 +190,8 @@ var I18N = {
         pickerSearch: '搜尋服務商或模型名稱…', pickerPickFirst: '只選各商首模', pickerPickVision: '只選視覺', pickerPickTools: '只選工具', pickerPickImage: '只選生圖', pickerSelectAll: '全選可見', pickerClearAll: '清空已選',
         capText: '文本', capVision: '視覺', capImage: '生圖', capTools: '工具', capThinking: '思考', capAudio: '音頻', capEmbedding: '嵌入', capRerank: '重排',
         pickerSelectedCount: '已選 {count} 個模型', pickerConfirm: '加入容災鏈', pickerCancel: '取消',
-        pickerToastAdded: '已匯入容災鏈（共 {count} 個模型），請點擊「儲存設定」生效', groupAll: '全選', groupNone: '清空'
+        pickerToastAdded: '已匯入容災鏈（共 {count} 個模型），請點擊「儲存設定」生效', groupAll: '全選', groupNone: '清空',
+        visibleModelsCount: '{count} 個模型'
       },
       keys: {
         title: '調用密鑰', namePlaceholder: '名稱，例如：筆記本 / Cherry Studio', generate: '生成新密鑰',
@@ -200,9 +206,9 @@ var I18N = {
         rotateConfirm: '確定輪換密鑰「{name}」？原密鑰將立即失效，系統將為此記錄生成全新的 API 密鑰。',
         rotateTitle: '密鑰已輪換',
         rotateNotice: '已為「{name}」輪換密鑰，原密鑰已作廢。新密鑰已自動複製到剪貼簿：',
-        delConfirm: '徹底刪除該密鑰記錄？', empty: '還沒有調用密鑰。',
+        delConfirm: '徹底刪除該密鑰記錄？', deleted: '已刪除', empty: '還沒有調用密鑰。',
         unnamed: '未命名',
-        quotaTitle: '設定密鑰額度與限額', labelQuotaLimit: 'Token 限額（0 或留空為無限制）',
+        quotaTitle: '設定密鑰額度與限額', labelQuotaLimit: 'Token 限額（0 或留空為無限制）', quotaPlaceholder: '例如：1000000',
         resetUsedOption: '重置當前已用額度為 0', curUsedTokens: '當前已消耗：{tokens} Tokens',
         unlimited: '無限制', quotaExceeded: '已超額', quotaSaved: '限額已更新'
       },
@@ -238,6 +244,7 @@ var I18N = {
         errTooMany: '最多上傳 {max} 個檔案', errTooLarge: '檔案過大（上限 {max} MiB）：{name}',
         empty: '還沒有訊息。選一個模型，開始測試。', thinking: '生成中…',
         thinkLabel: '思考過程', errAborted: '已停止', localOnly: '會話僅保存在本機瀏覽器',
+        roleUser: '你', attachIconFile: '檔案', defaultFilename: '檔案',
         metaInfo: 'HTTP {status} · 服務商 {provider} · 模型 {model} · 嘗試 {attempts} 次',
         ttfbTotal: '首包 {ttfb} ms · 總 {total} ms', totalOnly: '{total} ms'
       },
@@ -258,6 +265,7 @@ var I18N = {
         brand: 'FlareRouter',
         tagline: '基於 Cloudflare Workers 的輕量 AI 網關',
         github: 'GitHub',
+        versionTitle: '版本狀態',
         version_latest: '已是最新 ({version})',
         version_update: '發現新版本 {version}'
       }
@@ -298,6 +306,7 @@ var I18N = {
         tipResponses: 'Base URL usually ends in /v1. Requests go to /responses, models to /models.',
         tipOpenAI: 'Base URL usually ends in /v1. Requests go to /chat/completions, models to /models.',
         keyEmptyTag: 'None', keyPlaceholderEdit: 'Leave empty to clear saved Key', keyPlaceholderNew: 'Required (can be empty for local)',
+        namePlaceholder: 'e.g. OpenRouter', idPlaceholder: 'e.g. openrouter', notePlaceholder: 'Optional notes',
         labelModels: 'Models (comma or newline separated, 1st is default; leave empty and use Fetch from Provider)', fetchModels: 'Fetch from Provider', fetching: 'Fetching…',
         fetchPopulated: 'Populated all {count} models', fetchPruned: 'Removed {count} old models the provider no longer lists', searchModels: 'Search…', selectAll: 'Select Visible', selectNone: 'Deselect Visible',
         noMatchModels: 'No matching models ({count} total)', labelTimeout: 'Timeout (ms, until response headers)', labelNote: 'Note',
@@ -316,7 +325,8 @@ var I18N = {
         pickerSearch: 'Search providers or models…', pickerPickFirst: '1st Model Each', pickerPickVision: 'Vision Only', pickerPickTools: 'Tools Only', pickerPickImage: 'Image Only', pickerSelectAll: 'Select All', pickerClearAll: 'Clear All',
         capText: 'Text', capVision: 'Vision', capImage: 'Image', capTools: 'Tools', capThinking: 'Thinking', capAudio: 'Audio', capEmbedding: 'Embedding', capRerank: 'Rerank',
         pickerSelectedCount: '{count} models selected', pickerConfirm: 'Apply to Chain', pickerCancel: 'Cancel',
-        pickerToastAdded: 'Added to failover chain ({count} models), click "Save Settings" to apply', groupAll: 'Select All', groupNone: 'Clear'
+        pickerToastAdded: 'Added to failover chain ({count} models), click "Save Settings" to apply', groupAll: 'Select All', groupNone: 'Clear',
+        visibleModelsCount: '{count} models'
       },
       keys: {
         title: 'API Keys', namePlaceholder: 'Name, e.g. Laptop / Cursor', generate: 'Generate Key',
@@ -331,9 +341,9 @@ var I18N = {
         rotateConfirm: 'Are you sure you want to rotate key "{name}"? The existing key will be invalidated immediately and a new API key will be generated.',
         rotateTitle: 'Key Rotated',
         rotateNotice: 'Key has been rotated for "{name}". The old key is now invalid. The new key has been copied to your clipboard:',
-        delConfirm: 'Permanently delete this key record?', empty: 'No API keys yet.',
+        delConfirm: 'Permanently delete this key record?', deleted: 'Deleted', empty: 'No API keys yet.',
         unnamed: 'Unnamed',
-        quotaTitle: 'Set API Key Quota & Limit', labelQuotaLimit: 'Token Limit (0 or blank for unlimited)',
+        quotaTitle: 'Set API Key Quota & Limit', labelQuotaLimit: 'Token Limit (0 or blank for unlimited)', quotaPlaceholder: 'e.g. 1000000',
         resetUsedOption: 'Reset current used tokens to 0', curUsedTokens: 'Current usage: {tokens} Tokens',
         unlimited: 'Unlimited', quotaExceeded: 'Exceeded', quotaSaved: 'Quota updated'
       },
@@ -369,6 +379,7 @@ var I18N = {
         errTooMany: 'At most {max} files', errTooLarge: 'File too large (max {max} MiB): {name}',
         empty: 'No messages yet. Pick a model and start testing.', thinking: 'Generating…',
         thinkLabel: 'Thinking', errAborted: 'Stopped', localOnly: 'Session is stored only in this browser',
+        roleUser: 'You', attachIconFile: 'FILE', defaultFilename: 'file',
         metaInfo: 'HTTP {status} · Provider {provider} · Model {model} · Attempts {attempts}',
         ttfbTotal: 'TTFB {ttfb} ms · Total {total} ms', totalOnly: '{total} ms'
       },
@@ -389,6 +400,7 @@ var I18N = {
         brand: 'FlareRouter',
         tagline: 'Lightweight AI gateway on Cloudflare Workers',
         github: 'GitHub',
+        versionTitle: 'Version status',
         version_latest: 'Up to date ({version})',
         version_update: 'New version {version} available'
       }

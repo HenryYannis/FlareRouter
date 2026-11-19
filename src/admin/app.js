@@ -1024,7 +1024,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         if (visibleCount > 0) {
           html += '<div class="chain-picker-group" data-group-pid="' + esc(p.id) + '">' +
             '<div class="chain-picker-group-title">' +
-              '<div><span class="fw-ui">' + esc(p.name) + '</span> <span class="muted small mono">(' + esc(p.id) + ')</span> <span class="muted small">· ' + visibleCount + ' 个模型</span></div>' +
+              '<div><span class="fw-ui">' + esc(p.name) + '</span> <span class="muted small mono">(' + esc(p.id) + ')</span> <span class="muted small">· ' + t('fallback.visibleModelsCount', { count: visibleCount }) + '</span></div>' +
               '<div class="row" style="gap:4px">' +
                 '<button type="button" class="btn sm" data-g-all="' + esc(p.id) + '">' + t('fallback.groupAll') + '</button>' +
                 '<button type="button" class="btn sm" data-g-none="' + esc(p.id) + '">' + t('fallback.groupNone') + '</button>' +

@@ -145,7 +145,7 @@
     box.innerHTML = pendingAttachments.map(function (a) {
       var preview = a.isImage
         ? '<img class="chat-attach-thumb" src="' + esc(a.dataUrl) + '" alt="">'
-        : '<span class="chat-attach-icon">FILE</span>';
+        : '<span class="chat-attach-icon">' + esc(t('chat.attachIconFile')) + '</span>';
       return '<div class="chat-attach-chip" data-id="' + a.id + '">' +
         preview +
         '<span class="chat-attach-meta"><span class="chat-attach-name" title="' + esc(a.name) + '">' + esc(formatMiddleEllipsis(a.name, 22)) + '</span>' +
@@ -206,7 +206,7 @@
         var url = typeof p.image_url === 'string' ? p.image_url : (p.image_url && p.image_url.url);
         if (url) media.push('<img class="chat-msg-img" src="' + esc(url) + '" alt="">');
       } else if (p.type === 'file' && p.file) {
-        media.push('<span class="chat-msg-file">' + esc(p.file.filename || 'file') + '</span>');
+        media.push('<span class="chat-msg-file">' + esc(p.file.filename || t('chat.defaultFilename')) + '</span>');
       }
     });
     var html = '';
@@ -300,7 +300,7 @@
       }
       var body = role === 'assistant' ? renderMd(contentTextOf(m.content)) : renderUserContentHtml(m.content);
       var md = role === 'assistant' ? '<div class="chat-md">' + body + '</div>' : body;
-      return '<div class="chat-bubble ' + role + '" data-idx="' + idx + '"><div class="chat-role">' + (role === 'assistant' ? 'AI' : 'You') + '</div><div class="chat-body">' + think + md + '</div></div>';
+      return '<div class="chat-bubble ' + role + '" data-idx="' + idx + '"><div class="chat-role">' + (role === 'assistant' ? 'AI' : t('chat.roleUser')) + '</div><div class="chat-body">' + think + md + '</div></div>';
     }).join('');
     if (force || isChatAtBottom) {
       box.scrollTop = box.scrollHeight;

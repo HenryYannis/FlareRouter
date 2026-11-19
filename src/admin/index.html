@@ -287,7 +287,7 @@
       <span class="footer-sep" aria-hidden="true"> · </span>
       <span class="footer-tagline" data-i18n="footer.tagline">基于 Cloudflare Workers 的轻量 AI 网关</span>
       <span class="footer-sep" aria-hidden="true"> · </span>
-      <span id="footer-version" class="footer-version-badge" title="版本状态">
+      <span id="footer-version" class="footer-version-badge" title="版本状态" data-i18n-title="footer.versionTitle">
         <a href="https://github.com/HenryYannis/FlareRouter" target="_blank" rel="noopener noreferrer" data-i18n="footer.github">GitHub</a>
         <span aria-hidden="true"> · </span>
         <span class="version-text">...</span>
@@ -305,8 +305,8 @@
       <div class="form-section">
         <div class="form-section-title" data-i18n="providers.sectionBasic">基础连接与鉴权</div>
         <div class="row">
-          <div class="grow"><label class="f" for="p-name" data-i18n="providers.labelName">名称</label><input type="text" id="p-name" style="width:100%" placeholder="例如：OpenRouter"></div>
-          <div class="grow"><label class="f" for="p-id" data-i18n="providers.labelId">ID（用于「ID/模型」寻址）</label><input type="text" id="p-id" style="width:100%" placeholder="例如：openrouter" spellcheck="false"></div>
+          <div class="grow"><label class="f" for="p-name" data-i18n="providers.labelName">名称</label><input type="text" id="p-name" style="width:100%" placeholder="例如：OpenRouter" data-i18n-placeholder="providers.namePlaceholder"></div>
+          <div class="grow"><label class="f" for="p-id" data-i18n="providers.labelId">ID（用于「ID/模型」寻址）</label><input type="text" id="p-id" style="width:100%" placeholder="例如：openrouter" spellcheck="false" data-i18n-placeholder="providers.idPlaceholder"></div>
         </div>
         <div class="row" style="margin-top:8px">
           <div style="flex:1"><label class="f" for="p-protocol" data-i18n="providers.labelProto">协议类型</label>
@@ -318,11 +318,11 @@
           </div>
         </div>
         <div class="muted small" id="p-protocol-tip" style="margin-top:4px"></div>
-        <label class="f" for="p-url" style="margin-top:8px">Base URL</label>
+        <label class="f" for="p-url" style="margin-top:8px" data-i18n="providers.thBase">Base URL</label>
         <input type="text" id="p-url" placeholder="https://api.example.com/v1" spellcheck="false">
-        <label class="f" for="p-key" style="margin-top:8px">API Key</label>
+        <label class="f" for="p-key" style="margin-top:8px" data-i18n="providers.thKey">API Key</label>
         <div class="row" style="gap:8px;align-items:center">
-          <input type="password" id="p-key" class="grow" placeholder="留空则清除已保存的 Key" spellcheck="false" autocomplete="new-password">
+          <input type="password" id="p-key" class="grow" placeholder="留空则清除已保存的 Key" spellcheck="false" autocomplete="new-password" data-i18n-placeholder="providers.keyPlaceholderEdit">
           <button type="button" class="btn sm" id="p-key-toggle" title="显示 / 隐藏明文" data-i18n-title="keys.showHide">👁</button>
           <button type="button" class="btn sm" id="p-key-copy" data-i18n="keys.copy">复制</button>
         </div>
@@ -359,7 +359,7 @@
         <div class="form-section-title" data-i18n="providers.sectionAdvanced">高级选项</div>
         <div class="row">
           <div><label class="f" for="p-timeout" data-i18n="providers.labelTimeout">超时（毫秒）</label><input type="number" id="p-timeout" min="1000" step="1000" style="width:140px"></div>
-          <div class="grow"><label class="f" for="p-note" data-i18n="providers.labelNote">备注</label><input type="text" id="p-note" style="width:100%" placeholder="可选备注信息"></div>
+          <div class="grow"><label class="f" for="p-note" data-i18n="providers.labelNote">备注</label><input type="text" id="p-note" style="width:100%" placeholder="可选备注信息" data-i18n-placeholder="providers.notePlaceholder"></div>
         </div>
         <div class="row" style="margin-top:8px">
           <div style="flex:1"><label class="f" for="p-privacy" data-i18n="providers.privacyPolicy">隐私脱敏</label>
@@ -418,7 +418,7 @@
       <div id="kq-name" class="bold" style="margin-bottom:6px"></div>
       <div class="muted small" id="kq-cur-used" style="margin-bottom:12px"></div>
       <label class="f" for="kq-limit" data-i18n="keys.labelQuotaLimit">Token 限额（0 或留空为无限制）</label>
-      <input type="number" id="kq-limit" min="0" step="1000" placeholder="例如：1000000" style="width:100%">
+      <input type="number" id="kq-limit" min="0" step="1000" placeholder="例如：1000000" style="width:100%" data-i18n-placeholder="keys.quotaPlaceholder">
       <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
         <button type="button" class="btn sm" data-kq-preset="0" data-i18n="keys.unlimited">无限制</button>
         <button type="button" class="btn sm" data-kq-preset="100000">100K</button>
