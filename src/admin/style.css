@@ -1239,11 +1239,18 @@ footer a:hover { color: var(--primary); }
 }
 
 /* 密钥额度单元格样式 */
+#key-table th.col-quota,
+#key-table td.col-quota {
+  text-align: right;
+}
 .quota-cell {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 110px;
+}
+#key-table .col-quota .quota-cell {
+  align-items: flex-end;
 }
 .quota-text {
   font-family: var(--font-mono, monospace);
@@ -1252,6 +1259,9 @@ footer a:hover { color: var(--primary); }
   align-items: center;
   gap: 4px;
 }
+#key-table .col-quota .quota-text {
+  justify-content: flex-end;
+}
 .quota-bar-bg {
   width: 100%;
   max-width: 120px;
@@ -1259,6 +1269,9 @@ footer a:hover { color: var(--primary); }
   background: rgba(125, 125, 125, 0.2);
   border-radius: 2px;
   overflow: hidden;
+}
+#key-table .col-quota .quota-bar-bg {
+  margin-left: auto;
 }
 .quota-bar-fill {
   height: 100%;

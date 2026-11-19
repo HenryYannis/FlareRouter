@@ -1313,7 +1313,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   function renderKeys(items) {
     state.keys = items || [];
-    $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thQuota') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th class="col-actions">' + t('keys.thActions') + '</th></tr>' +
+    $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th class="col-quota">' + t('keys.thQuota') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th class="col-actions">' + t('keys.thActions') + '</th></tr>' +
       (state.keys.length ? state.keys.map(function (k) {
         var isUnmasked = !!state.unmaskedKeys[k.id];
         var rawKey = k.raw_key || k.preview || '';
@@ -1343,7 +1343,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
         return '<tr><td class="col-key-name"><b>' + esc(k.name) + '</b></td>' +
           '<td>' + keyHtml + '</td>' +
-          '<td>' + quotaHtml + '</td>' +
+          '<td class="col-quota">' + quotaHtml + '</td>' +
           '<td class="small">' + fmtTime(k.created_at) + '</td>' +
           '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
           '<td class="col-actions" style="white-space:nowrap">' +
