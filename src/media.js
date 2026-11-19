@@ -3,7 +3,7 @@
 // 仅 OpenAI 兼容上游；按模型解析服务商后原样转发（支持容灾）
 
 import { getConfig } from './config.js';
-import { resolveTargets, protocolError, isProviderFatal } from './gateway.js';
+import { resolveTargets, protocolError, isProviderFatal, isModelAllowed } from './gateway.js';
 import { writeLog } from './logs.js';
 import { CORS_HEADERS, errText, maxBodyBytes } from './util.js';
 
@@ -113,6 +113,14 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
     stream: false,
     prompt: null,
   };
+
+  if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
+    if (!isModelAllowed(requestedModel, caller.modelPolicy, caller.modelPatterns)) {
+      const errMsg = `当前调用密钥无权使用模型「${requestedModel}」（受密钥模型访问策略限制）`;
+      writeLog(env, ctx, { ...baseLog, status: 403, latencyMs: Date.now() - t0, error: errMsg, attempts: 0 });
+      return protocolError('openai', errMsg, 403, 'model_not_allowed');
+    }
+  }
 
   if (error) {
     writeLog(env, ctx, { ...baseLog, status: error.status, latencyMs: Date.now() - t0, error: error.message, attempts: 0 });

@@ -408,8 +408,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
 
   if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
     const reqModel = body.model || 'auto';
-    const isAuto = reqModel.toLowerCase() === 'auto' || reqModel.toLowerCase() === 'flarerouter/auto';
-    if (!isAuto && !isModelAllowed(reqModel, caller.modelPolicy, caller.modelPatterns)) {
+    if (!isModelAllowed(reqModel, caller.modelPolicy, caller.modelPatterns)) {
       const errMsg = `当前调用密钥无权使用模型「${reqModel}」（受密钥模型访问策略限制）`;
       writeLog(env, ctx, { ...baseLog, status: 403, latencyMs: Date.now() - t0, error: errMsg, attempts: 0 });
       return fail(errMsg, 403, 'model_not_allowed');

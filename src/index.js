@@ -90,7 +90,7 @@ async function route(request, env, ctx) {
     const modelList = listModels(await getConfig(env));
     if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
       modelList.data = modelList.data.filter(
-        (m) => m.id === 'FlareRouter/auto' || isModelAllowed(m.id, caller.modelPolicy, caller.modelPatterns)
+        (m) => isModelAllowed(m.id, caller.modelPolicy, caller.modelPatterns)
       );
     }
     return json(modelList, 200, { ...CORS_HEADERS, 'Cache-Control': 'no-store' });
