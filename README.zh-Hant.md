@@ -20,12 +20,12 @@
 ## 功能
 
 - **服務商管理**：名稱、ID、協定類型（OpenAI 相容 / OpenAI Responses / Anthropic）、Base URL、API Key（頁面只顯示遮罩後的預覽）、模型清單（可從服務商的 `/models` 拉取後勾選）、啟用、順序、逾時
-- **OpenAI 相容介面**：`/v1/chat/completions`（串流 SSE 原樣轉送）、`/v1/responses`（OpenAI Responses API，含原生轉送與跨協定轉換）、`/v1/embeddings`、`/v1/models`；圖片與語音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；對齊控制台閘道並補充合成，依模型找到服務商後原樣轉送）
+- **OpenAI 相容介面**：`/v1/chat/completions`（串流 SSE 原樣轉送）、`/v1/responses`（OpenAI Responses API，含原生轉送與跨協定轉換）、`/v1/embeddings`、`/v1/models`（自動依目前呼叫密鑰的模型權限策略動態過濾）；圖片與語音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；對齊控制台閘道並補充合成，依模型找到服務商後原樣轉送）
 - **Anthropic 介面**：`/v1/messages`（含串流）、`/v1/messages/count_tokens`，Claude Code 可直接接入
 - **協定全自動互轉**：三種入口（Chat Completions / Responses / Messages）都能呼叫任意協定的服務商，請求體（`messages` ⇄ `input`/`instructions`）、回應、串流 SSE 事件（Chunk ⇄ Responses 事件 ⇄ Anthropic 事件）、工具呼叫全自動無縫轉換
 - **模型定址**：`服務商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只寫模型名稱（在已啟用服務商的模型清單中尋找，不分大小寫）；提供 `FlareRouter/auto`（兼任 `auto`），依容災鏈從頭嘗試
 - **容災切換與智慧熔斷**：失敗（網路錯誤、逾時、任何非 2xx）就依容災鏈換下一個；同服務商遇 401/402/403/429 或欠費/配額用盡等帳號級故障時自動 0ms 快速熔斷跳過該商剩餘模型；串流請求只在上游開始回傳之前切換；請求標頭 `x-gateway-fallback: off` 可單次關閉，設定中也可整體關閉
-- **呼叫密鑰**：以 `Authorization: Bearer`、`x-api-key` 或 `api-key` 驗證；管理頁可產生多把、隨時查看明文、一鍵複製、撤銷、刪除；D1 儲存明文與雜湊
+- **呼叫密鑰與模型限制**：以 `Authorization: Bearer`、`x-api-key` 或 `api-key` 驗證；管理頁支援密鑰名稱管理、長密鑰中間省略安全顯示；支援**模型存取控制**（全部允許 / 白名單模式 / 黑名單模式，支援萬用字元規則如 `gpt-4*`、`deepseek/*`）；支援 Token 配額上限與一鍵重置已用；操作列精簡為「複製 / 配置 / 刪除」；支援一鍵輪換、隨時查看明文、刪除；D1 儲存明文與雜湊；越權請求由閘道入口 0ms 快速攔截（403 Forbidden）並記錄稽核日誌
 - **呼叫日誌**：存在 D1，以 `ctx.waitUntil` 非同步寫入；可依狀態、容災、協定、服務商、密鑰、模型、錯誤關鍵字篩選，可清空；失敗的每次嘗試都記錄上游原始錯誤
 - **管理頁**：同一個 Worker 的 `/admin`，以管理員密碼登入；概覽（含 HTTP 常見錯誤 400~504 速查表）、上游、密鑰、測試、日誌、設定（含容災與隱私脫敏）；模組化原始碼位於 `src/admin/`（`app.js`、`chat.js`、`i18n.js`、`style.css`、`chat.css`、`index.html`）；支援簡體/繁體/English 三語切換；日夜模式預設跟隨系統（與 FlarePanel 一致），可手動切換，含玻璃風格；「測試」支援多輪串流、思考過程摺疊與 Markdown（僅存本機瀏覽器）
 - **隱私與資料脫敏**：出站前自動將敏感資訊（API Key、資料庫連線密碼、IPv4、自訂敏感詞）替換為確定性暗號（如 `{{MASK_TOKEN_...}}`），並在上游模型回應（含非串流與串流 SSE）時無縫還原；暗號基於確定性雜湊，不破壞 Prompt Cache 命中率；支援針對單一服務商設定脫敏策略（如官方直連放行，第三方代理強制脫敏）；記錄日誌時自動保護敏感內容，防止憑據落庫

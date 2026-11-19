@@ -20,12 +20,12 @@
 ## 功能
 
 - **服务商管理**：名称、ID、协议类型（OpenAI 兼容 / OpenAI Responses / Anthropic）、Base URL、API Key（页面只显示脱敏预览）、模型列表（可从服务商 `/models` 拉取勾选）、启用、顺序、超时
-- **OpenAI 兼容接口**：`/v1/chat/completions`（流式 SSE 原样透传）、`/v1/responses`（OpenAI Responses API，含原生透传与跨协议转换）、`/v1/embeddings`、`/v1/models`；图片与语音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；对齐控制台网关并补充合成，按模型找到服务商后原样转发）
+- **OpenAI 兼容接口**：`/v1/chat/completions`（流式 SSE 原样透传）、`/v1/responses`（OpenAI Responses API，含原生透传与跨协议转换）、`/v1/embeddings`、`/v1/models`（自动按当前调用密钥的模型权限策略动态过滤）；图片与语音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；对齐控制台网关并补充合成，按模型找到服务商后原样转发）
 - **Anthropic 接口**：`/v1/messages`（含流式）、`/v1/messages/count_tokens`，Claude Code 可直接接入
 - **协议全自动互转**：三种入口（Chat Completions / Responses / Messages）都能调用任意协议的服务商，请求体（`messages` ⇄ `input`/`instructions`）、响应体、流式 SSE 事件（Chunk ⇄ Responses 事件 ⇄ Anthropic 事件）、工具调用全自动无缝互转
 - **模型寻址**：`服务商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只写模型名（在已启用服务商的模型列表里找，不区分大小写）；提供 `FlareRouter/auto`（兼任 `auto`），按容灾链从头尝试
 - **容灾切换与智能熔断**：失败（网络错误、超时、任何非 2xx）就按容灾链换下一个；同服务商遇 401/402/403/429 或欠费/额度耗尽等账号级故障时自动 0ms 快速熔断跳过该商剩余模型；流式请求只在上游开始返回之前切换；请求头 `x-gateway-fallback: off` 可单次关闭，设置里也可整体关闭
-- **调用密钥**：`Authorization: Bearer`、`x-api-key` 或 `api-key` 鉴权；管理页可生成多个、随时查看明文、一键复制、吊销、删除；D1 存储明文与哈希
+- **调用密钥与模型限制**：`Authorization: Bearer`、`x-api-key` 或 `api-key` 鉴权；管理页支持密钥名称管理、长密钥中间省略安全展示；支持**模型访问控制**（全部允许 / 白名单模式 / 黑名单模式，支持通配符规则如 `gpt-4*`、`deepseek/*`）；支持 Token 额度上限与一键重置已用；操作列精简为「复制 / 配置 / 删除」；支持一键轮换、随时查看明文、删除；D1 存储明文与哈希；越权请求由网关入口 0ms 快速拦截（403 Forbidden）并记录审计日志
 - **调用日志**：存 D1，`ctx.waitUntil` 异步写；可按状态、容灾、协议、服务商、密钥、模型、错误关键词筛选，可清空；失败的每次尝试都记录上游原始报错
 - **管理页**：同一个 Worker 的 `/admin`，管理员密码登录；概览（含 HTTP 常见错误 400~504 速查表）、上游、密钥、测试、日志、设置（含容灾与隐私脱敏）；模块化源码位于 `src/admin/`（`app.js`、`chat.js`、`i18n.js`、`style.css`、`chat.css`、`index.html`）；支持简体/繁体/English 三语切换；日夜模式默认跟随系统（与 FlarePanel 一致），可手动切换，含玻璃风格；「测试」支持多轮流式试聊、思考过程折叠与 Markdown（会话仅存本机浏览器）
 - **隐私与数据脱敏**：出站前自动将敏感信息（API Key、数据库连接密码、IPv4、自定义敏感词）替换为确定性暗号（如 `{{MASK_TOKEN_...}}`），并在上游模型响应（含非流式与流式 SSE）时无缝还原；暗号基于确定性哈希，不破坏 Prompt Cache 命中率；支持针对单个服务商配置脱敏策略（如官方直连放行，第三方代理强制脱敏）；记录日志时自动保护敏感内容，防止凭据落库
