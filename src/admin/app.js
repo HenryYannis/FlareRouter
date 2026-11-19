@@ -160,7 +160,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   var dialogResolve = null;
   function ensureDialogOverlay() {
     if (dialogOverlay && document.body.contains(dialogOverlay)) return;
-    dialogOverlay = document.createElement('div');
+    dialogOverlay = document.createElement('dialog');
     dialogOverlay.className = 'custom-dialog-overlay';
     dialogOverlay.addEventListener('click', function (e) {
       if (e.target === dialogOverlay) {
@@ -168,6 +168,10 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         if (input) { input.focus(); return; }
         closeDialog(null);
       }
+    });
+    dialogOverlay.addEventListener('cancel', function (e) {
+      e.preventDefault();
+      closeDialog(null);
     });
     document.addEventListener('keydown', function (e) {
       if (!dialogOverlay || !dialogOverlay.classList.contains('active')) return;
@@ -184,6 +188,9 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   function closeDialog(result) {
     if (!dialogOverlay) return;
     dialogOverlay.classList.remove('active');
+    if (dialogOverlay.open) {
+      try { dialogOverlay.close(); } catch (e) {}
+    }
     var res = dialogResolve;
     dialogResolve = null;
     if (res) setTimeout(function () { res(result); }, 100);
@@ -204,6 +211,9 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       var xBtn = dialogOverlay.querySelector('.custom-dialog-btn-cancel');
       if (xBtn) xBtn.onclick = function () { if (cBtn) cBtn.disabled = true; this.disabled = true; closeDialog(false); };
       if (cBtn) cBtn.onclick = function () { if (xBtn) xBtn.disabled = true; this.disabled = true; closeDialog(true); };
+      if (!dialogOverlay.open) {
+        try { dialogOverlay.showModal(); } catch (e) {}
+      }
       requestAnimationFrame(function () {
         dialogOverlay.classList.add('active');
         var input = dialogOverlay.querySelector('input');
