@@ -3,7 +3,7 @@
 
 import { getConfig } from './config.js';
 import { handleAdminApi } from './admin.js';
-import { handleCountTokens, handleProxy, listModels, protocolError } from './gateway.js';
+import { handleCountTokens, handleProxy, isModelAllowed, listModels, protocolError } from './gateway.js';
 import { MEDIA_ENDPOINTS, handleMedia } from './media.js';
 import { verifyApiKey } from './keys.js';
 import { clearLogs } from './logs.js';
@@ -87,7 +87,13 @@ async function route(request, env, ctx) {
 
   if (isModels) {
     if (request.method !== 'GET') return apiError('Method Not Allowed', 405);
-    return json(listModels(await getConfig(env)), 200, { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=300, s-maxage=1800, stale-while-revalidate=3600' });
+    const modelList = listModels(await getConfig(env));
+    if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
+      modelList.data = modelList.data.filter(
+        (m) => m.id === 'FlareRouter/auto' || isModelAllowed(m.id, caller.modelPolicy, caller.modelPatterns)
+      );
+    }
+    return json(modelList, 200, { ...CORS_HEADERS, 'Cache-Control': 'no-store' });
   }
   if (request.method !== 'POST') return protocolError(proto, 'Method Not Allowed', 405);
   if (isCount) return handleCountTokens(request, env);

@@ -1263,6 +1263,37 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     return String(v);
   }
 
+  function parsePatterns(str) {
+    if (!str) return [];
+    return str.split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  function renderQuickModels() {
+    var container = $('#kc-quick-models');
+    if (!container) return;
+    var allModels = [];
+    if (state.cfg && state.cfg.providers) {
+      state.cfg.providers.forEach(function (p) {
+        if (p.enabled && Array.isArray(p.models)) {
+          p.models.forEach(function (m) {
+            if (m && allModels.indexOf(m) === -1) allModels.push(m);
+          });
+        }
+      });
+    }
+    allModels.sort();
+    if (!allModels.length) {
+      container.innerHTML = '<span class="muted small">' + t('keys.noModelsFound') + '</span>';
+      return;
+    }
+    var currentList = parsePatterns($('#kc-patterns').value);
+    container.innerHTML = allModels.map(function (m) {
+      var isChecked = currentList.indexOf(m) !== -1;
+      return '<span class="chip-model" data-m="' + esc(m) + '" style="cursor:pointer;padding:2px 8px;border-radius:12px;font-size:12px;border:1px solid ' + (isChecked ? 'var(--primary)' : 'var(--border)') + ';background:' + (isChecked ? 'rgba(0,122,255,0.15)' : 'transparent') + ';color:' + (isChecked ? 'var(--primary)' : 'inherit') + ';user-select:none">' +
+        (isChecked ? '✓ ' : '+ ') + esc(m) + '</span>';
+    }).join('');
+  }
+
   function renderKeys(items) {
     state.keys = items || [];
     $('#key-table').innerHTML = '<tr><th>' + t('keys.thName') + '</th><th>' + t('keys.thKey') + '</th><th>' + t('keys.thQuota') + '</th><th>' + t('keys.thCreated') + '</th><th>' + t('keys.thLastUsed') + '</th><th class="col-actions">' + t('keys.thActions') + '</th></tr>' +
@@ -1279,9 +1310,17 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         var isExceeded = limit > 0 && used >= limit;
         var pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
         var barClass = pct >= 100 ? 'danger' : pct >= 80 ? 'warning' : 'normal';
+
+        var policyTag = '';
+        if (k.model_policy && k.model_policy !== 'all') {
+          var titleText = (k.model_policy === 'allow' ? '白名单: ' : '黑名单: ') + (k.model_patterns || '');
+          policyTag = '<span class="tag warn" style="margin-left:4px" title="' + esc(titleText) + '">' + t('keys.tagModelLimited') + '</span>';
+        }
+
         var quotaHtml = '<div class="quota-cell">' +
           '<div class="quota-text"><span>' + fmtTokens(used) + ' / ' + (limit > 0 ? fmtTokens(limit) : t('keys.unlimited')) + '</span>' +
-          (isExceeded ? '<span class="tag bad" style="margin-left:4px">' + t('keys.quotaExceeded') + '</span>' : '') + '</div>' +
+          (isExceeded ? '<span class="tag bad" style="margin-left:4px">' + t('keys.quotaExceeded') + '</span>' : '') +
+          policyTag + '</div>' +
           (limit > 0 ? '<div class="quota-bar-bg"><div class="quota-bar-fill ' + barClass + '" style="width:' + pct + '%"></div></div>' : '') +
           '</div>';
 
@@ -1292,9 +1331,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
           '<td class="col-actions" style="white-space:nowrap">' +
           '<button class="btn sm" data-kcopy="' + esc(rawKey) + '">' + t('keys.copy') + '</button> ' +
-          '<button class="btn sm" data-rename="' + esc(k.id) + '">' + t('keys.rename') + '</button> ' +
-          '<button class="btn sm" data-quota="' + esc(k.id) + '">' + t('keys.quota') + '</button> ' +
-          '<button class="btn sm" data-rotate="' + esc(k.id) + '">' + t('keys.rotate') + '</button> ' +
+          '<button class="btn sm" data-kconfig="' + esc(k.id) + '">' + t('keys.config') + '</button> ' +
           '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
       }).join('') : '<tr><td colspan="6" class="muted">' + t('keys.empty') + '</td></tr>');
     $('#lf-key').innerHTML = '<option value="">' + t('logs.allKeys') + '</option><option value="admin">' + t('logs.adminTest') + '</option>' + state.keys.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join('');
@@ -1340,7 +1377,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   });
 
   $('#key-table').addEventListener('click', async function (e) {
-    var b = e.target.closest('[data-ktoggle], [data-kcopy], [data-rename], [data-quota], [data-rotate], [data-kdel]'); if (!b) return;
+    var b = e.target.closest('[data-ktoggle], [data-kcopy], [data-kconfig], [data-kdel]'); if (!b) return;
     try {
       if (b.dataset.ktoggle) {
         var id = b.dataset.ktoggle;
@@ -1352,50 +1389,32 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         navigator.clipboard.writeText(b.dataset.kcopy).then(function () { toast(t('header.copied')); });
         return;
       }
-      if (b.dataset.rename) {
-        var renId = b.dataset.rename;
-        var curK = state.keys.find(function (k) { return k.id === renId; });
-        var nextName = await showPrompt({ title: t('keys.renamePrompt'), defaultValue: curK ? curK.name : '' });
-        if (nextName === null) return;
-        nextName = String(nextName).trim();
-        if (!nextName) return toast(t('keys.nameRequired'));
-        var prevRen = state.keys.slice();
-        renderKeys(state.keys.map(function (k) { return k.id === renId ? Object.assign({}, k, { name: nextName.slice(0, 60) }) : k; }));
-        try {
-          var renRes = await api('/admin/api/keys/rename', { body: { id: renId, name: nextName } });
-          if (renRes.items) renderKeys(renRes.items);
-        } catch (err) { renderKeys(prevRen); throw err; }
-        return;
-      }
-      if (b.dataset.quota) {
-        var qId = b.dataset.quota, qK = state.keys.find(function (k) { return k.id === qId; });
-        if (!qK) return;
-        state.quotaKeyId = qId;
-        $('#kq-name').textContent = qK.name || qId;
-        $('#kq-cur-used').textContent = t('keys.curUsedTokens', { tokens: Number(qK.quota_used || 0).toLocaleString() });
-        $('#kq-limit').value = qK.quota_limit > 0 ? qK.quota_limit : '';
-        $('#kq-reset-used').checked = false;
-        $('#kq-err').textContent = '';
-        $('#dlg-key-quota').showModal();
-        return;
-      }
-      if (b.dataset.rotate) {
-        var rotId = b.dataset.rotate, targetK = state.keys.find(function (k) { return k.id === rotId; });
-        var targetName = targetK ? targetK.name : rotId;
-        if (!(await showConfirm({ message: t('keys.rotateConfirm', { name: targetName }), danger: true }))) return;
-        var rowBtns = b.closest('tr') ? b.closest('tr').querySelectorAll('button') : [];
-        rowBtns.forEach(function (btn) { btn.disabled = true; });
-        b.textContent = t('keys.rotating');
-        try {
-          var rotRes = await api('/admin/api/keys/rotate', { body: { id: rotId } });
-          await loadKeys();
-          try { await navigator.clipboard.writeText(rotRes.key); toast(t('header.copied')); } catch (e) {}
-          await showAlert({ type: 'success', title: t('keys.rotateTitle'), message: t('keys.rotateNotice', { name: targetName }) + '\n\n' + rotRes.key });
-        } catch (err) {
-          b.disabled = false; b.textContent = t('keys.rotate');
-          rowBtns.forEach(function (btn) { btn.disabled = false; });
-          await showAlert({ message: err.message });
-        }
+      if (b.dataset.kconfig) {
+        var cfgId = b.dataset.kconfig, cfgK = state.keys.find(function (k) { return k.id === cfgId; });
+        if (!cfgK) return;
+        state.configKeyId = cfgId;
+        state.configKeyItem = cfgK;
+
+        $('#kc-name').value = cfgK.name || '';
+        $('#kc-key-preview').textContent = cfgK.raw_key || cfgK.preview || '';
+        $('#kc-cur-used').textContent = t('keys.curUsedTokens', { tokens: Number(cfgK.quota_used || 0).toLocaleString() });
+        $('#kc-limit').value = cfgK.quota_limit > 0 ? cfgK.quota_limit : '';
+        $('#kc-reset-used').checked = false;
+
+        var policy = cfgK.model_policy || 'all';
+        var rBtn = $('#dlg-key-config input[name="kc-policy"][value="' + policy + '"]');
+        if (rBtn) rBtn.checked = true;
+
+        var patterns = (cfgK.model_patterns || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean).join('\n');
+        $('#kc-patterns').value = patterns;
+
+        var settingsBox = $('#kc-models-settings');
+        settingsBox.style.display = policy === 'all' ? 'none' : 'flex';
+        renderQuickModels();
+
+        $('#kc-err').style.display = 'none';
+        $('#kc-err').textContent = '';
+        $('#dlg-key-config').showModal();
         return;
       }
       if (b.dataset.kdel) {
@@ -1414,36 +1433,117 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     } catch (err) { await showAlert({ message: err.message }); }
   });
 
-  // 限额设置弹窗逻辑
-  $$('#dlg-key-quota [data-kq-preset]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var val = this.dataset.kqPreset;
-      $('#kq-limit').value = val === '0' ? '' : val;
+  // 配置弹窗：模型策略单选切换
+  $$('#dlg-key-config input[name="kc-policy"]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      var isAll = this.value === 'all';
+      $('#kc-models-settings').style.display = isAll ? 'none' : 'flex';
     });
   });
 
-  $('#quota-form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (e.submitter && e.submitter.value === 'cancel') return;
-    $('#kq-save').click();
+  // 配置弹窗：快捷预设额度按钮
+  $$('#dlg-key-config [data-kc-preset]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var val = this.dataset.kcPreset;
+      $('#kc-limit').value = val === '0' ? '' : val;
+    });
   });
 
-  $('#kq-save').addEventListener('click', async function () {
-    var saveBtn = $('#kq-save');
-    if (saveBtn.disabled) return;
-    var id = state.quotaKeyId;
+  // 配置弹窗：快捷勾选模型
+  $('#kc-quick-models').addEventListener('click', function (e) {
+    var chip = e.target.closest('[data-m]');
+    if (!chip) return;
+    var m = chip.dataset.m;
+    var currentList = parsePatterns($('#kc-patterns').value);
+    var idx = currentList.indexOf(m);
+    if (idx !== -1) {
+      currentList.splice(idx, 1);
+    } else {
+      currentList.push(m);
+    }
+    $('#kc-patterns').value = currentList.join('\n');
+    renderQuickModels();
+  });
+  $('#kc-patterns').addEventListener('input', function () {
+    renderQuickModels();
+  });
+
+  // 配置弹窗：内联轮换密钥
+  $('#kc-rotate-btn').addEventListener('click', async function () {
+    var rotBtn = $('#kc-rotate-btn');
+    if (rotBtn.disabled) return;
+    var id = state.configKeyId;
     if (!id) return;
-    var limitVal = parseInt($('#kq-limit').value, 10);
-    var limit = isNaN(limitVal) || limitVal < 0 ? 0 : limitVal;
-    var resetUsed = $('#kq-reset-used').checked;
-    saveBtn.disabled = true;
+    var targetK = state.configKeyItem || state.keys.find(function (k) { return k.id === id; });
+    var targetName = targetK ? targetK.name : id;
+    if (!(await showConfirm({ message: t('keys.rotateConfirm', { name: targetName }), danger: true }))) return;
+    rotBtn.disabled = true;
+    rotBtn.textContent = t('keys.rotating');
     try {
-      await api('/admin/api/keys/quota', { body: { id: id, quotaLimit: limit, resetUsed: resetUsed } });
-      $('#dlg-key-quota').close();
-      loadKeys();
-      toast(t('keys.quotaSaved'));
+      var rotRes = await api('/admin/api/keys/rotate', { body: { id: id } });
+      await loadKeys();
+      if (rotRes && rotRes.key) {
+        $('#kc-key-preview').textContent = rotRes.key;
+        try { await navigator.clipboard.writeText(rotRes.key); toast(t('header.copied')); } catch (e) {}
+        await showAlert({ type: 'success', title: t('keys.rotateTitle'), message: t('keys.rotateNotice', { name: targetName }) + '\n\n' + rotRes.key });
+      }
     } catch (err) {
-      $('#kq-err').textContent = err.message;
+      await showAlert({ message: err.message });
+    } finally {
+      rotBtn.disabled = false;
+      rotBtn.textContent = t('keys.rotateInDialog');
+    }
+  });
+
+  // 配置弹窗：表单提交与保存
+  $('#key-config-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (e.submitter && e.submitter.value === 'cancel') return;
+    $('#kc-save').click();
+  });
+
+  $('#kc-save').addEventListener('click', async function () {
+    var saveBtn = $('#kc-save');
+    if (saveBtn.disabled) return;
+    var id = state.configKeyId;
+    if (!id) return;
+
+    var name = $('#kc-name').value.trim();
+    if (!name) {
+      $('#kc-err').textContent = t('keys.nameRequired');
+      $('#kc-err').style.display = 'block';
+      $('#kc-name').focus();
+      return;
+    }
+
+    var limitVal = parseInt($('#kc-limit').value, 10);
+    var limit = isNaN(limitVal) || limitVal < 0 ? 0 : limitVal;
+    var resetUsed = $('#kc-reset-used').checked;
+
+    var policyEl = $('#dlg-key-config input[name="kc-policy"]:checked');
+    var modelPolicy = policyEl ? policyEl.value : 'all';
+    var patternsList = parsePatterns($('#kc-patterns').value);
+    var modelPatterns = patternsList.join(',');
+
+    saveBtn.disabled = true;
+    $('#kc-err').style.display = 'none';
+    try {
+      await api('/admin/api/keys/config', {
+        body: {
+          id: id,
+          name: name,
+          quotaLimit: limit,
+          resetUsed: resetUsed,
+          modelPolicy: modelPolicy,
+          modelPatterns: modelPatterns
+        }
+      });
+      $('#dlg-key-config').close();
+      await loadKeys();
+      toast(t('keys.configSaved'));
+    } catch (err) {
+      $('#kc-err').textContent = err.message;
+      $('#kc-err').style.display = 'block';
     } finally {
       saveBtn.disabled = false;
     }

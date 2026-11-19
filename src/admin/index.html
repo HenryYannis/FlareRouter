@@ -410,31 +410,77 @@
   </div>
 </dialog>
 
-<!-- 密钥限额设置 -->
-<dialog id="dlg-key-quota">
-  <form method="dialog" id="quota-form">
-    <div class="dh" data-i18n="keys.quotaTitle">设置密钥额度与限额</div>
-    <div class="db">
-      <div id="kq-name" class="bold" style="margin-bottom:6px"></div>
-      <div class="muted small" id="kq-cur-used" style="margin-bottom:12px"></div>
-      <label class="f" for="kq-limit" data-i18n="keys.labelQuotaLimit">Token 限额（0 或留空为无限制）</label>
-      <input type="number" id="kq-limit" min="0" step="1000" placeholder="例如：1000000" style="width:100%" data-i18n-placeholder="keys.quotaPlaceholder">
-      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
-        <button type="button" class="btn sm" data-kq-preset="0" data-i18n="keys.unlimited">无限制</button>
-        <button type="button" class="btn sm" data-kq-preset="100000">100K</button>
-        <button type="button" class="btn sm" data-kq-preset="500000">500K</button>
-        <button type="button" class="btn sm" data-kq-preset="1000000">1M</button>
-        <button type="button" class="btn sm" data-kq-preset="5000000">5M</button>
-        <button type="button" class="btn sm" data-kq-preset="10000000">10M</button>
-      </div>
-      <label class="row small" style="margin-top:14px;cursor:pointer">
-        <input type="checkbox" id="kq-reset-used"> <span data-i18n="keys.resetUsedOption">重置当前已用额度为 0</span>
-      </label>
-      <div id="kq-err" class="err small" style="margin-top:8px"></div>
+<!-- 密钥配置设置 (基本信息 / 额度 / 模型限制 / 轮换) -->
+<dialog id="dlg-key-config" style="max-width:540px;width:95vw">
+  <form method="dialog" id="key-config-form">
+    <div class="dh" style="display:flex;justify-content:space-between;align-items:center">
+      <span data-i18n="keys.configTitle">配置密钥</span>
+      <button type="button" class="btn sm" onclick="this.closest('dialog').close()">✕</button>
     </div>
-    <div class="df">
+    <div class="db" style="max-height:75vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:14px 16px">
+      <!-- 基本信息 -->
+      <div>
+        <div class="bold small muted" style="margin-bottom:6px" data-i18n="keys.sectionBasic">基本信息</div>
+        <label class="f" for="kc-name" data-i18n="keys.labelKeyName">密钥名称</label>
+        <input type="text" id="kc-name" style="width:100%" placeholder="例如：笔记本 / Cherry Studio">
+        <div class="row" style="margin-top:10px;justify-content:space-between;align-items:center;background:var(--code);padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border)">
+          <div style="font-family:monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px" id="kc-key-preview"></div>
+          <button type="button" class="btn sm danger" id="kc-rotate-btn" data-i18n="keys.rotateInDialog">轮换密钥</button>
+        </div>
+      </div>
+
+      <!-- 额度限制 -->
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div class="bold small muted" style="margin-bottom:6px" data-i18n="keys.sectionQuota">额度限制</div>
+        <div class="muted small" id="kc-cur-used" style="margin-bottom:8px"></div>
+        <label class="f" for="kc-limit" data-i18n="keys.labelQuotaLimit">Token 限额（0 或留空为无限制）</label>
+        <input type="number" id="kc-limit" min="0" step="1000" placeholder="例如：1000000" style="width:100%" data-i18n-placeholder="keys.quotaPlaceholder">
+        <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn sm" data-kc-preset="0" data-i18n="keys.unlimited">无限制</button>
+          <button type="button" class="btn sm" data-kc-preset="100000">100K</button>
+          <button type="button" class="btn sm" data-kc-preset="500000">500K</button>
+          <button type="button" class="btn sm" data-kc-preset="1000000">1M</button>
+          <button type="button" class="btn sm" data-kc-preset="5000000">5M</button>
+          <button type="button" class="btn sm" data-kc-preset="10000000">10M</button>
+        </div>
+        <label class="row small" style="margin-top:10px;cursor:pointer">
+          <input type="checkbox" id="kc-reset-used"> <span data-i18n="keys.resetUsedOption">重置当前已用额度为 0</span>
+        </label>
+      </div>
+
+      <!-- 模型访问控制 -->
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div class="bold small muted" style="margin-bottom:6px" data-i18n="keys.sectionModels">模型访问控制</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+          <label class="row small" style="cursor:pointer">
+            <input type="radio" name="kc-policy" value="all" checked> <span data-i18n="keys.modelPolicyAll">允许所有模型</span>
+          </label>
+          <label class="row small" style="cursor:pointer">
+            <input type="radio" name="kc-policy" value="allow"> <span data-i18n="keys.modelPolicyAllow">仅允许指定模型（白名单）</span>
+          </label>
+          <label class="row small" style="cursor:pointer">
+            <input type="radio" name="kc-policy" value="deny"> <span data-i18n="keys.modelPolicyDeny">禁止使用指定模型（黑名单）</span>
+          </label>
+        </div>
+
+        <div id="kc-models-settings" style="display:none;flex-direction:column;gap:8px">
+          <label class="f" for="kc-patterns" data-i18n="keys.modelPatternsLabel">规则列表（每行或逗号分隔，支持 * 通配符）</label>
+          <textarea id="kc-patterns" rows="3" style="width:100%;font-family:monospace;font-size:12px" data-i18n-placeholder="keys.modelPatternsPlaceholder" placeholder="例如：&#10;gpt-4*&#10;deepseek/*&#10;claude-3-5-sonnet*"></textarea>
+
+          <div>
+            <div class="muted small" style="margin-bottom:4px" data-i18n="keys.quickPickModels">从现有上游模型中快速勾选：</div>
+            <div id="kc-quick-models" style="max-height:110px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px;background:var(--code);display:flex;flex-wrap:wrap;gap:6px">
+            </div>
+            <div class="muted small" style="margin-top:4px" data-i18n="keys.quickPickHint">勾选将追加到上方规则列表中</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="kc-err" class="err small" style="display:none;margin-top:4px"></div>
+    </div>
+    <div class="df" style="display:flex;justify-content:flex-end;gap:8px">
       <button type="button" class="btn" onclick="this.closest('dialog').close()" data-i18n="common.cancel">取消</button>
-      <button class="btn primary" type="button" id="kq-save" data-i18n="common.save">保存</button>
+      <button class="btn primary" type="button" id="kc-save" data-i18n="common.save">保存</button>
     </div>
   </form>
 </dialog>

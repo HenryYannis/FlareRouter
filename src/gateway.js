@@ -79,6 +79,36 @@ export function parseScoped(cfg, scoped) {
   return { provider: p, model: s.slice(i + 1) };
 }
 
+// 检查请求模型是否满足密钥的模型限制策略（all / allow / deny，支持 * 通配符）
+export function isModelAllowed(requestedModel, policy, patternsStr) {
+  if (!policy || policy === 'all') return true;
+  const req = String(requestedModel || '').toLowerCase().trim();
+  const patterns = String(patternsStr || '').split(/[,\n]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!patterns.length) return policy === 'deny';
+
+  // 候选匹配目标：完整名称、去掉首段 provider 的名称、去掉所有前缀的最末纯模型名
+  const candidates = [req];
+  const firstSlash = req.indexOf('/');
+  if (firstSlash !== -1) {
+    candidates.push(req.slice(firstSlash + 1));
+    const lastSlash = req.lastIndexOf('/');
+    if (lastSlash !== -1 && lastSlash !== firstSlash) {
+      candidates.push(req.slice(lastSlash + 1));
+    }
+  }
+
+  const matches = patterns.some((pattern) => {
+    const isWildcard = pattern.includes('*');
+    const regex = isWildcard
+      ? new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$')
+      : null;
+
+    const check = (target) => (regex ? regex.test(target) : pattern === target);
+    return candidates.some((cand) => check(cand));
+  });
+  return policy === 'allow' ? matches : !matches;
+}
+
 function defaultChain(cfg) {
   const chain = [];
   for (const p of cfg.providers) {
@@ -375,6 +405,16 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
             : JSON.stringify(body.input || ''))
       : null,
   };
+
+  if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
+    const reqModel = body.model || 'auto';
+    const isAuto = reqModel.toLowerCase() === 'auto' || reqModel.toLowerCase() === 'flarerouter/auto';
+    if (!isAuto && !isModelAllowed(reqModel, caller.modelPolicy, caller.modelPatterns)) {
+      const errMsg = `当前调用密钥无权使用模型「${reqModel}」（受密钥模型访问策略限制）`;
+      writeLog(env, ctx, { ...baseLog, status: 403, latencyMs: Date.now() - t0, error: errMsg, attempts: 0 });
+      return fail(errMsg, 403, 'model_not_allowed');
+    }
+  }
 
   if (error) {
     writeLog(env, ctx, { ...baseLog, status: error.status, latencyMs: Date.now() - t0, error: error.message, attempts: 0 });

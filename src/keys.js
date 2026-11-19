@@ -18,25 +18,27 @@ export async function verifyApiKey(env, ctx, token) {
   if (hit && now - hit.at < AUTH_CACHE_TTL_MS) {
     row = hit.key;
   } else {
-    row = await env.DB.prepare('SELECT id, name, revoked, quota_limit, quota_used FROM api_keys WHERE key_hash = ?').bind(hash).first();
+    row = await env.DB.prepare('SELECT id, name, revoked, quota_limit, quota_used, model_policy, model_patterns FROM api_keys WHERE key_hash = ?').bind(hash).first();
     authCache.set(hash, { key: row || null, at: now });
   }
   if (!row || row.revoked) return null;
   const quotaLimit = Number(row.quota_limit) || 0;
   const quotaUsed = Number(row.quota_used) || 0;
+  const modelPolicy = row.model_policy || 'all';
+  const modelPatterns = row.model_patterns || '';
   if (quotaLimit > 0 && quotaUsed >= quotaLimit) {
-    return { id: row.id, name: row.name, quotaExceeded: true, quotaUsed, quotaLimit };
+    return { id: row.id, name: row.name, quotaExceeded: true, quotaUsed, quotaLimit, modelPolicy, modelPatterns };
   }
   // 异步更新最近使用时间，不拖慢请求
   if (ctx && ctx.waitUntil) ctx.waitUntil(
     env.DB.prepare('UPDATE api_keys SET last_used_at = ? WHERE id = ?').bind(now, row.id).run().catch(() => {})
   );
-  return { id: row.id, name: row.name };
+  return { id: row.id, name: row.name, modelPolicy, modelPatterns };
 }
 
 export async function listKeys(env) {
   const { results } = await env.DB.prepare(
-    'SELECT id, name, preview, raw_key, created_at, last_used_at, revoked, quota_limit, quota_used FROM api_keys ORDER BY created_at DESC'
+    'SELECT id, name, preview, raw_key, created_at, last_used_at, revoked, quota_limit, quota_used, model_policy, model_patterns FROM api_keys ORDER BY created_at DESC'
   ).all();
   return results || [];
 }
@@ -98,4 +100,21 @@ export async function setKeyQuota(env, id, { quotaLimit, resetUsed } = {}) {
   if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
   authCache.clear();
   return { id, quotaLimit: limit, resetUsed: !!resetUsed };
+}
+
+export async function updateKeyConfig(env, id, { name, quotaLimit, resetUsed, modelPolicy, modelPatterns } = {}) {
+  if (!id) throw new Error('缺少密钥 id');
+  const nameVal = String(name || '').trim().slice(0, 60);
+  if (!nameVal) throw new Error('名称不能为空');
+  const limit = Math.max(0, parseInt(quotaLimit, 10) || 0);
+  const policy = ['all', 'allow', 'deny'].includes(modelPolicy) ? modelPolicy : 'all';
+  const patterns = String(modelPatterns || '').trim();
+
+  const sql = resetUsed
+    ? 'UPDATE api_keys SET name = ?, quota_limit = ?, quota_used = 0, model_policy = ?, model_patterns = ? WHERE id = ?'
+    : 'UPDATE api_keys SET name = ?, quota_limit = ?, model_policy = ?, model_patterns = ? WHERE id = ?';
+  const r = await env.DB.prepare(sql).bind(nameVal, limit, policy, patterns, id).run();
+  if (!r.meta || !r.meta.changes) throw new Error('密钥不存在');
+  authCache.clear();
+  return { id, name: nameVal, quotaLimit: limit, resetUsed: !!resetUsed, modelPolicy: policy, modelPatterns: patterns };
 }

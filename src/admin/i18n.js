@@ -75,7 +75,12 @@ var I18N = {
         unnamed: '未命名',
         quotaTitle: '设置密钥额度与限额', labelQuotaLimit: 'Token 限额（0 或留空为无限制）', quotaPlaceholder: '例如：1000000',
         resetUsedOption: '重置当前已用额度为 0', curUsedTokens: '当前已消耗：{tokens} Tokens',
-        unlimited: '无限制', quotaExceeded: '已超额', quotaSaved: '限额已更新'
+        unlimited: '无限制', quotaExceeded: '已超额', quotaSaved: '限额已更新',
+        config: '配置', configTitle: '配置调用密钥', sectionBasic: '基本信息', sectionQuota: 'Token 额度限制', sectionModels: '模型访问控制',
+        modelPolicyAll: '全部允许（默认）', modelPolicyAllow: '白名单模式（仅允许选中的模型）', modelPolicyDeny: '黑名单模式（禁止调用选中的模型）',
+        modelPatternsLabel: '自定义通配符规则（逗号或换行分隔）', modelPatternsPlaceholder: '支持通配符，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾选已有模型',
+        quickPickHint: '勾选将追加到上方规则列表中', noModelsFound: '暂无可用上游模型', rotateInDialog: '轮换密钥',
+        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新'
       },
       logs: {
         allStatus: '全部状态', success: '成功', fail: '失败', onlyFallback: '仅容灾',
@@ -210,7 +215,12 @@ var I18N = {
         unnamed: '未命名',
         quotaTitle: '設定密鑰額度與限額', labelQuotaLimit: 'Token 限額（0 或留空為無限制）', quotaPlaceholder: '例如：1000000',
         resetUsedOption: '重置當前已用額度為 0', curUsedTokens: '當前已消耗：{tokens} Tokens',
-        unlimited: '無限制', quotaExceeded: '已超額', quotaSaved: '限額已更新'
+        unlimited: '無限制', quotaExceeded: '已超額', quotaSaved: '限額已更新',
+        config: '配置', configTitle: '配置調用密鑰', sectionBasic: '基本資訊', sectionQuota: 'Token 額度限制', sectionModels: '模型訪問控制',
+        modelPolicyAll: '全部允許（預設）', modelPolicyAllow: '白名單模式（僅允許選中的模型）', modelPolicyDeny: '黑名單模式（禁止調用選中的模型）',
+        modelPatternsLabel: '自訂萬用字元規則（逗號或換行分隔）', modelPatternsPlaceholder: '支援萬用字元，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾選已有模型',
+        quickPickHint: '勾選將追加到上方規則列表中', noModelsFound: '暫無可用上游模型', rotateInDialog: '輪換密鑰',
+        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新'
       },
       logs: {
         allStatus: '全部狀態', success: '成功', fail: '失敗', onlyFallback: '僅容災',
@@ -345,7 +355,12 @@ var I18N = {
         unnamed: 'Unnamed',
         quotaTitle: 'Set API Key Quota & Limit', labelQuotaLimit: 'Token Limit (0 or blank for unlimited)', quotaPlaceholder: 'e.g. 1000000',
         resetUsedOption: 'Reset current used tokens to 0', curUsedTokens: 'Current usage: {tokens} Tokens',
-        unlimited: 'Unlimited', quotaExceeded: 'Exceeded', quotaSaved: 'Quota updated'
+        unlimited: 'Unlimited', quotaExceeded: 'Exceeded', quotaSaved: 'Quota updated',
+        config: 'Config', configTitle: 'Configure API Key', sectionBasic: 'Basic Info', sectionQuota: 'Token Quota Limit', sectionModels: 'Model Access Control',
+        modelPolicyAll: 'Allow All (Default)', modelPolicyAllow: 'Whitelist (Selected only)', modelPolicyDeny: 'Blacklist (Block selected)',
+        modelPatternsLabel: 'Custom wildcard rules (comma/newline separated)', modelPatternsPlaceholder: 'Supports wildcards, e.g. gpt-4*, deepseek/*', quickPickModels: 'Quick Select Models',
+        quickPickHint: 'Selecting will append to rules above', noModelsFound: 'No upstream models found', rotateInDialog: 'Rotate Key',
+        tagModelLimited: 'Restricted', tagModelAll: 'All Models', configSaved: 'Config updated'
       },
       logs: {
         allStatus: 'All Status', success: 'Success', fail: 'Failed', onlyFallback: 'Failover Only',
