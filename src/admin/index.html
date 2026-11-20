@@ -569,7 +569,10 @@
 
           <!-- 生效规则列表 -->
           <div>
-            <div class="muted small" style="margin-bottom:4px" data-i18n="keys.modelPatternsLabel">生效规则列表（每行或逗号分隔，支持 * 通配符）：</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span class="muted small" data-i18n="keys.modelPatternsLabel">生效规则列表（每行或逗号分隔，支持 * 通配符）：</span>
+              <button type="button" class="btn sm" id="kc-clear-patterns" data-i18n="keys.clear">清空</button>
+            </div>
             <textarea id="kc-patterns" rows="2" style="width:100%;font-family:monospace;font-size:12px" data-i18n-placeholder="keys.modelPatternsPlaceholder" placeholder="例如：&#10;group/glm&#10;zhipu/*"></textarea>
           </div>
         </div>

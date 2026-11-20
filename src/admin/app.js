@@ -1843,6 +1843,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     renderQuickGroupsAndProviders();
   });
 
+  $('#kc-clear-patterns').addEventListener('click', function () {
+    $('#kc-patterns').value = '';
+    renderQuickGroupsAndProviders();
+  });
+
   // 配置弹窗：复制密钥
   $('#kc-copy-btn').addEventListener('click', function () {
     var raw = state.configRawKey;
