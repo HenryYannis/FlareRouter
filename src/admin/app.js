@@ -984,10 +984,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     var table = $('#group-table');
     if (!table) return;
     if (!gs.length) {
-      table.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:24px 8px">' + t('groups.empty') + '</td></tr>';
+      table.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center;padding:24px 8px">' + t('groups.empty') + '</td></tr>';
       return;
     }
     var h = '<tr>' +
+      '<th class="col-order">' + t('groups.thOrder') + '</th>' +
       '<th class="col-group-name">' + t('groups.thNameId') + '</th>' +
       '<th class="col-group-strat">' + t('groups.thStrategy') + '</th>' +
       '<th class="col-group-targets">' + t('groups.thTargets') + '</th>' +
@@ -1009,7 +1010,16 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       }).join('');
       var noteHtml = g.note ? '<div class="muted small group-note">' + esc(g.note) + '</div>' : '';
 
-      return '<tr data-group-id="' + esc(g.id) + '">' +
+      return '<tr class="group-row" draggable="true" data-drag-idx="' + idx + '" data-group-id="' + esc(g.id) + '">' +
+        '<td class="col-order">' +
+          '<div class="order-controls">' +
+            '<span class="drag-handle" title="' + esc(t('groups.dragOrder')) + '" aria-label="' + esc(t('groups.dragOrder')) + '">' +
+              '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>' +
+            '</span>' +
+            '<button class="btn sm icon-btn" data-group-up="' + idx + '"' + (idx === 0 ? ' disabled' : '') + '>↑</button>' +
+            '<button class="btn sm icon-btn" data-group-down="' + idx + '"' + (idx === gs.length - 1 ? ' disabled' : '') + '>↓</button>' +
+          '</div>' +
+        '</td>' +
         '<td class="col-group-name">' +
           '<div class="group-name fw-ui">' + esc(g.name || g.id) + '</div>' +
           '<div class="muted small mono">group/' + esc(g.id) + '</div>' +
@@ -1031,6 +1041,55 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     }).join('');
 
     table.innerHTML = h + rows;
+  }
+
+  var reorderGroupSeq = 0;
+  var reorderGroupTimer = null;
+  var reorderGroupRollback = null;
+
+  function scheduleGroupReorderSync() {
+    if (!reorderGroupRollback) reorderGroupRollback = (state.cfg.groups || []).slice();
+    var thisSeq = ++reorderGroupSeq;
+    clearTimeout(reorderGroupTimer);
+    reorderGroupTimer = setTimeout(async function () {
+      var rollback = reorderGroupRollback;
+      reorderGroupTimer = null;
+      var ids = (state.cfg.groups || []).map(function (g) { return g.id; });
+      try {
+        var res = await api('/admin/api/groups/reorder', { body: { ids: ids } });
+        if (thisSeq === reorderGroupSeq) {
+          reorderGroupRollback = null;
+          if (res) {
+            state.cfg.groups = res.groups || [];
+            state.cfg.models = modelsFrom(state.cfg.providers, state.cfg.groups);
+            renderModelSelects();
+          }
+        }
+      } catch (err) {
+        if (thisSeq === reorderGroupSeq && rollback) {
+          reorderGroupRollback = null;
+          state.cfg.groups = rollback;
+          state.cfg.models = modelsFrom(state.cfg.providers, rollback);
+          renderGroups();
+          renderModelSelects();
+          await showAlert({ message: err.message });
+        }
+      }
+    }, 400);
+  }
+
+  function reorderGroup(fromIdx, toIdx, insertAfter) {
+    if (fromIdx === toIdx) return;
+    var gs = state.cfg.groups || [];
+    var targetId = gs[toIdx].id;
+    var item = gs.splice(fromIdx, 1)[0];
+    var newToIdx = gs.findIndex(function (g) { return g.id === targetId; });
+    var finalIdx = insertAfter ? newToIdx + 1 : newToIdx;
+    gs.splice(finalIdx, 0, item);
+    state.cfg.models = modelsFrom(state.cfg.providers, gs);
+    renderGroups();
+    renderModelSelects();
+    scheduleGroupReorderSync();
   }
 
   function renderGroupTargetsList() {
@@ -1084,8 +1143,8 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         '</div>' +
         '<div>' +
           (isAdded
-            ? '<span class="muted small">已在组内</span>'
-            : '<button type="button" class="btn sm primary" style="pointer-events:none">+ 加入</button>') +
+            ? '<span class="muted small">' + t('groups.alreadyIn') + '</span>'
+            : '<button type="button" class="btn sm primary" style="pointer-events:none">' + t('groups.addBtn') + '</button>') +
         '</div>' +
         '</div>';
     }).join('');
@@ -1176,17 +1235,17 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     errEl.textContent = '';
 
     if (!id) {
-      errEl.textContent = '请输入分组 ID';
+      errEl.textContent = t('groups.errIdRequired');
       $('#g-id').focus();
       return;
     }
     if (!/^[A-Za-z0-9_.-]{1,40}$/.test(id)) {
-      errEl.textContent = '分组 ID 只能包含字母、数字、下划线、短横线与点，1–40 位';
+      errEl.textContent = t('groups.errIdFormat');
       $('#g-id').focus();
       return;
     }
     if (!state.groupTargets.length) {
-      errEl.textContent = '请至少选择一个上游模型加入分组';
+      errEl.textContent = t('groups.errTargetsRequired');
       return;
     }
 
@@ -1222,6 +1281,16 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
     var b = e.target.closest('button');
     if (!b) return;
+    if (b.dataset.groupUp != null) {
+      var u = +b.dataset.groupUp;
+      if (u > 0) reorderGroup(u, u - 1, false);
+      return;
+    }
+    if (b.dataset.groupDown != null) {
+      var d = +b.dataset.groupDown;
+      if (d < (state.cfg.groups || []).length - 1) reorderGroup(d, d + 1, true);
+      return;
+    }
     if (b.dataset.groupEdit != null) {
       var idx = +b.dataset.groupEdit;
       var g = (state.cfg.groups || [])[idx];
@@ -1237,6 +1306,75 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       } catch (err) {
         await showAlert({ message: err.message });
       }
+    }
+  });
+
+  var draggedGroupIdx = null;
+
+  function clearGroupDragOverClasses() {
+    $$('#group-table tr.group-row').forEach(function (r) {
+      r.classList.remove('drag-over-top', 'drag-over-bottom', 'is-dragging');
+    });
+  }
+
+  var groupTable = $('#group-table');
+  groupTable.addEventListener('dragstart', function (e) {
+    if (e.target.closest('button, input, label, a')) return e.preventDefault();
+    var row = e.target.closest('tr.group-row');
+    if (!row) return;
+    draggedGroupIdx = +row.dataset.dragIdx;
+    row.classList.add('is-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(draggedGroupIdx));
+  });
+
+  groupTable.addEventListener('dragover', function (e) {
+    if (draggedGroupIdx == null) return;
+    var row = e.target.closest('tr.group-row');
+    if (!row) return;
+    var toIdx = +row.dataset.dragIdx;
+    if (toIdx === draggedGroupIdx) {
+      clearGroupDragOverClasses();
+      row.classList.add('is-dragging');
+      return;
+    }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var rect = row.getBoundingClientRect();
+    var midY = rect.top + rect.height / 2;
+    var isTop = e.clientY < midY;
+    $$('#group-table tr.group-row').forEach(function (r) {
+      if (r !== row) r.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    row.classList.toggle('drag-over-top', isTop);
+    row.classList.toggle('drag-over-bottom', !isTop);
+  });
+
+  groupTable.addEventListener('dragleave', function (e) {
+    var related = e.relatedTarget;
+    if (!related || !groupTable.contains(related)) {
+      clearGroupDragOverClasses();
+    }
+  });
+
+  groupTable.addEventListener('dragend', function () {
+    draggedGroupIdx = null;
+    clearGroupDragOverClasses();
+  });
+
+  groupTable.addEventListener('drop', function (e) {
+    if (draggedGroupIdx == null) return;
+    var row = e.target.closest('tr.group-row');
+    if (!row) return;
+    var toIdx = +row.dataset.dragIdx;
+    var fromIdx = draggedGroupIdx;
+    draggedGroupIdx = null;
+    var rect = row.getBoundingClientRect();
+    var midY = rect.top + rect.height / 2;
+    var insertAfter = e.clientY >= midY;
+    clearGroupDragOverClasses();
+    if (fromIdx !== toIdx) {
+      reorderGroup(fromIdx, toIdx, insertAfter);
     }
   });
 
@@ -1661,7 +1799,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         var isChecked = currentList.includes(patternVal) || currentList.includes(p.id);
         var modelCount = (p.models && p.models.length) || 0;
         return '<span class="quick-chip' + (isChecked ? ' active' : '') + '" data-provider-pattern="' + esc(patternVal) + '">' +
-          '<span>' + esc(p.name || p.id) + '</span><span class="muted small mono">(' + esc(patternVal) + ' · ' + modelCount + '模)</span>' +
+          '<span>' + esc(p.name || p.id) + '</span><span class="muted small mono">(' + esc(patternVal) + ' · ' + t('keys.modelCountSuffix', { count: modelCount }) + ')</span>' +
           '</span>';
       }).join('');
     }
@@ -1687,7 +1825,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         var isModelLimited = k.model_policy && k.model_policy !== 'all';
         var limitLabel = limit > 0 ? fmtTokens(limit) : (isModelLimited ? t('keys.limited') : t('keys.unlimited'));
         var limitTitle = isModelLimited
-          ? (k.model_policy === 'allow' ? '模型白名单: ' : '模型黑名单: ') + (k.model_patterns || '')
+          ? (k.model_policy === 'allow' ? t('keys.titleWhitelist') : t('keys.titleBlacklist')) + (k.model_patterns || '')
           : '';
 
         var quotaHtml = '<div class="quota-cell">' +

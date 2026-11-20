@@ -87,10 +87,11 @@ async function route(request, env, ctx) {
 
   if (isModels) {
     if (request.method !== 'GET') return apiError('Method Not Allowed', 405);
-    const modelList = listModels(await getConfig(env));
+    const cfg = await getConfig(env);
+    const modelList = listModels(cfg);
     if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
       modelList.data = modelList.data.filter(
-        (m) => isModelAllowed(m.id, caller.modelPolicy, caller.modelPatterns)
+        (m) => isModelAllowed(m.id, caller.modelPolicy, caller.modelPatterns, cfg)
       );
       modelList.first_id = modelList.data[0] ? modelList.data[0].id : null;
       modelList.last_id = modelList.data.length ? modelList.data[modelList.data.length - 1].id : null;

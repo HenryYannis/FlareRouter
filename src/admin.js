@@ -13,6 +13,7 @@ const SESSION_TTL_S = 7 * 24 * 3600;
 const LOGIN_MAX_FAILS = 10;
 const LOGIN_LOCK_S = 15 * 60;
 const ID_RE = /^[A-Za-z0-9_.-]{1,40}$/;
+const RESERVED_IDS = new Set(['group', 'auto', 'flarerouter', 'admin', 'api', 'v1']);
 
 const err = (message, status = 400) => json({ error: message }, status);
 
@@ -214,11 +215,13 @@ export async function handleAdminApi(request, env, ctx, path) {
     const input = b.provider || {};
     const id = String(input.id || '').trim();
     if (!ID_RE.test(id)) return err('服务商 ID 只能用字母、数字、下划线、点、短横线，1–40 位，且不能含「/」');
+    if (RESERVED_IDS.has(id.toLowerCase())) return err(`服务商 ID「${id}」为系统保留关键字，不可使用`);
     const originalId = String(b.originalId || '').trim();
     const idx = originalId ? cfg.providers.findIndex((p) => p.id === originalId) : -1;
     if (originalId && idx < 0) return err(`找不到原服务商 ${originalId}`, 404);
     const clash = cfg.providers.findIndex((p) => p.id.toLowerCase() === id.toLowerCase());
     if (clash >= 0 && clash !== idx) return err(`服务商 ID「${id}」已存在`);
+    if ((cfg.groups || []).some((g) => g.id.toLowerCase() === id.toLowerCase())) return err(`服务商 ID「${id}」与已有分组重名`);
     const old = idx >= 0 ? cfg.providers[idx] : null;
     let apiKey = old ? old.apiKey : '';
     if (b.clearKey) apiKey = '';
@@ -280,17 +283,22 @@ export async function handleAdminApi(request, env, ctx, path) {
     const input = b.group || {};
     const id = String(input.id || '').trim();
     if (!ID_RE.test(id)) return err('分组 ID 只能用字母、数字、下划线、点、短横线，1–40 位，且不能含「/」');
+    if (RESERVED_IDS.has(id.toLowerCase())) return err(`分组 ID「${id}」为系统保留关键字，不可使用`);
     const originalId = String(b.originalId || '').trim();
     const idx = originalId ? (cfg.groups || []).findIndex((g) => g.id === originalId) : -1;
     if (originalId && idx < 0) return err(`找不到原分组 ${originalId}`, 404);
     const clash = (cfg.groups || []).findIndex((g) => g.id.toLowerCase() === id.toLowerCase());
     if (clash >= 0 && clash !== idx) return err(`分组 ID「${id}」已存在`);
+    if (cfg.providers.some((p) => p.id.toLowerCase() === id.toLowerCase())) return err(`分组 ID「${id}」与已有服务商重名`);
     const old = idx >= 0 ? cfg.groups[idx] : null;
     const g = normalizeGroup({ ...(old || {}), ...input, id });
     if (!g.targets.length) return err('请至少选择一个上游模型加入分组');
     if (!Array.isArray(cfg.groups)) cfg.groups = [];
     if (idx >= 0) cfg.groups[idx] = g;
     else cfg.groups.push(g);
+    if (old && old.id !== id) {
+      cfg.settings.fallbackChain = (cfg.settings.fallbackChain || []).map((s) => (s === `group/${old.id}` ? `group/${id}` : (s === old.id ? id : s)));
+    }
     const saved = await saveConfig(env, cfg);
     return json(publicConfig(saved));
   }
@@ -299,6 +307,7 @@ export async function handleAdminApi(request, env, ctx, path) {
     const { id } = await readJson(request);
     const cfg = await getConfig(env);
     cfg.groups = (cfg.groups || []).filter((g) => g.id !== id);
+    cfg.settings.fallbackChain = (cfg.settings.fallbackChain || []).filter((s) => s !== `group/${id}` && s !== id);
     return json(publicConfig(await saveConfig(env, cfg)));
   }
 
@@ -509,6 +518,14 @@ export async function handleAdminApi(request, env, ctx, path) {
     for (const p of b.providers) {
       const id = String((p && p.id) || '').trim();
       if (!ID_RE.test(id)) return err(`服务商 ID「${id || '(空)'}」不合法：只能用字母、数字、下划线、点、短横线，1–40 位，且不能含「/」`);
+      if (RESERVED_IDS.has(id.toLowerCase())) return err(`服务商 ID「${id}」为系统保留关键字，不可使用`);
+    }
+    if (Array.isArray(b.groups)) {
+      for (const g of b.groups) {
+        const id = String((g && g.id) || '').trim();
+        if (!ID_RE.test(id)) return err(`分组 ID「${id || '(空)'}」不合法：只能用字母、数字、下划线、点、短横线，1–40 位，且不能含「/」`);
+        if (RESERVED_IDS.has(id.toLowerCase())) return err(`分组 ID「${id}」为系统保留关键字，不可使用`);
+      }
     }
     return json(publicConfig(await saveConfig(env, b)));
   }

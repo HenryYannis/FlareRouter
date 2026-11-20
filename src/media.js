@@ -3,7 +3,7 @@
 // 仅 OpenAI 兼容上游；按模型解析服务商后原样转发（支持容灾）
 
 import { getConfig } from './config.js';
-import { resolveTargets, protocolError, isProviderFatal, isModelAllowed } from './gateway.js';
+import { resolveTargets, protocolError, isProviderFatal, isModelAllowed, findGroup } from './gateway.js';
 import { writeLog } from './logs.js';
 import { CORS_HEADERS, errText, maxBodyBytes } from './util.js';
 
@@ -101,7 +101,7 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
 
   const cfg = await getConfig(env);
   const noFallback = /^(0|off|false|no)$/i.test(request.headers.get('x-gateway-fallback') || '');
-  const { targets, error } = resolveTargets(cfg, requestedModel, { allowFallback: !noFallback });
+  let { targets, error } = resolveTargets(cfg, requestedModel, { allowFallback: !noFallback });
 
   const baseLog = {
     ts: t0,
@@ -115,7 +115,7 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
   };
 
   if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
-    if (!isModelAllowed(requestedModel, caller.modelPolicy, caller.modelPatterns)) {
+    if (!isModelAllowed(requestedModel, caller.modelPolicy, caller.modelPatterns, cfg)) {
       const errMsg = `当前调用密钥无权使用模型「${requestedModel}」（受密钥模型访问策略限制）`;
       writeLog(env, ctx, { ...baseLog, status: 403, latencyMs: Date.now() - t0, error: errMsg, attempts: 0 });
       return protocolError('openai', errMsg, 403, 'model_not_allowed');
@@ -125,6 +125,19 @@ export async function handleMedia(request, env, ctx, { mediaPath, caller }) {
   if (error) {
     writeLog(env, ctx, { ...baseLog, status: error.status, latencyMs: Date.now() - t0, error: error.message, attempts: 0 });
     return protocolError('openai', error.message, error.status, 'invalid_request_error');
+  }
+
+  if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
+    const matchedGroup = findGroup(cfg, requestedModel);
+    const isGroupTarget = (t) => matchedGroup && (matchedGroup.targets || []).some(
+      (tgt) => tgt.toLowerCase() === `${t.provider.id}/${t.model}`.toLowerCase()
+    );
+    targets = targets.filter((t) => isGroupTarget(t) || isModelAllowed(`${t.provider.id}/${t.model}`, caller.modelPolicy, caller.modelPatterns, cfg));
+    if (!targets.length) {
+      const errMsg = `当前调用密钥无权使用模型「${requestedModel}」（受密钥模型访问策略限制）`;
+      writeLog(env, ctx, { ...baseLog, status: 403, latencyMs: Date.now() - t0, error: errMsg, attempts: 0 });
+      return protocolError('openai', errMsg, 403, 'model_not_allowed');
+    }
   }
 
   const trail = [];

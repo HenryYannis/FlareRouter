@@ -84,7 +84,7 @@ export function parseScoped(cfg, scoped) {
 }
 
 // 检查请求模型是否满足密钥的模型限制策略（all / allow / deny，支持 * 通配符与服务商/分组大粒度控制）
-export function isModelAllowed(requestedModel, policy, patternsStr) {
+export function isModelAllowed(requestedModel, policy, patternsStr, cfg = null) {
   if (!policy || policy === 'all') return true;
   const req = String(requestedModel || '').toLowerCase().trim();
   const patterns = String(patternsStr || '').split(/[,\n]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -100,8 +100,25 @@ export function isModelAllowed(requestedModel, policy, patternsStr) {
       candidates.push(req.slice(lastSlash + 1));
     }
   } else {
-    candidates.push('group/' + req);
-    if (req === 'auto') candidates.push('flarerouter/auto');
+    if (req === 'auto') {
+      candidates.push('flarerouter/auto');
+    } else if (cfg) {
+      // 传入配置上下文时：仅当命中真实分组时才加入 group/ 前缀，避免未分组的裸模型名逃逸白名单
+      const matchedGroup = findGroup(cfg, req);
+      if (matchedGroup) {
+        candidates.push('group/' + matchedGroup.id.toLowerCase());
+      }
+      // 检查是否属于某启用服务商名下的模型（允许按服务商授权时直接调用纯模型名）
+      for (const p of (cfg.providers || [])) {
+        if (!p.enabled) continue;
+        if ((p.models || []).some((m) => m.toLowerCase() === req)) {
+          candidates.push(p.id.toLowerCase() + '/' + req);
+        }
+      }
+    } else {
+      // 兼容旧调用（未传 cfg 时仅在非 auto 下加入 group/ 候选）
+      candidates.push('group/' + req);
+    }
   }
 
   const matches = patterns.some((pattern) => {
@@ -128,7 +145,7 @@ export function _resetGroupCounters() {
   groupRoundRobinCounters.clear();
 }
 
-function findGroup(cfg, nameOrId) {
+export function findGroup(cfg, nameOrId) {
   if (!cfg.groups || !Array.isArray(cfg.groups)) return null;
   const s = String(nameOrId || '').trim().toLowerCase();
   const id = s.startsWith('group/') ? s.slice(6) : s;
@@ -455,7 +472,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
 
   const cfg = await getConfig(env);
   const noFallback = /^(0|off|false|no)$/i.test(request.headers.get('x-gateway-fallback') || '');
-  const { targets, error } = resolveTargets(cfg, body.model, { allowFallback: !noFallback });
+  let { targets, error } = resolveTargets(cfg, body.model, { allowFallback: !noFallback });
   const isChat = endpoint !== 'embeddings';
   const stream = isChat && body.stream === true;
   const includeUsage = !!(body.stream_options && body.stream_options.include_usage);
@@ -479,7 +496,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
 
   if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
     const reqModel = body.model || 'auto';
-    if (!isModelAllowed(reqModel, caller.modelPolicy, caller.modelPatterns)) {
+    if (!isModelAllowed(reqModel, caller.modelPolicy, caller.modelPatterns, cfg)) {
       const errMsg = `当前调用密钥无权使用模型「${reqModel}」（受密钥模型访问策略限制）`;
       writeLog(env, ctx, { ...baseLog, status: 403, latencyMs: Date.now() - t0, error: errMsg, attempts: 0 });
       return fail(errMsg, 403, 'model_not_allowed');
@@ -489,6 +506,20 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
   if (error) {
     writeLog(env, ctx, { ...baseLog, status: error.status, latencyMs: Date.now() - t0, error: error.message, attempts: 0 });
     return fail(error.message, error.status, 'invalid_request_error');
+  }
+
+  if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
+    const reqModel = body.model || 'auto';
+    const matchedGroup = findGroup(cfg, reqModel);
+    const isGroupTarget = (t) => matchedGroup && (matchedGroup.targets || []).some(
+      (tgt) => tgt.toLowerCase() === `${t.provider.id}/${t.model}`.toLowerCase()
+    );
+    targets = targets.filter((t) => isGroupTarget(t) || isModelAllowed(`${t.provider.id}/${t.model}`, caller.modelPolicy, caller.modelPatterns, cfg));
+    if (!targets.length) {
+      const errMsg = `当前调用密钥无权使用模型「${reqModel}」（受密钥模型访问策略限制）`;
+      writeLog(env, ctx, { ...baseLog, status: 403, latencyMs: Date.now() - t0, error: errMsg, attempts: 0 });
+      return fail(errMsg, 403, 'model_not_allowed');
+    }
   }
 
   const trail = [];

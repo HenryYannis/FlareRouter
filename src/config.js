@@ -31,7 +31,7 @@ export function emptyConfig() {
 export function normalizeGroup(g) {
   if (!g || typeof g !== 'object') return null;
   const id = String(g.id || '').trim();
-  if (!id) return null;
+  if (!id || id.includes('/')) return null;
   const strategy = ['round-robin', 'random', 'failover'].includes(g.strategy) ? g.strategy : 'failover';
   return {
     id,

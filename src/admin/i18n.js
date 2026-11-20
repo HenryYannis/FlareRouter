@@ -49,6 +49,7 @@ var I18N = {
       groups: {
         title: '分组', desc: '聚合不同上游模型为统一分组（如 group/glm），按策略调度与自动容灾。', add: '新建分组',
         empty: '还没有分组，点击右上角「新建分组」创建。',
+        thOrder: '顺序', dragOrder: '按住拖拽排序',
         thNameId: '名称 / ID', thStrategy: '调度规则', thTargets: '包含模型', thEnable: '启用', thActions: '操作',
         edit: '编辑', del: '删除', delConfirm: '确定删除分组「{name}」？', deleted: '已删除', saved: '分组已保存',
         editTitle: '新建 / 编辑分组', labelId: '分组 ID', idPlaceholder: '例如：glm、code-fast',
@@ -60,6 +61,10 @@ var I18N = {
         sectionModels: '组内模型（按尝试优先级排序）', addModel: '+ 添加模型',
         targetsEmpty: '暂未添加模型，请点击上方「+ 添加模型」搜索勾选', moveUp: '上移', moveDown: '下移', remove: '移除',
         searchPlaceholder: '搜索模型或服务商 (如: glm, claude, deepseek)...', noMatch: '未找到匹配的模型',
+        alreadyIn: '已在组内', addBtn: '+ 加入',
+        errIdRequired: '请输入分组 ID',
+        errIdFormat: '分组 ID 只能包含字母、数字、下划线、短横线与点，1–40 位',
+        errTargetsRequired: '请至少选择一个上游模型加入分组',
         cancel: '取消', save: '保存'
       },
       fallback: {
@@ -100,7 +105,8 @@ var I18N = {
         modelPatternsLabel: '自定义通配符规则（逗号或换行分隔）', modelPatternsPlaceholder: '支持通配符，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾选已有模型',
         quickPickGroups: '按「分组」大粒度勾选：', quickPickProviders: '按「服务商」大粒度勾选（包含旗下所有模型）：', noGroupsHint: '暂未配置分组，可在「分组」页面创建',
         quickPickHint: '勾选将追加到上方规则列表中', noModelsFound: '暂无可用上游模型', rotateInDialog: '轮换',
-        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空', limited: '限制'
+        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空', limited: '限制',
+        modelCountSuffix: '{count} 模', titleWhitelist: '模型白名单: ', titleBlacklist: '模型黑名单: '
       },
       logs: {
         allStatus: '全部状态', success: '成功', fail: '失败', onlyFallback: '仅容灾',
@@ -209,6 +215,7 @@ var I18N = {
       groups: {
         title: '分組', desc: '聚合不同上游模型為統一定義（如 group/glm），按策略調度與自動容災。', add: '新建分組',
         empty: '還沒有分組，點擊右上角「新建分組」建立。',
+        thOrder: '順序', dragOrder: '按住拖曳排序',
         thNameId: '名稱 / ID', thStrategy: '調度規則', thTargets: '包含模型', thEnable: '啟用', thActions: '操作',
         edit: '編輯', del: '刪除', delConfirm: '確定刪除分組「{name}」？', deleted: '已刪除', saved: '分組已儲存',
         editTitle: '新建 / 編輯分組', labelId: '分組 ID', idPlaceholder: '例如：glm、code-fast',
@@ -220,6 +227,10 @@ var I18N = {
         sectionModels: '組內模型（按嘗試優先級排序）', addModel: '+ 添加模型',
         targetsEmpty: '暫未添加模型，請點擊上方「+ 添加模型」搜尋勾選', moveUp: '上移', moveDown: '下移', remove: '移除',
         searchPlaceholder: '搜尋模型或服務商 (如: glm, claude, deepseek)...', noMatch: '未找到符合的模型',
+        alreadyIn: '已在組內', addBtn: '+ 加入',
+        errIdRequired: '請輸入分組 ID',
+        errIdFormat: '分組 ID 只能包含字母、數字、底線、連字號與點，1–40 位',
+        errTargetsRequired: '請至少選擇一個上游模型加入分組',
         cancel: '取消', save: '儲存'
       },
       fallback: {
@@ -260,7 +271,8 @@ var I18N = {
         modelPatternsLabel: '自訂萬用字元規則（逗號或換行分隔）', modelPatternsPlaceholder: '支援萬用字元，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾選已有模型',
         quickPickGroups: '按「分組」大粒度勾選：', quickPickProviders: '按「服務商」大粒度勾選（包含旗下所有模型）：', noGroupsHint: '暫未配置分組，可在「分組」頁面建立',
         quickPickHint: '勾選將追加到上方規則列表中', noModelsFound: '暫無可用上游模型', rotateInDialog: '輪換',
-        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空', limited: '限制'
+        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空', limited: '限制',
+        modelCountSuffix: '{count} 模', titleWhitelist: '模型白名單: ', titleBlacklist: '模型黑名單: '
       },
       logs: {
         allStatus: '全部狀態', success: '成功', fail: '失敗', onlyFallback: '僅容災',
@@ -369,6 +381,7 @@ var I18N = {
       groups: {
         title: 'Groups', desc: 'Aggregate upstream models into a unified group (e.g. group/glm) with smart failover and load balancing.', add: 'New Group',
         empty: 'No groups configured. Click "New Group" in top right.',
+        thOrder: 'Order', dragOrder: 'Drag to reorder',
         thNameId: 'Name / ID', thStrategy: 'Dispatch Rule', thTargets: 'Models', thEnable: 'Enabled', thActions: 'Actions',
         edit: 'Edit', del: 'Delete', delConfirm: 'Delete group "{name}"?', deleted: 'Deleted', saved: 'Group saved',
         editTitle: 'New / Edit Group', labelId: 'Group ID', idPlaceholder: 'e.g. glm, code-fast',
@@ -380,6 +393,10 @@ var I18N = {
         sectionModels: 'Group Models (Ordered by priority)', addModel: '+ Add Model',
         targetsEmpty: 'No models added yet. Click "+ Add Model" to search and add.', moveUp: 'Move Up', moveDown: 'Move Down', remove: 'Remove',
         searchPlaceholder: 'Search models or providers (e.g. glm, claude, deepseek)...', noMatch: 'No matching models found',
+        alreadyIn: 'Added', addBtn: '+ Add',
+        errIdRequired: 'Group ID is required',
+        errIdFormat: 'Group ID must be 1–40 characters (letters, numbers, underscores, dashes, dots)',
+        errTargetsRequired: 'Please select at least one upstream model',
         cancel: 'Cancel', save: 'Save'
       },
       fallback: {
@@ -420,7 +437,8 @@ var I18N = {
         modelPatternsLabel: 'Custom wildcard rules (comma/newline separated)', modelPatternsPlaceholder: 'Supports wildcards, e.g. gpt-4*, deepseek/*', quickPickModels: 'Quick Select Models',
         quickPickGroups: 'Select by "Group":', quickPickProviders: 'Select by "Provider" (includes all models):', noGroupsHint: 'No groups configured yet. Create one in "Groups" tab.',
         quickPickHint: 'Selecting will append to rules above', noModelsFound: 'No upstream models found', rotateInDialog: 'Rotate',
-        tagModelLimited: 'Restricted', tagModelAll: 'All Models', configSaved: 'Config updated', clear: 'Clear', limited: 'Limited'
+        tagModelLimited: 'Restricted', tagModelAll: 'All Models', configSaved: 'Config updated', clear: 'Clear', limited: 'Limited',
+        modelCountSuffix: '{count} models', titleWhitelist: 'Model Whitelist: ', titleBlacklist: 'Model Blacklist: '
       },
       logs: {
         allStatus: 'All Status', success: 'Success', fail: 'Failed', onlyFallback: 'Failover Only',

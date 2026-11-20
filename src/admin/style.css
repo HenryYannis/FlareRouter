@@ -437,18 +437,22 @@ tr.click:hover td { background: var(--soft); }
   vertical-align: middle;
 }
 #prov-table th.col-order,
-#prov-table td.col-order {
+#prov-table td.col-order,
+#group-table th.col-order,
+#group-table td.col-order {
   width: 96px;
   text-align: center;
   white-space: nowrap;
 }
-#prov-table .order-controls {
+#prov-table .order-controls,
+#group-table .order-controls {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 3px;
 }
-#prov-table .drag-handle {
+#prov-table .drag-handle,
+#group-table .drag-handle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -463,14 +467,19 @@ tr.click:hover td { background: var(--soft); }
   opacity: 0.55;
   vertical-align: middle;
 }
-#prov-table .drag-handle svg {
+#prov-table .drag-handle svg,
+#group-table .drag-handle svg {
   display: block;
   pointer-events: none;
 }
-tr.provider-row:hover .drag-handle { opacity: 1; }
-#prov-table .drag-handle:hover { color: var(--primary); background: rgba(var(--primary-rgb), 0.12); }
-#prov-table .drag-handle:active { cursor: grabbing; }
-#prov-table .order-controls .btn.sm {
+tr.provider-row:hover .drag-handle,
+tr.group-row:hover .drag-handle { opacity: 1; }
+#prov-table .drag-handle:hover,
+#group-table .drag-handle:hover { color: var(--primary); background: rgba(var(--primary-rgb), 0.12); }
+#prov-table .drag-handle:active,
+#group-table .drag-handle:active { cursor: grabbing; }
+#prov-table .order-controls .btn.sm,
+#group-table .order-controls .btn.sm {
   width: 24px;
   min-width: 24px;
   height: 24px;
@@ -562,10 +571,10 @@ tr.provider-row:hover .drag-handle { opacity: 1; }
   gap: 5px;
 }
 
-tr.provider-row { transition: opacity 0.15s, background 0.15s; }
-tr.provider-row.is-dragging { opacity: 0.35; background: var(--soft) !important; }
-tr.provider-row.drag-over-top td { box-shadow: inset 0 2px 0 0 var(--primary) !important; }
-tr.provider-row.drag-over-bottom td { box-shadow: inset 0 -2px 0 0 var(--primary) !important; }
+tr.provider-row, tr.group-row { transition: opacity 0.15s, background 0.15s; }
+tr.provider-row.is-dragging, tr.group-row.is-dragging { opacity: 0.35; background: var(--soft) !important; }
+tr.provider-row.drag-over-top td, tr.group-row.drag-over-top td { box-shadow: inset 0 2px 0 0 var(--primary) !important; }
+tr.provider-row.drag-over-bottom td, tr.group-row.drag-over-bottom td { box-shadow: inset 0 -2px 0 0 var(--primary) !important; }
 
 #log-table {
   width: 100%;

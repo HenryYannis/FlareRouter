@@ -1295,6 +1295,20 @@ try {
           enabled: true,
         },
         {
+          id: 'glm-rnd',
+          name: 'GLM 随机池',
+          strategy: 'random',
+          targets: ['p1/glm5.3-flash', 'p2/GLM-5.3-Flash'],
+          enabled: true,
+        },
+        {
+          id: 'empty-group',
+          name: '无可用节点分组',
+          strategy: 'failover',
+          targets: ['p3/GLM-5.3-Flash'],
+          enabled: true,
+        },
+        {
           id: 'disabled-group',
           name: '已停用分组',
           strategy: 'failover',
@@ -1320,24 +1334,31 @@ try {
     const tAlias = resolveTargets(mockCfg, 'glm', { allowFallback: false });
     ok(tAlias.targets && tAlias.targets.length === 2 && tAlias.targets[0].provider.id === 'p1', '直接别名 glm 成功命中分组');
 
-    // 4. 测试轮询策略 (round-robin)
+    // 4. 测试轮询策略 (round-robin) 与 随机策略 (random)
     _resetGroupCounters();
     const rr1 = resolveTargets(mockCfg, 'group/glm-rr', { allowFallback: false });
     const rr2 = resolveTargets(mockCfg, 'group/glm-rr', { allowFallback: false });
     ok(rr1.targets[0].provider.id === 'p1' && rr2.targets[0].provider.id === 'p2', '轮询策略按请求轮换首选节点');
+    const tRnd = resolveTargets(mockCfg, 'group/glm-rnd', { allowFallback: false });
+    ok(tRnd.targets && tRnd.targets.length === 2, '随机分流策略正确解析全部有效候选节点');
 
-    // 5. 测试停用分组报错
+    // 5. 测试停用分组与空可用节点报错
     const tDisabled = resolveTargets(mockCfg, 'group/disabled-group');
     ok(tDisabled.error && tDisabled.error.status === 400, '停用分组返回 400');
+    const tEmpty = resolveTargets(mockCfg, 'group/empty-group');
+    ok(tEmpty.error && tEmpty.error.status === 503, '无可用节点分组返回 503');
 
-    // 6. 测试大粒度密钥权限策略 (isModelAllowed)
-    ok(isModelAllowed('group/glm', 'allow', 'group/glm'), '密钥白名单直接放行 group/glm');
-    ok(isModelAllowed('group/glm', 'allow', 'glm'), '密钥白名单使用别名 glm 放行');
-    ok(isModelAllowed('glm', 'allow', 'group/glm'), '密钥白名单请求别名 glm 匹配 group/glm 放行');
-    ok(isModelAllowed('group/glm', 'allow', 'group/*'), '密钥白名单通配符 group/* 放行');
-    ok(isModelAllowed('glm', 'allow', 'group/*'), '密钥白名单请求别名 glm 匹配通配符 group/* 放行');
-    ok(isModelAllowed('p1/glm5.3-flash', 'allow', 'p1/*'), '密钥白名单按服务商通配符 p1/* 放行');
-    ok(isModelAllowed('p1/glm5.3-flash', 'allow', 'p1'), '密钥白名单按服务商 p1 放行旗下模型');
+    // 6. 测试大粒度密钥权限策略 (isModelAllowed) 与防逃逸校验
+    ok(isModelAllowed('group/glm', 'allow', 'group/glm', mockCfg), '密钥白名单直接放行 group/glm');
+    ok(isModelAllowed('group/glm', 'allow', 'glm', mockCfg), '密钥白名单使用别名 glm 放行');
+    ok(isModelAllowed('glm', 'allow', 'group/glm', mockCfg), '密钥白名单请求别名 glm 匹配 group/glm 放行');
+    ok(isModelAllowed('group/glm', 'allow', 'group/*', mockCfg), '密钥白名单通配符 group/* 放行');
+    ok(isModelAllowed('glm', 'allow', 'group/*', mockCfg), '密钥白名单请求别名 glm 匹配通配符 group/* 放行');
+    ok(!isModelAllowed('other-model', 'allow', 'group/*', mockCfg), '未在分组中的裸模型名不能逃逸 group/* 白名单');
+    ok(!isModelAllowed('auto', 'allow', 'group/*', mockCfg), '请求 auto 不能逃逸 group/* 白名单');
+    ok(isModelAllowed('p1/glm5.3-flash', 'allow', 'p1/*', mockCfg), '密钥白名单按服务商通配符 p1/* 放行');
+    ok(isModelAllowed('p1/glm5.3-flash', 'allow', 'p1', mockCfg), '密钥白名单按服务商 p1 放行旗下模型');
+    ok(isModelAllowed('glm5.3-flash', 'allow', 'p1/*', mockCfg), '密钥白名单按服务商通配符 p1/* 放行纯模型名 glm5.3-flash');
 
     // 7. 测试容灾链配置 group/glm
     mockCfg.settings.fallbackEnabled = true;
@@ -1345,10 +1366,11 @@ try {
     const tFallback = resolveTargets(mockCfg, 'auto', { allowFallback: true });
     ok(tFallback.targets && tFallback.targets.length === 2, '容灾链中的 group/glm 成功展开为 2 个目标');
     ok(tFallback.targets[0].provider.id === 'p1' && tFallback.targets[1].provider.id === 'p2', '容灾链中的 group/glm 正确按目标顺序排列');
-    ok(!isModelAllowed('p2/GLM-5.3-Flash', 'allow', 'p1/*'), '密钥白名单正确隔离未授权服务商 p2');
-    ok(!isModelAllowed('group/other', 'allow', 'group/glm'), '密钥白名单隔离未授权分组 group/other');
-    ok(!isModelAllowed('group/glm', 'deny', 'group/glm'), '密钥黑名单正确拦截被拉黑分组');
-    ok(!isModelAllowed('p1/glm5.3-flash', 'deny', 'p1/*'), '密钥黑名单正确拦截被拉黑服务商');
+    ok(!isModelAllowed('p2/GLM-5.3-Flash', 'allow', 'p1/*', mockCfg), '密钥白名单正确隔离未授权服务商 p2');
+    ok(!isModelAllowed('group/other', 'allow', 'group/glm', mockCfg), '密钥白名单隔离未授权分组 group/other');
+    ok(!isModelAllowed('group/glm', 'deny', 'group/glm', mockCfg), '密钥黑名单正确拦截被拉黑分组');
+    ok(!isModelAllowed('p1/glm5.3-flash', 'deny', 'p1/*', mockCfg), '密钥黑名单正确拦截被拉黑服务商');
+    ok(isModelAllowed('nonexistent', 'deny', 'p1/*', mockCfg), '密钥黑名单对未拉黑的未知模型返回 true (后续由网关报 404)');
   }
 
   await import('./privacy.test.mjs');
