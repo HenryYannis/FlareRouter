@@ -996,9 +996,9 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       '</tr>';
 
     var stratNames = {
-      'failover': t('groups.stratFailover'),
-      'round-robin': t('groups.stratRR'),
-      'random': t('groups.stratRandom')
+      'failover': t('groups.stratFailoverShort'),
+      'round-robin': t('groups.stratRRShort'),
+      'random': t('groups.stratRandomShort')
     };
 
     var rows = gs.map(function (g, idx) {
@@ -1011,19 +1011,18 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
       return '<tr data-group-id="' + esc(g.id) + '">' +
         '<td class="col-group-name">' +
-          '<div class="group-name">' + esc(g.name || g.id) + '</div>' +
-          '<div class="group-aliases">' +
-            '<code class="mono small" style="color:var(--primary);cursor:pointer" title="' + t('header.copied') + '" data-copy-group="group/' + esc(g.id) + '">group/' + esc(g.id) + '</code>' +
-          '</div>' +
+          '<div class="group-name fw-ui">' + esc(g.name || g.id) + '</div>' +
+          '<div class="muted small mono">group/' + esc(g.id) + '</div>' +
           noteHtml +
         '</td>' +
-        '<td class="col-group-strat"><span class="strat-badge ' + stratCls + '">' + esc(stratLabel) + '</span></td>' +
+        '<td class="col-group-strat">' + esc(stratLabel) + '</td>' +
         '<td class="col-group-targets"><div class="targets-wrap">' + (targetBadges || '<span class="muted small">-</span>') + '</div></td>' +
         '<td class="col-enable">' +
           '<label class="switch"><input type="checkbox" data-group-toggle="' + esc(g.id) + '"' + (g.enabled ? ' checked' : '') + '><span></span></label>' +
         '</td>' +
         '<td class="col-actions">' +
           '<div class="actions-group">' +
+            '<button class="btn sm" data-copy-group="group/' + esc(g.id) + '">' + t('keys.copy') + '</button>' +
             '<button class="btn sm" data-group-edit="' + idx + '">' + t('groups.edit') + '</button>' +
             '<button class="btn sm danger" data-group-del="' + esc(g.id) + '">' + t('groups.del') + '</button>' +
           '</div>' +

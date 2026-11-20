@@ -1419,48 +1419,6 @@ html.night-theme,
 /* ==========================================================================
    分组 (Groups) 与大粒度权限选择器
    ========================================================================== */
-.strat-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11.5px;
-  font-weight: 500;
-  line-height: 16px;
-}
-.strat-badge.failover {
-  background: rgba(0, 113, 227, 0.1);
-  color: var(--primary);
-  border: 1px solid rgba(0, 113, 227, 0.25);
-}
-.strat-badge.round-robin {
-  background: rgba(16, 185, 129, 0.1);
-  color: #059669;
-  border: 1px solid rgba(16, 185, 129, 0.25);
-}
-.strat-badge.random {
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
-  border: 1px solid rgba(245, 158, 11, 0.25);
-}
-
-html.night-theme .strat-badge.failover {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.35);
-}
-html.night-theme .strat-badge.round-robin {
-  background: rgba(52, 211, 153, 0.15);
-  color: #34d399;
-  border-color: rgba(52, 211, 153, 0.35);
-}
-html.night-theme .strat-badge.random {
-  background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.35);
-}
-
 .group-target-item {
   display: flex;
   align-items: center;
@@ -1572,20 +1530,16 @@ html.night-theme .quick-chip.active {
   color: var(--text);
   line-height: 1.3;
 }
-#group-table .col-group-name .group-aliases {
-  margin-top: 3px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 #group-table .col-group-name .group-note {
   margin-top: 2px;
   font-size: 11px;
 }
 
 #group-table .col-group-strat {
-  width: 160px;
+  width: 140px;
   white-space: nowrap;
+  font-size: 13px;
+  color: var(--text);
 }
 
 #group-table .col-group-targets {
