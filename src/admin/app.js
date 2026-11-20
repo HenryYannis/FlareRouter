@@ -1334,7 +1334,11 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       if (groupVisibleCount > 0) {
         html += '<div class="chain-picker-group" data-group-pid="group">' +
           '<div class="chain-picker-group-title">' +
-            '<div><span class="fw-ui">' + t('nav.groups') + '</span> <span class="muted small">· ' + t('fallback.visibleModelsCount', { count: groupVisibleCount }) + '</span></div>' +
+            '<div><span class="fw-ui">' + t('tabs.groups') + '</span> <span class="muted small">· ' + t('fallback.visibleModelsCount', { count: groupVisibleCount }) + '</span></div>' +
+            '<div class="row" style="gap:4px">' +
+              '<button type="button" class="btn sm" data-g-all="__groups__">' + t('fallback.groupAll') + '</button>' +
+              '<button type="button" class="btn sm" data-g-none="__groups__">' + t('fallback.groupNone') + '</button>' +
+            '</div>' +
           '</div>' +
           '<div class="chain-picker-grid">' + groupItemsHtml + '</div>' +
         '</div>';
@@ -1404,13 +1408,21 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     if (!b) return;
     if (b.dataset.gAll) {
       var pid = b.dataset.gAll;
-      var p = state.cfg.providers.find(function (x) { return x.id === pid; });
-      if (p) { p.models.forEach(function (m) { pickerSelected.add(p.id + '/' + m); }); }
+      if (pid === '__groups__') {
+        (state.cfg.groups || []).filter(function (x) { return x.enabled; }).forEach(function (g) { pickerSelected.add('group/' + g.id); });
+      } else {
+        var p = state.cfg.providers.find(function (x) { return x.id === pid; });
+        if (p) { p.models.forEach(function (m) { pickerSelected.add(p.id + '/' + m); }); }
+      }
       renderChainPickerGroups();
     } else if (b.dataset.gNone) {
       var pid = b.dataset.gNone;
-      var p = state.cfg.providers.find(function (x) { return x.id === pid; });
-      if (p) { p.models.forEach(function (m) { pickerSelected.delete(p.id + '/' + m); }); }
+      if (pid === '__groups__') {
+        (state.cfg.groups || []).forEach(function (g) { pickerSelected.delete('group/' + g.id); });
+      } else {
+        var p = state.cfg.providers.find(function (x) { return x.id === pid; });
+        if (p) { p.models.forEach(function (m) { pickerSelected.delete(p.id + '/' + m); }); }
+      }
       renderChainPickerGroups();
     }
   });
