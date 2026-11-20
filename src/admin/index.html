@@ -157,10 +157,10 @@
     <!-- 路由 -->
     <section data-pane="groups" class="hidden">
       <div class="card">
-        <div class="row" style="margin-bottom:12px;justify-content:space-between;align-items:center">
-          <div>
-            <h2 data-i18n="groups.title" style="margin:0 0 4px">路由</h2>
-            <div class="muted small" data-i18n="groups.desc">聚合不同上游模型为统一名称（如 group/glm 或 glm），按策略调度与自动容灾。</div>
+        <div class="card-head-row" style="margin-bottom:10px">
+          <div class="card-head-left">
+            <h2 style="margin:0" data-i18n="groups.title">路由</h2>
+            <span class="muted small" data-i18n="groups.desc">聚合不同上游模型为统一名称（如 group/glm 或 glm），按策略调度与自动容灾</span>
           </div>
           <button class="btn primary" id="add-group" data-i18n="groups.add">新建路由</button>
         </div>
@@ -426,44 +426,48 @@
 </dialog>
 
 <!-- 路由编辑弹窗 -->
-<dialog id="dlg-group" style="max-width:580px;width:95vw">
+<dialog id="dlg-group">
   <form method="dialog" id="group-form">
     <div class="dh" style="display:flex;justify-content:space-between;align-items:center">
       <span id="dlg-group-title" data-i18n="groups.editTitle">新建路由</span>
       <button type="button" class="btn sm" onclick="this.closest('dialog').close()">✕</button>
     </div>
-    <div class="db" style="max-height:75vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:14px 16px">
-      <div class="row">
-        <div style="flex:1">
-          <label class="f" for="g-id" data-i18n="groups.labelId">路由 ID</label>
-          <input type="text" id="g-id" placeholder="例如：glm、code-fast" style="width:100%" data-i18n-placeholder="groups.idPlaceholder" spellcheck="false">
-          <div class="muted small" style="margin-top:2px" data-i18n="groups.idHint">客户端调用：group/{id} 或直接用 {id}</div>
+    <div class="db">
+      <!-- 基础设置 -->
+      <div class="form-section">
+        <div class="form-section-title" data-i18n="groups.sectionBasic">基础设置</div>
+        <div class="form-grid-2">
+          <div>
+            <label class="f" for="g-id" data-i18n="groups.labelId">路由 ID</label>
+            <input type="text" id="g-id" placeholder="例如：glm、code-fast" style="width:100%" data-i18n-placeholder="groups.idPlaceholder" spellcheck="false">
+            <div class="muted small form-hint" data-i18n="groups.idHint">客户端调用：group/{id} 或直接用 {id}</div>
+          </div>
+          <div>
+            <label class="f" for="g-name" data-i18n="groups.labelName">路由名称</label>
+            <input type="text" id="g-name" placeholder="例如：GLM 综合池" style="width:100%" data-i18n-placeholder="groups.namePlaceholder">
+          </div>
         </div>
-        <div style="flex:1">
-          <label class="f" for="g-name" data-i18n="groups.labelName">路由名称</label>
-          <input type="text" id="g-name" placeholder="例如：GLM 综合池" style="width:100%" data-i18n-placeholder="groups.namePlaceholder">
-        </div>
-      </div>
 
-      <div class="row">
-        <div style="flex:1">
-          <label class="f" for="g-strategy" data-i18n="groups.labelStrategy">调度规则</label>
-          <select id="g-strategy" style="width:100%">
-            <option value="failover" data-i18n="groups.stratFailover">顺序容灾 (Failover / 依次尝试)</option>
-            <option value="round-robin" data-i18n="groups.stratRR">轮询均衡 (Round-Robin / 依次分流)</option>
-            <option value="random" data-i18n="groups.stratRandom">随机分流 (Random / 随机起始)</option>
-          </select>
-        </div>
-        <div style="flex:1">
-          <label class="f" for="g-note" data-i18n="groups.labelNote">备注</label>
-          <input type="text" id="g-note" placeholder="可选，例如：给工作 Key 用" style="width:100%" data-i18n-placeholder="groups.notePlaceholder">
+        <div class="form-grid-2" style="margin-top:10px">
+          <div>
+            <label class="f" for="g-strategy" data-i18n="groups.labelStrategy">调度规则</label>
+            <select id="g-strategy" style="width:100%">
+              <option value="failover" data-i18n="groups.stratFailover">顺序容灾 (Failover / 依次尝试)</option>
+              <option value="round-robin" data-i18n="groups.stratRR">轮询均衡 (Round-Robin / 依次分流)</option>
+              <option value="random" data-i18n="groups.stratRandom">随机分流 (Random / 随机起始)</option>
+            </select>
+          </div>
+          <div>
+            <label class="f" for="g-note" data-i18n="groups.labelNote">备注</label>
+            <input type="text" id="g-note" placeholder="可选，例如：给工作 Key 用" style="width:100%" data-i18n-placeholder="groups.notePlaceholder">
+          </div>
         </div>
       </div>
 
       <!-- 模型列表与添加模型 -->
-      <div class="form-section" style="margin:4px 0 0">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span class="bold small" data-i18n="groups.sectionModels">组内模型（按尝试优先级排序）</span>
+      <div class="form-section" style="margin-bottom:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="form-section-title" style="margin-bottom:0" data-i18n="groups.sectionModels">组内模型（按尝试优先级排序）</div>
           <button type="button" class="btn sm primary" id="g-btn-add-model" data-i18n="groups.addModel">+ 添加模型</button>
         </div>
 

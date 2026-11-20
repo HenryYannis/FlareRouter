@@ -985,15 +985,15 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     var table = $('#group-table');
     if (!table) return;
     if (!gs.length) {
-      table.innerHTML = '<tr><td class="muted small" style="text-align:center;padding:24px 0">' + t('groups.empty') + '</td></tr>';
+      table.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:24px 8px">' + t('groups.empty') + '</td></tr>';
       return;
     }
     var h = '<tr>' +
-      '<th>' + t('groups.thNameId') + '</th>' +
-      '<th>' + t('groups.thStrategy') + '</th>' +
-      '<th>' + t('groups.thTargets') + '</th>' +
-      '<th style="width:70px;text-align:center">' + t('groups.thEnable') + '</th>' +
-      '<th style="width:120px;text-align:right">' + t('groups.thActions') + '</th>' +
+      '<th class="col-group-name">' + t('groups.thNameId') + '</th>' +
+      '<th class="col-group-strat">' + t('groups.thStrategy') + '</th>' +
+      '<th class="col-group-targets">' + t('groups.thTargets') + '</th>' +
+      '<th class="col-enable">' + t('groups.thEnable') + '</th>' +
+      '<th class="col-actions">' + t('groups.thActions') + '</th>' +
       '</tr>';
 
     var stratNames = {
@@ -1006,27 +1006,27 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       var stratCls = g.strategy || 'failover';
       var stratLabel = stratNames[stratCls] || stratNames['failover'];
       var targetBadges = (g.targets || []).map(function (tgt) {
-        return '<span class="cap-badge" style="margin:1px 2px;font-family:monospace">' + esc(tgt) + '</span>';
+        return '<span class="target-badge">' + esc(tgt) + '</span>';
       }).join('');
-      var noteHtml = g.note ? '<div class="muted small" style="margin-top:2px">' + esc(g.note) + '</div>' : '';
+      var noteHtml = g.note ? '<div class="muted small group-note">' + esc(g.note) + '</div>' : '';
 
       return '<tr data-group-id="' + esc(g.id) + '">' +
-        '<td>' +
-          '<div class="bold" style="font-size:13.5px">' + esc(g.name || g.id) + '</div>' +
-          '<div style="margin-top:2px;display:flex;align-items:center;gap:6px">' +
+        '<td class="col-group-name">' +
+          '<div class="group-name">' + esc(g.name || g.id) + '</div>' +
+          '<div class="group-aliases">' +
             '<code class="mono small" style="color:var(--primary);cursor:pointer" title="' + t('header.copied') + '" data-copy-group="group/' + esc(g.id) + '">group/' + esc(g.id) + '</code>' +
             '<span class="muted small mono">或</span>' +
             '<code class="mono small" style="color:var(--muted);cursor:pointer" title="' + t('header.copied') + '" data-copy-group="' + esc(g.id) + '">' + esc(g.id) + '</code>' +
           '</div>' +
           noteHtml +
         '</td>' +
-        '<td><span class="strat-badge ' + stratCls + '">' + esc(stratLabel) + '</span></td>' +
-        '<td><div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px">' + targetBadges + '</div></td>' +
-        '<td style="text-align:center">' +
-          '<input type="checkbox" data-group-toggle="' + esc(g.id) + '"' + (g.enabled ? ' checked' : '') + '>' +
+        '<td class="col-group-strat"><span class="strat-badge ' + stratCls + '">' + esc(stratLabel) + '</span></td>' +
+        '<td class="col-group-targets"><div class="targets-wrap">' + (targetBadges || '<span class="muted small">-</span>') + '</div></td>' +
+        '<td class="col-enable">' +
+          '<label class="switch"><input type="checkbox" data-group-toggle="' + esc(g.id) + '"' + (g.enabled ? ' checked' : '') + '><span></span></label>' +
         '</td>' +
-        '<td style="text-align:right">' +
-          '<div class="row" style="justify-content:flex-end;gap:4px">' +
+        '<td class="col-actions">' +
+          '<div class="actions-group">' +
             '<button class="btn sm" data-group-edit="' + idx + '">' + t('groups.edit') + '</button>' +
             '<button class="btn sm danger" data-group-del="' + esc(g.id) + '">' + t('groups.del') + '</button>' +
           '</div>' +
