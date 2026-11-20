@@ -1340,6 +1340,7 @@ try {
     ok(isModelAllowed('p1/glm5.3-flash', 'allow', 'p1'), '密钥白名单按服务商 p1 放行旗下模型');
 
     // 7. 测试容灾链配置 group/glm
+    mockCfg.settings.fallbackEnabled = true;
     mockCfg.settings.fallbackChain = ['group/glm'];
     const tFallback = resolveTargets(mockCfg, 'auto', { allowFallback: true });
     ok(tFallback.targets && tFallback.targets.length === 2, '容灾链中的 group/glm 成功展开为 2 个目标');
