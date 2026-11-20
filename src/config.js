@@ -25,13 +25,29 @@ export const DEFAULT_SETTINGS = {
 };
 
 export function emptyConfig() {
-  return { version: 1, providers: [], settings: { ...DEFAULT_SETTINGS } };
+  return { version: 1, providers: [], groups: [], settings: { ...DEFAULT_SETTINGS } };
+}
+
+export function normalizeGroup(g) {
+  if (!g || typeof g !== 'object') return null;
+  const id = String(g.id || '').trim();
+  if (!id) return null;
+  const strategy = ['round-robin', 'random', 'failover'].includes(g.strategy) ? g.strategy : 'failover';
+  return {
+    id,
+    name: String(g.name || id).trim(),
+    strategy,
+    targets: Array.isArray(g.targets) ? parseModels(g.targets) : [],
+    enabled: g.enabled !== false,
+    note: String(g.note || ''),
+  };
 }
 
 export function normalizeConfig(raw) {
   const cfg = raw && typeof raw === 'object' ? raw : emptyConfig();
   cfg.version = 1;
   cfg.providers = Array.isArray(cfg.providers) ? cfg.providers.map(normalizeProvider).filter(Boolean) : [];
+  cfg.groups = Array.isArray(cfg.groups) ? cfg.groups.map(normalizeGroup).filter(Boolean) : [];
   cfg.settings = { ...DEFAULT_SETTINGS, ...(cfg.settings || {}) };
   cfg.settings.privacy = {
     ...DEFAULT_SETTINGS.privacy,

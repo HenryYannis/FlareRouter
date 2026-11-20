@@ -1,6 +1,6 @@
 // 管理接口：管理员密码登录（Worker secret ADMIN_PASSWORD），HMAC 签名的会话 Cookie
 
-import { getConfig, saveConfig, normalizeProvider, parseModels } from './config.js';
+import { getConfig, saveConfig, normalizeProvider, parseModels, normalizeGroup } from './config.js';
 import { createKey, deleteKey, listKeys, renameKey, revokeKey, rotateKey, setKeyQuota, updateKeyConfig } from './keys.js';
 import { clearLogs, queryLogs, statsSummary } from './logs.js';
 import { handleProxy, listModels } from './gateway.js';
@@ -79,7 +79,7 @@ function publicProvider(p) {
 }
 
 function publicConfig(cfg) {
-  return { providers: cfg.providers.map(publicProvider), settings: cfg.settings };
+  return { providers: cfg.providers.map(publicProvider), groups: cfg.groups || [], settings: cfg.settings };
 }
 
 async function readJson(request) {
@@ -232,6 +232,10 @@ export async function handleAdminApi(request, env, ctx, path) {
     else cfg.providers.push(p);
     if (old && old.id !== id) {
       cfg.settings.fallbackChain = cfg.settings.fallbackChain.map((s) => (s.startsWith(`${old.id}/`) ? `${id}/${s.slice(old.id.length + 1)}` : s));
+      cfg.groups = (cfg.groups || []).map((g) => ({
+        ...g,
+        targets: (g.targets || []).map((s) => (s.startsWith(`${old.id}/`) ? `${id}/${s.slice(old.id.length + 1)}` : s)),
+      }));
     }
     const saved = await saveConfig(env, cfg);
     return json({ ...publicConfig(saved), modelsNotice });
@@ -242,6 +246,10 @@ export async function handleAdminApi(request, env, ctx, path) {
     const cfg = await getConfig(env);
     cfg.providers = cfg.providers.filter((p) => p.id !== id);
     cfg.settings.fallbackChain = cfg.settings.fallbackChain.filter((s) => !s.startsWith(`${id}/`));
+    cfg.groups = (cfg.groups || []).map((g) => ({
+      ...g,
+      targets: (g.targets || []).filter((s) => !s.startsWith(`${id}/`)),
+    }));
     return json(publicConfig(await saveConfig(env, cfg)));
   }
 
@@ -262,6 +270,55 @@ export async function handleAdminApi(request, env, ctx, path) {
     const next = ids.map((i) => map.get(i)).filter(Boolean);
     for (const p of cfg.providers) if (!next.includes(p)) next.push(p);
     cfg.providers = next;
+    return json(publicConfig(await saveConfig(env, cfg)));
+  }
+
+  // ---- 路由 ----
+  if (path === '/admin/api/groups' && method === 'POST') {
+    const b = await readJson(request);
+    const cfg = await getConfig(env);
+    const input = b.group || {};
+    const id = String(input.id || '').trim();
+    if (!ID_RE.test(id)) return err('路由 ID 只能用字母、数字、下划线、点、短横线，1–40 位，且不能含「/」');
+    const originalId = String(b.originalId || '').trim();
+    const idx = originalId ? (cfg.groups || []).findIndex((g) => g.id === originalId) : -1;
+    if (originalId && idx < 0) return err(`找不到原路由 ${originalId}`, 404);
+    const clash = (cfg.groups || []).findIndex((g) => g.id.toLowerCase() === id.toLowerCase());
+    if (clash >= 0 && clash !== idx) return err(`路由 ID「${id}」已存在`);
+    const old = idx >= 0 ? cfg.groups[idx] : null;
+    const g = normalizeGroup({ ...(old || {}), ...input, id });
+    if (!g.targets.length) return err('请至少选择一个上游模型加入路由');
+    if (!Array.isArray(cfg.groups)) cfg.groups = [];
+    if (idx >= 0) cfg.groups[idx] = g;
+    else cfg.groups.push(g);
+    const saved = await saveConfig(env, cfg);
+    return json(publicConfig(saved));
+  }
+
+  if (path === '/admin/api/groups/delete' && method === 'POST') {
+    const { id } = await readJson(request);
+    const cfg = await getConfig(env);
+    cfg.groups = (cfg.groups || []).filter((g) => g.id !== id);
+    return json(publicConfig(await saveConfig(env, cfg)));
+  }
+
+  if (path === '/admin/api/groups/toggle' && method === 'POST') {
+    const { id, enabled } = await readJson(request);
+    const cfg = await getConfig(env);
+    const g = (cfg.groups || []).find((x) => x.id === id);
+    if (!g) return err(`找不到路由 ${id}`, 404);
+    g.enabled = !!enabled;
+    return json(publicConfig(await saveConfig(env, cfg)));
+  }
+
+  if (path === '/admin/api/groups/reorder' && method === 'POST') {
+    const { ids } = await readJson(request);
+    const cfg = await getConfig(env);
+    if (!Array.isArray(ids)) return err('ids 必须是数组');
+    const map = new Map((cfg.groups || []).map((g) => [g.id, g]));
+    const next = ids.map((i) => map.get(i)).filter(Boolean);
+    for (const g of (cfg.groups || [])) if (!next.includes(g)) next.push(g);
+    cfg.groups = next;
     return json(publicConfig(await saveConfig(env, cfg)));
   }
 

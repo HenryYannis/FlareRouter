@@ -1267,6 +1267,83 @@ try {
     ok(c({ prompt_tokens: 10, cacheReadInputTokens: 9 }) === 9, '缓存字段：驼峰');
     ok(c({ prompt_tokens: 10, prompt_tokens_details: { cached_tokens: 0 } }) === 0, '缓存字段：报了 0 记 0');
   }
+
+  // ---- 路由 (Routing Groups) 与大粒度权限测试 ----
+  {
+    const { resolveTargets, isModelAllowed, listModels, _resetGroupCounters } = await import('../src/gateway.js');
+    const { normalizeConfig } = await import('../src/config.js');
+
+    const mockCfg = normalizeConfig({
+      providers: [
+        { id: 'p1', name: '服务商1', enabled: true, models: ['glm5.3-flash', 'other-model'] },
+        { id: 'p2', name: '服务商2', enabled: true, models: ['GLM-5.3-Flash', 'backup-model'] },
+        { id: 'p3', name: '服务商3', enabled: false, models: ['GLM-5.3-Flash'] },
+      ],
+      groups: [
+        {
+          id: 'glm',
+          name: 'GLM 综合池',
+          strategy: 'failover',
+          targets: ['p1/glm5.3-flash', 'p2/GLM-5.3-Flash', 'p3/GLM-5.3-Flash'],
+          enabled: true,
+        },
+        {
+          id: 'glm-rr',
+          name: 'GLM 轮询池',
+          strategy: 'round-robin',
+          targets: ['p1/glm5.3-flash', 'p2/GLM-5.3-Flash'],
+          enabled: true,
+        },
+        {
+          id: 'disabled-group',
+          name: '已停用路由',
+          strategy: 'failover',
+          targets: ['p1/glm5.3-flash'],
+          enabled: false,
+        }
+      ],
+      settings: { fallbackEnabled: false, fallbackChain: [] }
+    });
+
+    // 1. 测试 listModels 输出包含路由
+    const modelsOutput = listModels(mockCfg);
+    ok(modelsOutput.data.some((m) => m.id === 'group/glm' && m.owned_by === 'group'), 'listModels 包含 group/glm 路由');
+    ok(modelsOutput.data.some((m) => m.id === 'glm' && m.owned_by === 'group'), 'listModels 包含 glm 别名路由');
+
+    // 2. 测试 group/glm 寻址与过滤已停用服务商
+    const tFailover = resolveTargets(mockCfg, 'group/glm', { allowFallback: false });
+    ok(tFailover.targets && tFailover.targets.length === 2, '路由成功解析出 2 个有效节点 (过滤掉 p3 停用服务商)');
+    ok(tFailover.targets[0].provider.id === 'p1' && tFailover.targets[0].model === 'glm5.3-flash', '顺序容灾第 1 个是 p1');
+    ok(tFailover.targets[1].provider.id === 'p2' && tFailover.targets[1].model === 'GLM-5.3-Flash', '顺序容灾第 2 个是 p2');
+
+    // 3. 测试直接别名 glm 寻址
+    const tAlias = resolveTargets(mockCfg, 'glm', { allowFallback: false });
+    ok(tAlias.targets && tAlias.targets.length === 2 && tAlias.targets[0].provider.id === 'p1', '直接别名 glm 成功命中路由');
+
+    // 4. 测试轮询策略 (round-robin)
+    _resetGroupCounters();
+    const rr1 = resolveTargets(mockCfg, 'group/glm-rr', { allowFallback: false });
+    const rr2 = resolveTargets(mockCfg, 'group/glm-rr', { allowFallback: false });
+    ok(rr1.targets[0].provider.id === 'p1' && rr2.targets[0].provider.id === 'p2', '轮询策略按请求轮换首选节点');
+
+    // 5. 测试停用路由报错
+    const tDisabled = resolveTargets(mockCfg, 'group/disabled-group');
+    ok(tDisabled.error && tDisabled.error.status === 400, '停用路由返回 400');
+
+    // 6. 测试大粒度密钥权限策略 (isModelAllowed)
+    ok(isModelAllowed('group/glm', 'allow', 'group/glm'), '密钥白名单直接放行 group/glm');
+    ok(isModelAllowed('group/glm', 'allow', 'glm'), '密钥白名单使用别名 glm 放行');
+    ok(isModelAllowed('glm', 'allow', 'group/glm'), '密钥白名单请求别名 glm 匹配 group/glm 放行');
+    ok(isModelAllowed('group/glm', 'allow', 'group/*'), '密钥白名单通配符 group/* 放行');
+    ok(isModelAllowed('glm', 'allow', 'group/*'), '密钥白名单请求别名 glm 匹配通配符 group/* 放行');
+    ok(isModelAllowed('p1/glm5.3-flash', 'allow', 'p1/*'), '密钥白名单按服务商通配符 p1/* 放行');
+    ok(isModelAllowed('p1/glm5.3-flash', 'allow', 'p1'), '密钥白名单按服务商 p1 放行旗下模型');
+    ok(!isModelAllowed('p2/GLM-5.3-Flash', 'allow', 'p1/*'), '密钥白名单正确隔离未授权服务商 p2');
+    ok(!isModelAllowed('group/other', 'allow', 'group/glm'), '密钥白名单隔离未授权路由 group/other');
+    ok(!isModelAllowed('group/glm', 'deny', 'group/glm'), '密钥黑名单正确拦截被拉黑路由');
+    ok(!isModelAllowed('p1/glm5.3-flash', 'deny', 'p1/*'), '密钥黑名单正确拦截被拉黑服务商');
+  }
+
   await import('./privacy.test.mjs');
 } catch (e) {
   fail++;

@@ -91,6 +91,7 @@
     <nav id="tabs">
       <button data-tab="overview" class="on" data-i18n="tabs.overview">概览</button>
       <button data-tab="providers" data-i18n="tabs.providers">上游</button>
+      <button data-tab="groups" data-i18n="tabs.groups">路由</button>
       <button data-tab="keys" data-i18n="tabs.keys">密钥</button>
       <button data-tab="chat" data-i18n="tabs.chat">测试</button>
       <button data-tab="logs" data-i18n="tabs.logs">日志</button>
@@ -150,6 +151,20 @@
           <button class="btn primary" id="add-prov" data-i18n="providers.add">添加服务商</button>
         </div>
         <div class="scroll-x"><table id="prov-table"></table></div>
+      </div>
+    </section>
+
+    <!-- 路由 -->
+    <section data-pane="groups" class="hidden">
+      <div class="card">
+        <div class="row" style="margin-bottom:12px;justify-content:space-between;align-items:center">
+          <div>
+            <h2 data-i18n="groups.title" style="margin:0 0 4px">路由</h2>
+            <div class="muted small" data-i18n="groups.desc">聚合不同上游模型为统一名称（如 group/glm 或 glm），按策略调度与自动容灾。</div>
+          </div>
+          <button class="btn primary" id="add-group" data-i18n="groups.add">新建路由</button>
+        </div>
+        <div class="scroll-x"><table id="group-table"></table></div>
       </div>
     </section>
 
@@ -410,6 +425,73 @@
   </div>
 </dialog>
 
+<!-- 路由编辑弹窗 -->
+<dialog id="dlg-group" style="max-width:580px;width:95vw">
+  <form method="dialog" id="group-form">
+    <div class="dh" style="display:flex;justify-content:space-between;align-items:center">
+      <span id="dlg-group-title" data-i18n="groups.editTitle">新建路由</span>
+      <button type="button" class="btn sm" onclick="this.closest('dialog').close()">✕</button>
+    </div>
+    <div class="db" style="max-height:75vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:14px 16px">
+      <div class="row">
+        <div style="flex:1">
+          <label class="f" for="g-id" data-i18n="groups.labelId">路由 ID</label>
+          <input type="text" id="g-id" placeholder="例如：glm、code-fast" style="width:100%" data-i18n-placeholder="groups.idPlaceholder" spellcheck="false">
+          <div class="muted small" style="margin-top:2px" data-i18n="groups.idHint">客户端调用：group/{id} 或直接用 {id}</div>
+        </div>
+        <div style="flex:1">
+          <label class="f" for="g-name" data-i18n="groups.labelName">路由名称</label>
+          <input type="text" id="g-name" placeholder="例如：GLM 综合池" style="width:100%" data-i18n-placeholder="groups.namePlaceholder">
+        </div>
+      </div>
+
+      <div class="row">
+        <div style="flex:1">
+          <label class="f" for="g-strategy" data-i18n="groups.labelStrategy">调度规则</label>
+          <select id="g-strategy" style="width:100%">
+            <option value="failover" data-i18n="groups.stratFailover">顺序容灾 (Failover / 依次尝试)</option>
+            <option value="round-robin" data-i18n="groups.stratRR">轮询均衡 (Round-Robin / 依次分流)</option>
+            <option value="random" data-i18n="groups.stratRandom">随机分流 (Random / 随机起始)</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label class="f" for="g-note" data-i18n="groups.labelNote">备注</label>
+          <input type="text" id="g-note" placeholder="可选，例如：给工作 Key 用" style="width:100%" data-i18n-placeholder="groups.notePlaceholder">
+        </div>
+      </div>
+
+      <!-- 模型列表与添加模型 -->
+      <div class="form-section" style="margin:4px 0 0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span class="bold small" data-i18n="groups.sectionModels">组内模型（按尝试优先级排序）</span>
+          <button type="button" class="btn sm primary" id="g-btn-add-model" data-i18n="groups.addModel">+ 添加模型</button>
+        </div>
+
+        <!-- 搜索添加浮层 (Magpie 风格) -->
+        <div id="g-picker-box" class="hidden" style="margin-bottom:10px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--code)">
+          <div class="row" style="gap:6px;align-items:center;margin-bottom:6px">
+            <input type="text" id="g-picker-q" placeholder="搜索模型或服务商 (如: glm, claude, deepseek)..." class="grow" style="font-size:12px;padding:4px 8px">
+            <button type="button" class="btn sm" id="g-picker-close">关闭</button>
+          </div>
+          <div id="g-picker-list" style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+
+        <!-- 当前已选模型列表 (支持上移、下移、删除) -->
+        <div id="g-targets-container" style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px;min-height:70px;max-height:220px;overflow-y:auto;background:var(--card)">
+          <div id="g-targets-empty" class="muted small" style="text-align:center;padding:16px 0" data-i18n="groups.targetsEmpty">暂未添加模型，请点击上方「+ 添加模型」搜索勾选</div>
+          <div id="g-targets-list" style="display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+      </div>
+
+      <div id="group-err" class="err small" style="margin-top:4px"></div>
+    </div>
+    <div class="df">
+      <button type="button" class="btn" onclick="this.closest('dialog').close()" data-i18n="groups.cancel">取消</button>
+      <button class="btn primary" type="button" id="group-save" data-i18n="groups.save">保存</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- 密钥配置设置 (基本信息 / 额度 / 模型限制 / 轮换) -->
 <dialog id="dlg-key-config" style="max-width:540px;width:95vw">
   <form method="dialog" id="key-config-form">
@@ -465,15 +547,26 @@
           </label>
         </div>
 
-        <div id="kc-models-settings" style="display:none;flex-direction:column;gap:8px">
-          <label class="f" for="kc-patterns" data-i18n="keys.modelPatternsLabel">规则列表（每行或逗号分隔，支持 * 通配符）</label>
-          <textarea id="kc-patterns" rows="3" style="width:100%;font-family:monospace;font-size:12px" data-i18n-placeholder="keys.modelPatternsPlaceholder" placeholder="例如：&#10;gpt-4*&#10;deepseek/*&#10;claude-3-5-sonnet*"></textarea>
-
+        <div id="kc-models-settings" style="display:none;flex-direction:column;gap:10px">
+          <!-- 按路由大粒度勾选 -->
           <div>
-            <div class="muted small" style="margin-bottom:4px" data-i18n="keys.quickPickModels">从现有上游模型中快速勾选：</div>
-            <div id="kc-quick-models" style="max-height:110px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px;background:var(--code);display:flex;flex-wrap:wrap;gap:6px">
+            <div class="muted small bold" style="margin-bottom:4px" data-i18n="keys.quickPickGroups">按「路由」大粒度勾选：</div>
+            <div id="kc-quick-groups" style="max-height:85px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px;background:var(--code);display:flex;flex-wrap:wrap;gap:6px">
             </div>
-            <div class="muted small" style="margin-top:4px" data-i18n="keys.quickPickHint">勾选将追加到上方规则列表中</div>
+            <div id="kc-quick-groups-empty" class="muted small" style="display:none;padding:4px" data-i18n="keys.noGroupsHint">暂未配置路由，可在「路由」页面创建</div>
+          </div>
+
+          <!-- 按服务商大粒度勾选 -->
+          <div>
+            <div class="muted small bold" style="margin-bottom:4px" data-i18n="keys.quickPickProviders">按「服务商」大粒度勾选（包含旗下所有模型）：</div>
+            <div id="kc-quick-providers" style="max-height:85px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px;background:var(--code);display:flex;flex-wrap:wrap;gap:6px">
+            </div>
+          </div>
+
+          <!-- 生效规则列表 -->
+          <div>
+            <div class="muted small" style="margin-bottom:4px" data-i18n="keys.modelPatternsLabel">生效规则列表（每行或逗号分隔，支持 * 通配符）：</div>
+            <textarea id="kc-patterns" rows="2" style="width:100%;font-family:monospace;font-size:12px" data-i18n-placeholder="keys.modelPatternsPlaceholder" placeholder="例如：&#10;group/glm&#10;zhipu/*"></textarea>
           </div>
         </div>
       </div>

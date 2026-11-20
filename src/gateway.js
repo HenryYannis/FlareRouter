@@ -57,6 +57,11 @@ export function listModels(cfg) {
   const data = [
     item('FlareRouter/auto', 'FlareRouter', 'FlareRouter')
   ];
+  for (const g of (cfg.groups || [])) {
+    if (!g.enabled) continue;
+    data.push(item(`group/${g.id}`, 'group', g.name || g.id));
+    data.push(item(g.id, 'group', g.name || g.id));
+  }
   for (const p of cfg.providers) {
     if (!p.enabled) continue;
     for (const m of (p.models || [])) data.push(item(`${p.id}/${m}`, p.id, p.id));
@@ -79,7 +84,7 @@ export function parseScoped(cfg, scoped) {
   return { provider: p, model: s.slice(i + 1) };
 }
 
-// 检查请求模型是否满足密钥的模型限制策略（all / allow / deny，支持 * 通配符）
+// 检查请求模型是否满足密钥的模型限制策略（all / allow / deny，支持 * 通配符与服务商/路由大粒度控制）
 export function isModelAllowed(requestedModel, policy, patternsStr) {
   if (!policy || policy === 'all') return true;
   const req = String(requestedModel || '').toLowerCase().trim();
@@ -95,6 +100,9 @@ export function isModelAllowed(requestedModel, policy, patternsStr) {
     if (lastSlash !== -1 && lastSlash !== firstSlash) {
       candidates.push(req.slice(lastSlash + 1));
     }
+  } else {
+    candidates.push('group/' + req);
+    if (req === 'auto') candidates.push('flarerouter/auto');
   }
 
   const matches = patterns.some((pattern) => {
@@ -103,10 +111,29 @@ export function isModelAllowed(requestedModel, policy, patternsStr) {
       ? new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$')
       : null;
 
-    const check = (target) => (regex ? regex.test(target) : pattern === target);
+    const check = (target) => {
+      if (regex) return regex.test(target);
+      if (pattern === target) return true;
+      // 支持直接按 providerId 授权整家服务商（如 pattern 为 zhipu，允许 zhipu/*）
+      if (target.startsWith(pattern + '/')) return true;
+      return false;
+    };
     return candidates.some((cand) => check(cand));
   });
   return policy === 'allow' ? matches : !matches;
+}
+
+export const groupRoundRobinCounters = new Map();
+
+export function _resetGroupCounters() {
+  groupRoundRobinCounters.clear();
+}
+
+function findGroup(cfg, nameOrId) {
+  if (!cfg.groups || !Array.isArray(cfg.groups)) return null;
+  const s = String(nameOrId || '').trim().toLowerCase();
+  const id = s.startsWith('group/') ? s.slice(6) : s;
+  return cfg.groups.find((g) => g.id.toLowerCase() === id) || null;
 }
 
 function defaultChain(cfg) {
@@ -144,25 +171,58 @@ export function resolveTargets(cfg, requestedModel, { allowFallback = true } = {
     return { targets: fallbackOn ? chain : chain.slice(0, 1) };
   }
 
-  const scoped = parseScoped(cfg, req);
-  if (scoped) {
-    if (!scoped.provider.enabled) {
-      return { targets: [], error: { status: 400, message: `服务商「${scoped.provider.name}」(${scoped.provider.id}) 已停用` } };
+  // 1. 优先检查是否匹配到路由 (group/xxx 或直接别名 xxx)
+  const matchedGroup = findGroup(cfg, req);
+  if (matchedGroup) {
+    if (!matchedGroup.enabled) {
+      return { targets: [], error: { status: 400, message: `路由「${matchedGroup.name || matchedGroup.id}」(${matchedGroup.id}) 已停用` } };
     }
-    if (!scoped.model) return { targets: [], error: { status: 400, message: `模型名为空：${req}` } };
-    primary = [scoped];
+    const groupRawTargets = matchedGroup.targets || [];
+    const validTargets = [];
+    for (const tStr of groupRawTargets) {
+      const t = parseScoped(cfg, tStr);
+      if (t && t.provider && t.provider.enabled && t.model) {
+        validTargets.push(t);
+      }
+    }
+    if (!validTargets.length) {
+      return { targets: [], error: { status: 503, message: `路由「${matchedGroup.name || matchedGroup.id}」内没有可用的已启用上游模型。` } };
+    }
+
+    const strat = matchedGroup.strategy || 'failover';
+    if (strat === 'round-robin' && validTargets.length > 1) {
+      const cur = groupRoundRobinCounters.get(matchedGroup.id) || 0;
+      groupRoundRobinCounters.set(matchedGroup.id, (cur + 1) % 1000000);
+      const shift = cur % validTargets.length;
+      primary = [...validTargets.slice(shift), ...validTargets.slice(0, shift)];
+    } else if (strat === 'random' && validTargets.length > 1) {
+      const shift = Math.floor(Math.random() * validTargets.length);
+      primary = [...validTargets.slice(shift), ...validTargets.slice(0, shift)];
+    } else {
+      primary = validTargets;
+    }
   } else {
-    const low = req.toLowerCase();
-    for (const p of cfg.providers) {
-      if (!p.enabled) continue;
-      const hit = p.models.find((m) => m.toLowerCase() === low);
-      if (hit) primary.push({ provider: p, model: hit });
-    }
-    if (!primary.length) {
-      return {
-        targets: [],
-        error: { status: 404, message: `找不到模型「${req}」：请用「服务商 ID/模型」格式，或先把该模型加进某个已启用服务商的模型列表。可用列表见 GET /v1/models` },
-      };
+    // 2. 原有的精确指定（scoped）与纯模型名聚合扫描
+    const scoped = parseScoped(cfg, req);
+    if (scoped) {
+      if (!scoped.provider.enabled) {
+        return { targets: [], error: { status: 400, message: `服务商「${scoped.provider.name}」(${scoped.provider.id}) 已停用` } };
+      }
+      if (!scoped.model) return { targets: [], error: { status: 400, message: `模型名为空：${req}` } };
+      primary = [scoped];
+    } else {
+      const low = req.toLowerCase();
+      for (const p of cfg.providers) {
+        if (!p.enabled) continue;
+        const hit = p.models.find((m) => m.toLowerCase() === low);
+        if (hit) primary.push({ provider: p, model: hit });
+      }
+      if (!primary.length) {
+        return {
+          targets: [],
+          error: { status: 404, message: `找不到模型「${req}」：请用「服务商 ID/模型」格式，或先把该模型加进某个已启用服务商的模型列表。可用列表见 GET /v1/models` },
+        };
+      }
     }
   }
 

@@ -3,7 +3,7 @@ var I18N = {
     zh: {
       title: 'FlareRouter 网关',
       header: { copied: '已复制', logout: '退出账号', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
-      tabs: { overview: '概览', providers: '上游', fallback: '容灾', keys: '密钥', logs: '日志', chat: '测试', settings: '设置' },
+      tabs: { overview: '概览', providers: '上游', groups: '路由', fallback: '容灾', keys: '密钥', logs: '日志', chat: '测试', settings: '设置' },
       login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', submitting: '登录中…', unauth: '未登录' },
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新', refreshing: '刷新中…',
@@ -45,6 +45,20 @@ var I18N = {
         savedEmptyModels: '已保存。模型列表为空，可点「从服务商拉取」', saving: '保存中…', selectAvailable: '只选可用', selectAvailableTip: '只选中测试成功的可用模型', testModels: '测试模型', testStop: '停止', testRunning: '正在测试 ({done}/{total})… 可用: {ok}，失败: {fail}', testDone: '测试完成：共 {total} 个，可用 {ok} 个，失败 {fail} 个', testNoResults: '请先点击「测试模型」进行可用性测试', testSelectedCount: '已勾选 {count} 个可用模型', testNoneAvailable: '未找到测试可用的模型', testing: '测试中…', testFailed: '失败', urlRequired: 'Base URL 必填', noModelsToTest: '暂无模型可供测试',
         sectionBasic: '基础连接与鉴权', sectionModels: '模型列表配置', sectionAdvanced: '高级选项'
       },
+      groups: {
+        title: '路由', desc: '聚合不同上游模型为统一名称（如 group/glm 或 glm），按策略调度与自动容灾。', add: '新建路由',
+        empty: '还没有路由，点击右上角「新建路由」创建。',
+        thNameId: '名称 / ID', thStrategy: '调度规则', thTargets: '包含模型', thEnable: '启用', thActions: '操作',
+        edit: '编辑', del: '删除', delConfirm: '确定删除路由「{name}」？', deleted: '已删除', saved: '路由已保存',
+        editTitle: '新建 / 编辑路由', labelId: '路由 ID', idPlaceholder: '例如：glm、code-fast',
+        idHint: '客户端调用：group/{id} 或直接用 {id}', labelName: '路由名称', namePlaceholder: '例如：GLM 综合池',
+        labelStrategy: '调度规则', stratFailover: '顺序容灾 (Failover / 依次尝试)', stratRR: '轮询均衡 (Round-Robin / 依次分流)', stratRandom: '随机分流 (Random / 随机起始)',
+        labelNote: '备注', notePlaceholder: '可选备注，例如：给工作 Key 用',
+        sectionModels: '组内模型（按尝试优先级排序）', addModel: '+ 添加模型',
+        targetsEmpty: '暂未添加模型，请点击上方「+ 添加模型」搜索勾选', moveUp: '上移', moveDown: '下移', remove: '移除',
+        searchPlaceholder: '搜索模型或服务商 (如: glm, claude, deepseek)...', noMatch: '未找到匹配的模型',
+        cancel: '取消', save: '保存'
+      },
       fallback: {
         title: '容灾切换', switchLabel: '请求的模型失败时，继续按下面的容灾链尝试',
         desc: '失败（网络错误、超时、任何非 2xx）就换下一个；流式请求只在上游开始返回前切换。容灾链留空时，按服务商顺序取每家模型列表的第一个。',
@@ -81,6 +95,7 @@ var I18N = {
         config: '配置', configTitle: '配置调用密钥', sectionBasic: '基本信息', sectionQuota: 'Token 额度限制', sectionModels: '模型访问控制',
         modelPolicyAll: '全部允许（默认）', modelPolicyAllow: '白名单模式（仅允许选中的模型）', modelPolicyDeny: '黑名单模式（禁止调用选中的模型）',
         modelPatternsLabel: '自定义通配符规则（逗号或换行分隔）', modelPatternsPlaceholder: '支持通配符，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾选已有模型',
+        quickPickGroups: '按「路由」大粒度勾选：', quickPickProviders: '按「服务商」大粒度勾选（包含旗下所有模型）：', noGroupsHint: '暂未配置路由，可在「路由」页面创建',
         quickPickHint: '勾选将追加到上方规则列表中', noModelsFound: '暂无可用上游模型', rotateInDialog: '轮换',
         tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新'
       },
@@ -145,7 +160,7 @@ var I18N = {
     'zh-Hant': {
       title: 'FlareRouter 網關',
       header: { copied: '已複製', logout: '退出帳號', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
-      tabs: { overview: '概覽', providers: '上游', fallback: '容災', keys: '密鑰', logs: '日誌', chat: '測試', settings: '設定' },
+      tabs: { overview: '概覽', providers: '上游', groups: '路由', fallback: '容災', keys: '密鑰', logs: '日誌', chat: '測試', settings: '設定' },
       login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', submitting: '登入中…', unauth: '未登入' },
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新', refreshing: '重新整理中…',
@@ -187,6 +202,20 @@ var I18N = {
         savedEmptyModels: '已儲存。模型列表為空，可點「從服務商拉取」', saving: '儲存中…', selectAvailable: '只選可用', selectAvailableTip: '只選中測試成功的可用模型', testModels: '測試模型', testStop: '停止', testRunning: '正在測試 ({done}/{total})… 可用: {ok}，失敗: {fail}', testDone: '測試完成：共 {total} 個，可用 {ok} 個，失敗 {fail} 個', testNoResults: '請先點擊「測試模型」進行可用性測試', testSelectedCount: '已勾選 {count} 個可用模型', testNoneAvailable: '未找到測試可用的模型', testing: '測試中…', testFailed: '失敗', urlRequired: 'Base URL 必填', noModelsToTest: '暫無模型可供測試',
         sectionBasic: '基礎連接與鑒權', sectionModels: '模型列表配置', sectionAdvanced: '進階選項'
       },
+      groups: {
+        title: '路由', desc: '聚合不同上游模型為統一名稱（如 group/glm 或 glm），按策略調度與自動容災。', add: '新建路由',
+        empty: '還沒有路由，點擊右上角「新建路由」建立。',
+        thNameId: '名稱 / ID', thStrategy: '調度規則', thTargets: '包含模型', thEnable: '啟用', thActions: '操作',
+        edit: '編輯', del: '刪除', delConfirm: '確定刪除路由「{name}」？', deleted: '已刪除', saved: '路由已儲存',
+        editTitle: '新建 / 編輯路由', labelId: '路由 ID', idPlaceholder: '例如：glm、code-fast',
+        idHint: '客戶端調用：group/{id} 或直接用 {id}', labelName: '路由名稱', namePlaceholder: '例如：GLM 綜合池',
+        labelStrategy: '調度規則', stratFailover: '順序容災 (Failover / 依序嘗試)', stratRR: '輪詢均衡 (Round-Robin / 依序分流)', stratRandom: '隨機分流 (Random / 隨機起始)',
+        labelNote: '備註', notePlaceholder: '可選備註，例如：給工作 Key 用',
+        sectionModels: '組內模型（按嘗試優先級排序）', addModel: '+ 添加模型',
+        targetsEmpty: '暫未添加模型，請點擊上方「+ 添加模型」搜尋勾選', moveUp: '上移', moveDown: '下移', remove: '移除',
+        searchPlaceholder: '搜尋模型或服務商 (如: glm, claude, deepseek)...', noMatch: '未找到符合的模型',
+        cancel: '取消', save: '儲存'
+      },
       fallback: {
         title: '容災切換', switchLabel: '請求的模型失敗時，繼續按下面的容災鏈嘗試',
         desc: '失敗（網路錯誤、超時、任何非 2xx）就換下一個；串流請求只在上游開始返回前切換。容災鏈留空時，按服務商順序取每家模型列表的第一個。',
@@ -223,6 +252,7 @@ var I18N = {
         config: '配置', configTitle: '配置調用密鑰', sectionBasic: '基本資訊', sectionQuota: 'Token 額度限制', sectionModels: '模型訪問控制',
         modelPolicyAll: '全部允許（預設）', modelPolicyAllow: '白名單模式（僅允許選中的模型）', modelPolicyDeny: '黑名單模式（禁止調用選中的模型）',
         modelPatternsLabel: '自訂萬用字元規則（逗號或換行分隔）', modelPatternsPlaceholder: '支援萬用字元，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾選已有模型',
+        quickPickGroups: '按「路由」大粒度勾選：', quickPickProviders: '按「服務商」大粒度勾選（包含旗下所有模型）：', noGroupsHint: '暫未配置路由，可在「路由」頁面建立',
         quickPickHint: '勾選將追加到上方規則列表中', noModelsFound: '暫無可用上游模型', rotateInDialog: '輪換',
         tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新'
       },
@@ -287,7 +317,7 @@ var I18N = {
     en: {
       title: 'FlareRouter Gateway',
       header: { copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
-      tabs: { overview: 'Overview', providers: 'Upstream', fallback: 'Failover', keys: 'Keys', logs: 'Logs', chat: 'Test', settings: 'Settings' },
+      tabs: { overview: 'Overview', providers: 'Upstream', groups: 'Routing', fallback: 'Failover', keys: 'Keys', logs: 'Logs', chat: 'Test', settings: 'Settings' },
       login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', submitting: 'Signing in…', unauth: 'Not signed in' },
       overview: {
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh', refreshing: 'Refreshing…',
@@ -329,6 +359,20 @@ var I18N = {
         savedEmptyModels: 'Saved. Models empty — use Fetch from Provider', saving: 'Saving…', selectAvailable: 'Select Available', selectAvailableTip: 'Select only tested and working models', testModels: 'Test Models', testStop: 'Stop', testRunning: 'Testing ({done}/{total})… OK: {ok}, Failed: {fail}', testDone: 'Testing done: {total} total, {ok} available, {fail} failed', testNoResults: 'Please click "Test Models" first to check availability', testSelectedCount: 'Selected {count} available models', testNoneAvailable: 'No available models found', testing: 'Testing…', testFailed: 'Failed', urlRequired: 'Base URL is required', noModelsToTest: 'No models to test',
         sectionBasic: 'Connection & Authentication', sectionModels: 'Model List Configuration', sectionAdvanced: 'Advanced Options'
       },
+      groups: {
+        title: 'Routing', desc: 'Aggregate upstream models into a unified name (e.g. group/glm or glm) with smart failover and load balancing.', add: 'New Route',
+        empty: 'No routing groups configured. Click "New Route" in top right.',
+        thNameId: 'Name / ID', thStrategy: 'Dispatch Rule', thTargets: 'Models', thEnable: 'Enabled', thActions: 'Actions',
+        edit: 'Edit', del: 'Delete', delConfirm: 'Delete route "{name}"?', deleted: 'Deleted', saved: 'Route saved',
+        editTitle: 'New / Edit Route', labelId: 'Route ID', idPlaceholder: 'e.g. glm, code-fast',
+        idHint: 'Client call: group/{id} or alias {id}', labelName: 'Route Name', namePlaceholder: 'e.g. GLM Pool',
+        labelStrategy: 'Dispatch Rule', stratFailover: 'Failover (Sequential fallback)', stratRR: 'Round-Robin (Rotate per request)', stratRandom: 'Random (Randomized start)',
+        labelNote: 'Note', notePlaceholder: 'Optional, e.g. For Work Key',
+        sectionModels: 'Group Models (Ordered by priority)', addModel: '+ Add Model',
+        targetsEmpty: 'No models added yet. Click "+ Add Model" to search and add.', moveUp: 'Move Up', moveDown: 'Move Down', remove: 'Remove',
+        searchPlaceholder: 'Search models or providers (e.g. glm, claude, deepseek)...', noMatch: 'No matching models found',
+        cancel: 'Cancel', save: 'Save'
+      },
       fallback: {
         title: 'Failover Chain', switchLabel: 'On request failure, try the models in failover chain below',
         desc: 'Switches on network error, timeout, or non-2xx; streams failover only before 1st byte. When empty, defaults to 1st model of each provider in order.',
@@ -365,6 +409,7 @@ var I18N = {
         config: 'Config', configTitle: 'Configure API Key', sectionBasic: 'Basic Info', sectionQuota: 'Token Quota Limit', sectionModels: 'Model Access Control',
         modelPolicyAll: 'Allow All (Default)', modelPolicyAllow: 'Whitelist (Selected only)', modelPolicyDeny: 'Blacklist (Block selected)',
         modelPatternsLabel: 'Custom wildcard rules (comma/newline separated)', modelPatternsPlaceholder: 'Supports wildcards, e.g. gpt-4*, deepseek/*', quickPickModels: 'Quick Select Models',
+        quickPickGroups: 'Select by "Route" (coarse-grained):', quickPickProviders: 'Select by "Provider" (includes all models):', noGroupsHint: 'No routes configured yet. Create one in "Routing" tab.',
         quickPickHint: 'Selecting will append to rules above', noModelsFound: 'No upstream models found', rotateInDialog: 'Rotate',
         tagModelLimited: 'Restricted', tagModelAll: 'All Models', configSaved: 'Config updated'
       },

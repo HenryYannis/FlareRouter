@@ -83,6 +83,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         applyI18n();
         if (state.cfg) {
           renderProviders();
+          renderGroups();
           renderChain();
           renderModelSelects();
           renderSettings();
@@ -425,6 +426,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $$('section[data-pane]').forEach(function (s) { s.classList.toggle('hidden', s.dataset.pane !== b.dataset.tab); });
     var t = b.dataset.tab;
     if (t === 'overview') loadStats();
+    if (t === 'groups') renderGroups();
     if (t === 'keys') loadKeys();
     if (t === 'logs') { state.logOffset = 0; loadLogs(); }
   });
@@ -432,12 +434,29 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   // ---- 配置 ----
   async function loadConfig() {
     state.cfg = await api('/admin/api/config');
-    renderProviders(); renderChain(); renderModelSelects(); renderSettings();
+    state.cfg.groups = state.cfg.groups || [];
+    renderProviders(); renderGroups(); renderChain(); renderModelSelects(); renderSettings();
   }
-  function setCfg(c) { state.cfg.providers = c.providers; state.cfg.settings = c.settings; state.cfg.models = modelsFrom(c.providers); renderProviders(); renderChain(); renderModelSelects(); renderSettings(); }
-  function modelsFrom(providers) {
+  function setCfg(c) {
+    state.cfg.providers = c.providers;
+    state.cfg.groups = c.groups || [];
+    state.cfg.settings = c.settings;
+    state.cfg.models = modelsFrom(c.providers, c.groups);
+    renderProviders();
+    renderGroups();
+    renderChain();
+    renderModelSelects();
+    renderSettings();
+  }
+  function modelsFrom(providers, groups) {
     var out = ['FlareRouter/auto'];
-    providers.forEach(function (p) { if (p.enabled) p.models.forEach(function (m) { out.push(p.id + '/' + m); }); });
+    (groups || (state.cfg && state.cfg.groups) || []).forEach(function (g) {
+      if (g.enabled) {
+        out.push('group/' + g.id);
+        out.push(g.id);
+      }
+    });
+    (providers || []).forEach(function (p) { if (p.enabled) p.models.forEach(function (m) { out.push(p.id + '/' + m); }); });
     return out;
   }
 
@@ -957,6 +976,295 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#p-fetch-test').classList.remove('danger');
   });
 
+  // ---- 路由 (Routing Groups) ----
+  state.editingGroup = null;
+  state.groupTargets = [];
+
+  function renderGroups() {
+    var gs = (state.cfg && state.cfg.groups) || [];
+    var table = $('#group-table');
+    if (!table) return;
+    if (!gs.length) {
+      table.innerHTML = '<tr><td class="muted small" style="text-align:center;padding:24px 0">' + t('groups.empty') + '</td></tr>';
+      return;
+    }
+    var h = '<tr>' +
+      '<th>' + t('groups.thNameId') + '</th>' +
+      '<th>' + t('groups.thStrategy') + '</th>' +
+      '<th>' + t('groups.thTargets') + '</th>' +
+      '<th style="width:70px;text-align:center">' + t('groups.thEnable') + '</th>' +
+      '<th style="width:120px;text-align:right">' + t('groups.thActions') + '</th>' +
+      '</tr>';
+
+    var stratNames = {
+      'failover': t('groups.stratFailover'),
+      'round-robin': t('groups.stratRR'),
+      'random': t('groups.stratRandom')
+    };
+
+    var rows = gs.map(function (g, idx) {
+      var stratCls = g.strategy || 'failover';
+      var stratLabel = stratNames[stratCls] || stratNames['failover'];
+      var targetBadges = (g.targets || []).map(function (tgt) {
+        return '<span class="cap-badge" style="margin:1px 2px;font-family:monospace">' + esc(tgt) + '</span>';
+      }).join('');
+      var noteHtml = g.note ? '<div class="muted small" style="margin-top:2px">' + esc(g.note) + '</div>' : '';
+
+      return '<tr data-group-id="' + esc(g.id) + '">' +
+        '<td>' +
+          '<div class="bold" style="font-size:13.5px">' + esc(g.name || g.id) + '</div>' +
+          '<div style="margin-top:2px;display:flex;align-items:center;gap:6px">' +
+            '<code class="mono small" style="color:var(--primary);cursor:pointer" title="' + t('header.copied') + '" data-copy-group="group/' + esc(g.id) + '">group/' + esc(g.id) + '</code>' +
+            '<span class="muted small mono">或</span>' +
+            '<code class="mono small" style="color:var(--muted);cursor:pointer" title="' + t('header.copied') + '" data-copy-group="' + esc(g.id) + '">' + esc(g.id) + '</code>' +
+          '</div>' +
+          noteHtml +
+        '</td>' +
+        '<td><span class="strat-badge ' + stratCls + '">' + esc(stratLabel) + '</span></td>' +
+        '<td><div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px">' + targetBadges + '</div></td>' +
+        '<td style="text-align:center">' +
+          '<input type="checkbox" data-group-toggle="' + esc(g.id) + '"' + (g.enabled ? ' checked' : '') + '>' +
+        '</td>' +
+        '<td style="text-align:right">' +
+          '<div class="row" style="justify-content:flex-end;gap:4px">' +
+            '<button class="btn sm" data-group-edit="' + idx + '">' + t('groups.edit') + '</button>' +
+            '<button class="btn sm danger" data-group-del="' + esc(g.id) + '">' + t('groups.del') + '</button>' +
+          '</div>' +
+        '</td>' +
+        '</tr>';
+    }).join('');
+
+    table.innerHTML = h + rows;
+  }
+
+  function renderGroupTargetsList() {
+    var list = $('#g-targets-list');
+    var empty = $('#g-targets-empty');
+    if (!list || !empty) return;
+    if (!state.groupTargets.length) {
+      list.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    list.innerHTML = state.groupTargets.map(function (tgt, i) {
+      return '<div class="group-target-item" data-tgt-idx="' + i + '">' +
+        '<div class="target-info">' +
+          '<span class="target-num">#' + (i + 1) + '</span>' +
+          '<span class="target-model">' + esc(tgt) + '</span>' +
+        '</div>' +
+        '<div class="target-actions">' +
+          (i > 0 ? '<button type="button" class="btn sm" data-tgt-up="' + i + '" title="' + t('groups.moveUp') + '">↑</button>' : '') +
+          (i < state.groupTargets.length - 1 ? '<button type="button" class="btn sm" data-tgt-down="' + i + '" title="' + t('groups.moveDown') + '">↓</button>' : '') +
+          '<button type="button" class="btn sm danger" data-tgt-del="' + i + '" title="' + t('groups.remove') + '">✕</button>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderGroupModelPicker(q) {
+    var box = $('#g-picker-list');
+    if (!box) return;
+    var lowQ = String(q || '').trim().toLowerCase();
+    var candidates = [];
+    (state.cfg.providers || []).forEach(function (p) {
+      if (!p.enabled) return;
+      (p.models || []).forEach(function (m) {
+        if (!lowQ || m.toLowerCase().includes(lowQ) || p.name.toLowerCase().includes(lowQ) || p.id.toLowerCase().includes(lowQ)) {
+          candidates.push({ provider: p, model: m, scoped: p.id + '/' + m });
+        }
+      });
+    });
+    if (!candidates.length) {
+      box.innerHTML = '<div class="muted small" style="text-align:center;padding:12px 0">' + t('groups.noMatch') + '</div>';
+      return;
+    }
+    box.innerHTML = candidates.map(function (c) {
+      var isAdded = state.groupTargets.includes(c.scoped);
+      return '<div class="picker-item' + (isAdded ? ' selected' : '') + '" data-pick-scoped="' + esc(c.scoped) + '">' +
+        '<div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">' +
+          '<span class="bold mono small">' + esc(c.model) + '</span>' +
+          '<span class="cap-badge" style="font-size:10.5px">' + esc(c.provider.name || c.provider.id) + '</span>' +
+        '</div>' +
+        '<div>' +
+          (isAdded
+            ? '<span class="muted small">已在组内</span>'
+            : '<button type="button" class="btn sm primary" style="pointer-events:none">+ 加入</button>') +
+        '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function openGroupDialog(g) {
+    state.editingGroup = g ? g.id : null;
+    state.groupTargets = g && Array.isArray(g.targets) ? g.targets.slice() : [];
+    $('#dlg-group-title').textContent = g ? t('groups.editTitle') : t('groups.add');
+    $('#g-id').value = g ? g.id : '';
+    $('#g-id').disabled = !!g;
+    $('#g-name').value = g ? (g.name || '') : '';
+    $('#g-strategy').value = g && g.strategy ? g.strategy : 'failover';
+    $('#g-note').value = g ? (g.note || '') : '';
+    $('#group-err').textContent = '';
+    $('#g-picker-box').classList.add('hidden');
+    renderGroupTargetsList();
+    $('#dlg-group').showModal();
+  }
+
+  $('#add-group').addEventListener('click', function () { openGroupDialog(null); });
+
+  $('#g-btn-add-model').addEventListener('click', function () {
+    var pBox = $('#g-picker-box');
+    var isHidden = pBox.classList.contains('hidden');
+    if (isHidden) {
+      pBox.classList.remove('hidden');
+      $('#g-picker-q').value = '';
+      renderGroupModelPicker('');
+      $('#g-picker-q').focus();
+    } else {
+      pBox.classList.add('hidden');
+    }
+  });
+
+  $('#g-picker-close').addEventListener('click', function () {
+    $('#g-picker-box').classList.add('hidden');
+  });
+
+  $('#g-picker-q').addEventListener('input', function () {
+    renderGroupModelPicker(this.value);
+  });
+
+  $('#g-picker-list').addEventListener('click', function (e) {
+    var item = e.target.closest('[data-pick-scoped]');
+    if (!item) return;
+    var scoped = item.dataset.pickScoped;
+    if (!state.groupTargets.includes(scoped)) {
+      state.groupTargets.push(scoped);
+      renderGroupTargetsList();
+      renderGroupModelPicker($('#g-picker-q').value);
+    }
+  });
+
+  $('#g-targets-list').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.tgtUp != null) {
+      var i = +b.dataset.tgtUp;
+      if (i > 0) {
+        var tmp = state.groupTargets[i];
+        state.groupTargets[i] = state.groupTargets[i - 1];
+        state.groupTargets[i - 1] = tmp;
+        renderGroupTargetsList();
+      }
+    } else if (b.dataset.tgtDown != null) {
+      var j = +b.dataset.tgtDown;
+      if (j < state.groupTargets.length - 1) {
+        var tmp2 = state.groupTargets[j];
+        state.groupTargets[j] = state.groupTargets[j + 1];
+        state.groupTargets[j + 1] = tmp2;
+        renderGroupTargetsList();
+      }
+    } else if (b.dataset.tgtDel != null) {
+      var k = +b.dataset.tgtDel;
+      state.groupTargets.splice(k, 1);
+      renderGroupTargetsList();
+      renderGroupModelPicker($('#g-picker-q').value);
+    }
+  });
+
+  $('#group-save').addEventListener('click', async function () {
+    var id = String($('#g-id').value || '').trim();
+    var name = String($('#g-name').value || '').trim();
+    var strategy = $('#g-strategy').value || 'failover';
+    var note = String($('#g-note').value || '').trim();
+    var errEl = $('#group-err');
+    errEl.textContent = '';
+
+    if (!id) {
+      errEl.textContent = '请输入路由 ID';
+      $('#g-id').focus();
+      return;
+    }
+    if (!/^[A-Za-z0-9_.-]{1,40}$/.test(id)) {
+      errEl.textContent = '路由 ID 只能包含字母、数字、下划线、短横线与点，1–40 位';
+      $('#g-id').focus();
+      return;
+    }
+    if (!state.groupTargets.length) {
+      errEl.textContent = '请至少选择一个上游模型加入路由';
+      return;
+    }
+
+    var saveBtn = $('#group-save');
+    saveBtn.disabled = true;
+    try {
+      var res = await api('/admin/api/groups', {
+        body: {
+          originalId: state.editingGroup,
+          group: { id: id, name: name, strategy: strategy, note: note, targets: state.groupTargets }
+        }
+      });
+      setCfg(res);
+      $('#dlg-group').close();
+      toast(t('groups.saved'));
+    } catch (err) {
+      errEl.textContent = err.message;
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  $('#group-table').addEventListener('click', async function (e) {
+    var copyBtn = e.target.closest('[data-copy-group]');
+    if (copyBtn) {
+      var txt = copyBtn.dataset.copyGroup;
+      try {
+        await navigator.clipboard.writeText(txt);
+        toast(t('header.copied') + ': ' + txt);
+      } catch (_) {}
+      return;
+    }
+
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.groupEdit != null) {
+      var idx = +b.dataset.groupEdit;
+      var g = (state.cfg.groups || [])[idx];
+      if (g) openGroupDialog(g);
+    } else if (b.dataset.groupDel) {
+      var delId = b.dataset.groupDel;
+      var gDel = (state.cfg.groups || []).find(function (x) { return x.id === delId; });
+      if (!(await showConfirm({ message: t('groups.delConfirm', { name: (gDel && gDel.name) || delId }), danger: true }))) return;
+      try {
+        var res = await api('/admin/api/groups/delete', { body: { id: delId } });
+        setCfg(res);
+        toast(t('groups.deleted'));
+      } catch (err) {
+        await showAlert({ message: err.message });
+      }
+    }
+  });
+
+  $('#group-table').addEventListener('change', async function (e) {
+    var id = e.target.dataset.groupToggle;
+    if (!id) return;
+    var isEnabled = e.target.checked;
+    var targetG = (state.cfg.groups || []).find(function (g) { return g.id === id; });
+    var prev = targetG ? targetG.enabled : !isEnabled;
+    if (targetG) {
+      targetG.enabled = isEnabled;
+      state.cfg.models = modelsFrom(state.cfg.providers, state.cfg.groups);
+      renderModelSelects();
+    }
+    try {
+      var res = await api('/admin/api/groups/toggle', { body: { id: id, enabled: isEnabled } });
+      setCfg(res);
+    } catch (err) {
+      e.target.checked = prev;
+      if (targetG) targetG.enabled = prev;
+      await showAlert({ message: err.message });
+    }
+  });
+
   // ---- 容灾链 ----
   var chainDraft = [];
   function renderChain() {
@@ -1285,30 +1593,44 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     return str.split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
   }
 
-  function renderQuickModels() {
-    var container = $('#kc-quick-models');
-    if (!container) return;
-    var allModels = [];
-    if (state.cfg && state.cfg.providers) {
-      state.cfg.providers.forEach(function (p) {
-        if (p.enabled && Array.isArray(p.models)) {
-          p.models.forEach(function (m) {
-            if (m && allModels.indexOf(m) === -1) allModels.push(m);
-          });
-        }
-      });
-    }
-    allModels.sort();
-    if (!allModels.length) {
-      container.innerHTML = '<span class="muted small">' + t('keys.noModelsFound') + '</span>';
-      return;
-    }
+  function renderQuickGroupsAndProviders() {
+    var gContainer = $('#kc-quick-groups');
+    var pContainer = $('#kc-quick-providers');
+    var gEmpty = $('#kc-quick-groups-empty');
+    if (!gContainer || !pContainer) return;
+
     var currentList = parsePatterns($('#kc-patterns').value);
-    container.innerHTML = allModels.map(function (m) {
-      var isChecked = currentList.indexOf(m) !== -1;
-      return '<span class="chip-model" data-m="' + esc(m) + '" style="cursor:pointer;padding:2px 8px;border-radius:12px;font-size:12px;border:1px solid ' + (isChecked ? 'var(--primary)' : 'var(--border)') + ';background:' + (isChecked ? 'rgba(0,122,255,0.15)' : 'transparent') + ';color:' + (isChecked ? 'var(--primary)' : 'inherit') + ';user-select:none">' +
-        (isChecked ? '✓ ' : '+ ') + esc(m) + '</span>';
-    }).join('');
+
+    // 1. 渲染路由
+    var groups = (state.cfg && state.cfg.groups) || [];
+    if (!groups.length) {
+      gContainer.innerHTML = '';
+      if (gEmpty) gEmpty.style.display = 'block';
+    } else {
+      if (gEmpty) gEmpty.style.display = 'none';
+      gContainer.innerHTML = groups.map(function (g) {
+        var patternVal = 'group/' + g.id;
+        var isChecked = currentList.includes(patternVal) || currentList.includes(g.id);
+        return '<span class="quick-chip' + (isChecked ? ' active' : '') + '" data-group-pattern="' + esc(patternVal) + '">' +
+          '<span>🔀</span><span>' + esc(g.name || g.id) + '</span><span class="muted small mono">(' + esc(patternVal) + ')</span>' +
+          '</span>';
+      }).join('');
+    }
+
+    // 2. 渲染服务商（包含名下全量模型）
+    var providers = (state.cfg && state.cfg.providers) || [];
+    if (!providers.length) {
+      pContainer.innerHTML = '<span class="muted small">' + t('providers.empty') + '</span>';
+    } else {
+      pContainer.innerHTML = providers.map(function (p) {
+        var patternVal = p.id + '/*';
+        var isChecked = currentList.includes(patternVal) || currentList.includes(p.id);
+        var modelCount = (p.models && p.models.length) || 0;
+        return '<span class="quick-chip' + (isChecked ? ' active' : '') + '" data-provider-pattern="' + esc(patternVal) + '">' +
+          '<span>🏢</span><span>' + esc(p.name || p.id) + '</span><span class="muted small mono">(' + esc(patternVal) + ' · ' + modelCount + '模)</span>' +
+          '</span>';
+      }).join('');
+    }
   }
 
   function renderKeys(items) {
@@ -1436,7 +1758,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
         var settingsBox = $('#kc-models-settings');
         settingsBox.style.display = policy === 'all' ? 'none' : 'flex';
-        renderQuickModels();
+        renderQuickGroupsAndProviders();
 
         $('#kc-err').style.display = 'none';
         $('#kc-err').textContent = '';
@@ -1475,23 +1797,48 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     });
   });
 
-  // 配置弹窗：快捷勾选模型
-  $('#kc-quick-models').addEventListener('click', function (e) {
-    var chip = e.target.closest('[data-m]');
-    if (!chip) return;
-    var m = chip.dataset.m;
-    var currentList = parsePatterns($('#kc-patterns').value);
-    var idx = currentList.indexOf(m);
-    if (idx !== -1) {
-      currentList.splice(idx, 1);
-    } else {
-      currentList.push(m);
-    }
-    $('#kc-patterns').value = currentList.join('\n');
-    renderQuickModels();
-  });
+  // 配置弹窗：快捷勾选路由
+  var quickGroupsBox = $('#kc-quick-groups');
+  if (quickGroupsBox) {
+    quickGroupsBox.addEventListener('click', function (e) {
+      var chip = e.target.closest('[data-group-pattern]');
+      if (!chip) return;
+      var pat = chip.dataset.groupPattern;
+      var idOnly = pat.replace(/^group\//, '');
+      var currentList = parsePatterns($('#kc-patterns').value);
+      var idx = currentList.findIndex(function (x) { return x === pat || x === idOnly; });
+      if (idx !== -1) {
+        currentList.splice(idx, 1);
+      } else {
+        currentList.push(pat);
+      }
+      $('#kc-patterns').value = currentList.join('\n');
+      renderQuickGroupsAndProviders();
+    });
+  }
+
+  // 配置弹窗：快捷勾选服务商
+  var quickProvidersBox = $('#kc-quick-providers');
+  if (quickProvidersBox) {
+    quickProvidersBox.addEventListener('click', function (e) {
+      var chip = e.target.closest('[data-provider-pattern]');
+      if (!chip) return;
+      var pat = chip.dataset.providerPattern;
+      var idOnly = pat.replace(/\/\*$/, '');
+      var currentList = parsePatterns($('#kc-patterns').value);
+      var idx = currentList.findIndex(function (x) { return x === pat || x === idOnly; });
+      if (idx !== -1) {
+        currentList.splice(idx, 1);
+      } else {
+        currentList.push(pat);
+      }
+      $('#kc-patterns').value = currentList.join('\n');
+      renderQuickGroupsAndProviders();
+    });
+  }
+
   $('#kc-patterns').addEventListener('input', function () {
-    renderQuickModels();
+    renderQuickGroupsAndProviders();
   });
 
   // 配置弹窗：复制密钥
