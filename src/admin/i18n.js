@@ -98,7 +98,7 @@ var I18N = {
         modelPatternsLabel: '自定义通配符规则（逗号或换行分隔）', modelPatternsPlaceholder: '支持通配符，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾选已有模型',
         quickPickGroups: '按「路由」大粒度勾选：', quickPickProviders: '按「服务商」大粒度勾选（包含旗下所有模型）：', noGroupsHint: '暂未配置路由，可在「路由」页面创建',
         quickPickHint: '勾选将追加到上方规则列表中', noModelsFound: '暂无可用上游模型', rotateInDialog: '轮换',
-        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空'
+        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空', limited: '限制'
       },
       logs: {
         allStatus: '全部状态', success: '成功', fail: '失败', onlyFallback: '仅容灾',
@@ -256,7 +256,7 @@ var I18N = {
         modelPatternsLabel: '自訂萬用字元規則（逗號或換行分隔）', modelPatternsPlaceholder: '支援萬用字元，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾選已有模型',
         quickPickGroups: '按「路由」大粒度勾選：', quickPickProviders: '按「服務商」大粒度勾選（包含旗下所有模型）：', noGroupsHint: '暫未配置路由，可在「路由」頁面建立',
         quickPickHint: '勾選將追加到上方規則列表中', noModelsFound: '暫無可用上游模型', rotateInDialog: '輪換',
-        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空'
+        tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空', limited: '限制'
       },
       logs: {
         allStatus: '全部狀態', success: '成功', fail: '失敗', onlyFallback: '僅容災',
@@ -414,7 +414,7 @@ var I18N = {
         modelPatternsLabel: 'Custom wildcard rules (comma/newline separated)', modelPatternsPlaceholder: 'Supports wildcards, e.g. gpt-4*, deepseek/*', quickPickModels: 'Quick Select Models',
         quickPickGroups: 'Select by "Route" (coarse-grained):', quickPickProviders: 'Select by "Provider" (includes all models):', noGroupsHint: 'No routes configured yet. Create one in "Routing" tab.',
         quickPickHint: 'Selecting will append to rules above', noModelsFound: 'No upstream models found', rotateInDialog: 'Rotate',
-        tagModelLimited: 'Restricted', tagModelAll: 'All Models', configSaved: 'Config updated', clear: 'Clear'
+        tagModelLimited: 'Restricted', tagModelAll: 'All Models', configSaved: 'Config updated', clear: 'Clear', limited: 'Limited'
       },
       logs: {
         allStatus: 'All Status', success: 'Success', fail: 'Failed', onlyFallback: 'Failover Only',

@@ -1650,16 +1650,18 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         var pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
         var barClass = pct >= 100 ? 'danger' : pct >= 80 ? 'warning' : 'normal';
 
-        var policyTag = '';
-        if (k.model_policy && k.model_policy !== 'all') {
-          var titleText = (k.model_policy === 'allow' ? '白名单: ' : '黑名单: ') + (k.model_patterns || '');
-          policyTag = '<span class="tag warn" style="margin-left:4px" title="' + esc(titleText) + '">' + t('keys.tagModelLimited') + '</span>';
-        }
+        var isModelLimited = k.model_policy && k.model_policy !== 'all';
+        var limitLabel = limit > 0 ? fmtTokens(limit) : (isModelLimited ? t('keys.limited') : t('keys.unlimited'));
+        var limitTitle = isModelLimited
+          ? (k.model_policy === 'allow' ? '模型白名单: ' : '模型黑名单: ') + (k.model_patterns || '')
+          : '';
 
         var quotaHtml = '<div class="quota-cell">' +
-          '<div class="quota-text"><span>' + fmtTokens(used) + ' / ' + (limit > 0 ? fmtTokens(limit) : t('keys.unlimited')) + '</span>' +
+          '<div class="quota-text"><span' + (limitTitle ? ' title="' + esc(limitTitle) + '"' : '') + '>' +
+            fmtTokens(used) + ' / ' + limitLabel +
+          '</span>' +
           (isExceeded ? '<span class="tag bad" style="margin-left:4px">' + t('keys.quotaExceeded') + '</span>' : '') +
-          policyTag + '</div>' +
+          '</div>' +
           (limit > 0 ? '<div class="quota-bar-bg"><div class="quota-bar-fill ' + barClass + '" style="width:' + pct + '%"></div></div>' : '') +
           '</div>';
 
