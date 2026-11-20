@@ -1268,7 +1268,7 @@ try {
     ok(c({ prompt_tokens: 10, prompt_tokens_details: { cached_tokens: 0 } }) === 0, '缓存字段：报了 0 记 0');
   }
 
-  // ---- 路由 (Routing Groups) 与大粒度权限测试 ----
+  // ---- 分组 (Groups) 与大粒度权限测试 ----
   {
     const { resolveTargets, isModelAllowed, listModels, _resetGroupCounters } = await import('../src/gateway.js');
     const { normalizeConfig } = await import('../src/config.js');

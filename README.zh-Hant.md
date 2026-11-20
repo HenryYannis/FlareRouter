@@ -20,14 +20,15 @@
 ## 功能
 
 - **服務商管理**：名稱、ID、協定類型（OpenAI 相容 / OpenAI Responses / Anthropic）、Base URL、API Key（頁面只顯示遮罩後的預覽）、模型清單（可從服務商的 `/models` 拉取後勾選）、啟用、順序、逾時
+- **模型分組（智慧調度與負載均衡）**：將不同上游、不同提供商的模型聚合為統一分組（如 `group/glm`、`group/claude`）。提供三種核心調度規則：**順序容災**（Failover，依優先級依次嘗試）、**輪詢均衡**（Round-Robin，請求在組內各健康節點按序輪流分發以均衡負載）、**隨機分流**（Random，隨機選取起始節點）；用戶端以 `group/{id}`（或別名 `{id}`）直接發起呼叫；分組可無縫加入全局容災鏈中，與單模型混合編排；組內模型支援靈活上移/下移排序
 - **OpenAI 相容介面**：`/v1/chat/completions`（串流 SSE 原樣轉送）、`/v1/responses`（OpenAI Responses API，含原生轉送與跨協定轉換）、`/v1/embeddings`、`/v1/models`（自動依目前呼叫密鑰的模型權限策略動態過濾）；圖片與語音：`/v1/images/generations`、`/v1/images/edits`、`/v1/audio/transcriptions`、`/v1/audio/speech`（TTS；對齊控制台閘道並補充合成，依模型找到服務商後原樣轉送）
 - **Anthropic 介面**：`/v1/messages`（含串流）、`/v1/messages/count_tokens`，Claude Code 可直接接入
 - **協定全自動互轉**：三種入口（Chat Completions / Responses / Messages）都能呼叫任意協定的服務商，請求體（`messages` ⇄ `input`/`instructions`）、回應、串流 SSE 事件（Chunk ⇄ Responses 事件 ⇄ Anthropic 事件）、工具呼叫全自動無縫轉換
-- **模型定址**：`服務商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；也可只寫模型名稱（在已啟用服務商的模型清單中尋找，不分大小寫）；提供 `FlareRouter/auto`（兼任 `auto`），依容災鏈從頭嘗試
+- **模型定址**：`服務商 ID/模型`，例如 `openrouter/google/gemini-2.5-pro`；模型分組 `group/{分組 ID}`（如 `group/glm`）；也可只寫模型名稱或分組別名（在已啟用服務商和分組中尋找）；提供 `FlareRouter/auto`（兼任 `auto`），依容災鏈從頭嘗試
 - **容災切換與智慧熔斷**：失敗（網路錯誤、逾時、任何非 2xx）就依容災鏈換下一個；同服務商遇 401/402/403/429 或欠費/配額用盡等帳號級故障時自動 0ms 快速熔斷跳過該商剩餘模型；串流請求只在上游開始回傳之前切換；請求標頭 `x-gateway-fallback: off` 可單次關閉，設定中也可整體關閉
-- **呼叫密鑰與模型限制**：以 `Authorization: Bearer`、`x-api-key` 或 `api-key` 驗證；管理頁支援密鑰名稱管理、長密鑰中間省略安全顯示；支援**模型存取控制**（全部允許 / 白名單模式 / 黑名單模式，支援萬用字元規則如 `gpt-4*`、`deepseek/*`）；支援 Token 配額上限與一鍵重置已用；操作列精簡為「複製 / 配置 / 刪除」；支援一鍵輪換、隨時查看明文、刪除；D1 儲存明文與雜湊；越權請求由閘道入口 0ms 快速攔截（403 Forbidden）並記錄稽核日誌
+- **呼叫密鑰與模型限制**：以 `Authorization: Bearer`、`x-api-key` 或 `api-key` 驗證；管理頁支援密鑰名稱管理、長密鑰中間省略安全顯示；支援**模型存取控制**（全部允許 / 白名單模式 / 黑名單模式），不僅支援單模型萬用字元規則，更支援**按分組**（如 `group/*`、`group/glm`）和**按服務商**（如 `provider/*`、`siliconflow/*`）的大粒度權限授權與攔截；提供快捷分類標籤選擇器（「全選」「服務商」「分組」「常用規則」）與「清空已選」按鈕；支援 Token 配額上限與一鍵重置已用；操作列統一為 `[複製] [編輯] [刪除]` 三聯按鈕；支援一鍵輪換、隨時查看明文、刪除；D1 儲存明文與雜湊；越權請求由閘道入口 0ms 快速攔截（403 Forbidden）並記錄稽核日誌
 - **呼叫日誌**：存在 D1，以 `ctx.waitUntil` 非同步寫入；可依狀態、容災、協定、服務商、密鑰、模型、錯誤關鍵字篩選，可清空；失敗的每次嘗試都記錄上游原始錯誤
-- **管理頁**：同一個 Worker 的 `/admin`，以管理員密碼登入；概覽（含 HTTP 常見錯誤 400~504 速查表）、上游、密鑰、測試、日誌、設定（含容災與隱私脫敏）；模組化原始碼位於 `src/admin/`（`app.js`、`chat.js`、`i18n.js`、`style.css`、`chat.css`、`index.html`）；支援簡體/繁體/English 三語切換；日夜模式預設跟隨系統（與 FlarePanel 一致），可手動切換，含玻璃風格；「測試」支援多輪串流、思考過程摺疊與 Markdown（僅存本機瀏覽器）
+- **管理頁**：同一個 Worker 的 `/admin`，以管理員密碼登入；概覽（含 HTTP 常見錯誤 400~504 速查表）、上游、分組、密鑰、測試、日誌、設定（含容災與隱私脫敏）；模組化原始碼位於 `src/admin/`（`app.js`、`chat.js`、`i18n.js`、`style.css`、`chat.css`、`index.html`）；支援簡體/繁體/English 三語切換；日夜模式預設跟隨系統（與 FlarePanel 一致），可手動切換，含玻璃風格；「測試」支援多輪串流、思考過程摺疊與 Markdown（僅存本機瀏覽器）
 - **隱私與資料脫敏**：出站前自動將敏感資訊（API Key、資料庫連線密碼、IPv4、自訂敏感詞）替換為確定性暗號（如 `{{MASK_TOKEN_...}}`），並在上游模型回應（含非串流與串流 SSE）時無縫還原；暗號基於確定性雜湊，不破壞 Prompt Cache 命中率；支援針對單一服務商設定脫敏策略（如官方直連放行，第三方代理強制脫敏）；記錄日誌時自動保護敏感內容，防止憑據落庫
 
 ## 部署
@@ -60,12 +61,13 @@ npx wrangler deploy
 
 部署後開啟 `https://你的網址/admin`，以管理員密碼登入：
 
-1. 在「上游」頁新增服務商（Base URL 通常以 `/v1` 結尾）。模型清單可留空儲存，再按「从服务商拉取」勾選寫入；勾選即時寫入
-2. 在「密钥」頁產生密鑰，明文只顯示一次
-3. 在「測試」頁可多輪試聊（串流，走真實轉發/容災/日誌）；在「日志」頁查看結果
-4. 在「设置」頁配置容災鏈（留空則依服務商順序取每家的第一個模型）、日誌保留與備份
+1. 在「上游」頁新增服務商（Base URL 通常以 `/v1` 結尾）。模型清單可留空儲存，再按「從服務商拉取」勾選寫入；勾選即時寫入
+2. 在「分組」頁可將不同服務商的模型聚合為統一邏輯分組（如 `group/glm`），設定調度策略與容災優先級
+3. 在「密鑰」頁產生密鑰，明文只顯示一次；可配置細粒度模型規則或大粒度分組/服務商權限
+4. 在「測試」頁可多輪試聊（串流，走真實轉發/容災/日誌）；在「日誌」頁查看結果
+5. 在「設定」頁配置容災鏈（支援選擇單一模型與模型分組 `group/*`，留空則依服務商順序取每家的第一個模型）、日誌保留與備份
 
-（管理頁介面為簡體中文，上方引號內是頁面上實際顯示的名稱。）
+（管理頁右上角可隨時切換簡體中文、繁體中文或 English。）
 
 之後更新程式碼只需 `npx wrangler deploy`；有新的資料庫遷移時再執行一次 `npm run db:migrate`（已執行過的遷移會自動略過）。
 
@@ -126,6 +128,12 @@ curl https://ai.example.com/v1/chat/completions \
   -H "Authorization: Bearer sk-fr-你的密鑰" \
   -H "Content-Type: application/json" \
   -d '{"model":"openrouter/google/gemini-2.5-pro","messages":[{"role":"user","content":"你好"}]}'
+
+# 呼叫模型分組（依分組設定的策略智慧調度，如順序容災、輪詢均衡或隨機分流）
+curl https://ai.example.com/v1/chat/completions \
+  -H "Authorization: Bearer sk-fr-你的密鑰" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"group/glm","messages":[{"role":"user","content":"你好"}]}'
 
 # 串流
 curl -N https://ai.example.com/v1/chat/completions \
@@ -211,6 +219,15 @@ claude
 - 上面的 `anthropic` 是你在管理頁為服務商取的 ID，請換成自己的；模型也可以指向 OpenAI 相容的服務商（如 `openrouter/google/gemini-2.5-pro`），閘道會自動轉換協定。
 - 用 `ANTHROPIC_API_KEY` 取代 `ANTHROPIC_AUTH_TOKEN` 也可以（送出的是 `x-api-key` 標頭），閘道兩種都接受。
 - 也可以不設 `ANTHROPIC_MODEL`，而是把 Claude Code 送出的官方模型名稱（如 `claude-sonnet-4-5`）直接寫入某個服務商的模型清單，閘道會依模型名稱比對。
+
+### 模型分組與調度策略
+
+在管理頁「分組」中可將跨服務商、跨廠商的同類模型聚合為一個統一的分組入口（用戶端呼叫格式：`group/{分組ID}` 或 `{分組ID}`）：
+
+- **順序容災 (Failover)**：始終優先呼叫組內排在首位的健康模型，若首選失敗（網路逾時、欠費、4xx/5xx）則自動無縫降級嘗試組內第 2、第 3 個候選節點。
+- **輪詢均衡 (Round-Robin)**：在閘道邊緣動態記錄請求計數器，依次輪換將新請求分發至組內各健康節點，實現多帳號、多渠道間的負載均衡與並發削峰；若目前輪到的節點失敗，仍會繼續向下嘗試剩餘候選。
+- **隨機分流 (Random)**：每次請求隨機挑選組內一個健康節點作為起始目標，實現去中心化的輕量隨機流量分流；若隨機命中的節點失敗，則順延環形容災。
+- **全局容災鏈融合**：在「設定 → 容災切換」的容災鏈中，可直接新增 `group/{分組ID}`。當請求進入容災流程時，閘道會自動將該分組展開為其包含的所有健康目標，實現多層容災編排。
 
 ## 隱私與資料脫敏
 

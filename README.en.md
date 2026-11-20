@@ -20,14 +20,15 @@ Built for one person: no user accounts, billing or quotas, no build step. The ad
 ## Features
 
 - **Providers**: name, ID, protocol (OpenAI-compatible, OpenAI Responses, or Anthropic), base URL, API key (shown masked), model list (can be pulled from the provider's `/models` and ticked), enabled, order, timeout
+- **Model Groups (Intelligent Scheduling & Load Balancing)**: aggregate models across different upstreams and providers into unified logical groups (e.g., `group/glm`, `group/claude`). Supports three core dispatch strategies: **Failover** (try healthy targets in strict priority order), **Round-Robin** (cycle sequential requests across healthy nodes for concurrency load balancing), and **Random** (pick a random starting target with circular failover); call using `group/{id}` or bare alias `{id}`; groups can be added directly to the global failover chain alongside single models; easily reorder targets with move up/down controls
 - **OpenAI-compatible API**: `/v1/chat/completions` (SSE streaming passed through), `/v1/responses` (OpenAI Responses API, native forwarding and cross-protocol conversion), `/v1/embeddings`, `/v1/models` (dynamically filtered by the calling key's model access policy); images and audio: `/v1/images/generations`, `/v1/images/edits`, `/v1/audio/transcriptions`, `/v1/audio/speech` (TTS; aligned with the FlarePanel console gateway plus speech synthesis; forwarded as-is to the provider that lists the model)
 - **Anthropic API**: `/v1/messages` (with streaming) and `/v1/messages/count_tokens`; works with Claude Code
 - **Full 3-Protocol Automatic Conversion**: any of the three entry points (Chat Completions / Responses / Messages) can call any provider protocol; requests (`messages` ⇄ `input`/`instructions`), responses, streaming SSE events (Chunk ⇄ Responses Events ⇄ Anthropic Events), and tool calls are converted automatically
-- **Model addressing**: `providerId/model` (e.g. `openrouter/google/gemini-2.5-pro`); a bare model name (looked up, case-insensitively, in the model lists of enabled providers); or `FlareRouter/auto` (also accepts `auto`) to walk the failover chain from the top
+- **Model addressing**: `providerId/model` (e.g. `openrouter/google/gemini-2.5-pro`); model group `group/{groupId}` (e.g. `group/glm`); a bare model name or group alias (looked up in enabled providers and groups); or `FlareRouter/auto` (also accepts `auto`) to walk the failover chain from the top
 - **Failover & Fast Circuit Breaking**: a network error, timeout or any non-2xx moves to the next entry in the chain; account-level failures (401/402/403/429 or quota exhausted) immediately fast-fail (0ms) and skip remaining models under the same provider; streams switch only before the upstream starts responding; the header `x-gateway-fallback: off` disables it for one request, and a setting disables it globally
-- **Gateway Keys & Model Access Control**: authenticate with `Authorization: Bearer`, `x-api-key` or `api-key`; manage key names with compact ellipsis display for long keys; supports **Model Access Control** (Allow All / Whitelist / Blacklist, supporting wildcard rules like `gpt-4*` and `deepseek/*`); supports Token quota limits with one-click usage reset; streamlined action column (Copy / Config / Delete); one-click key rotation, raw key unmasking, and deletion; D1 stores raw keys and hashes; unauthorized model calls are intercepted at the gateway entry within 0ms (403 Forbidden) and logged
+- **Gateway Keys & Model Access Control**: authenticate with `Authorization: Bearer`, `x-api-key` or `api-key`; manage key names with compact ellipsis display for long keys; supports **Model Access Control** (Allow All / Whitelist / Blacklist), supporting single-model wildcard rules alongside coarse-grained access control **by group** (e.g. `group/*`, `group/glm`) and **by provider** (e.g. `provider/*`, `siliconflow/*`); includes quick-select category chips ("Select All", "Providers", "Groups", "Common Rules") and a "Clear Selected" button; supports Token quota limits with one-click usage reset; unified `[Copy] [Edit] [Delete]` action buttons; one-click key rotation, raw key unmasking, and deletion; D1 stores raw keys and hashes; unauthorized model calls are intercepted at the gateway entry within 0ms (403 Forbidden) and logged
 - **Logs**: stored in D1, written asynchronously with `ctx.waitUntil`; filter by status, failover, protocol, provider, key, model or error text, and clear them; every failed attempt keeps the upstream's raw error
-- **Admin page**: `/admin` on the same Worker, admin-password sign-in; tabs for overview (with HTTP 400~504 error quick reference table), upstream, keys, test, logs and settings (failover and privacy redaction live under settings); modular sources under `src/admin/` (`app.js`, `chat.js`, `i18n.js`, `style.css`, `chat.css`, `index.html`); supports Simplified Chinese, Traditional Chinese, and English; day/night theme follows the system like FlarePanel; Test supports multi-turn streaming, collapsible thinking, and Markdown (stored only in this browser)
+- **Admin page**: `/admin` on the same Worker, admin-password sign-in; tabs for Overview (with HTTP 400~504 error quick reference table), Upstreams, Groups, Keys, Test, Logs and Settings (failover and privacy redaction live under Settings); modular sources under `src/admin/` (`app.js`, `chat.js`, `i18n.js`, `style.css`, `chat.css`, `index.html`); supports Simplified Chinese, Traditional Chinese, and English; day/night theme follows the system like FlarePanel; Test supports multi-turn streaming, collapsible thinking, and Markdown (stored only in this browser)
 - **Privacy & Data Redaction**: Outbound sensitive data (API keys, database connection strings, IPv4 addresses, custom sensitive keywords) are automatically replaced with deterministic tokens (e.g. `{{MASK_TOKEN_...}}`), and seamlessly restored in upstream responses (both non-streaming and SSE streams); tokens use deterministic hashing without degrading Prompt Cache hit rates; supports per-provider redaction policies (inherit global / always mask / bypass); automatically sanitizes call logs to prevent secrets from touching the database
 
 ## Deploy
@@ -60,10 +61,13 @@ It deploys to `https://flarerouter.<your-subdomain>.workers.dev`. To use your ow
 
 Then open `https://your-host/admin` and sign in with the admin password:
 
-1. Under 上游 (Upstream), add providers (the base URL usually ends in `/v1`). You can save with an empty model list, then click 从服务商拉取 (pull from provider) and tick models; ticks are saved as you go
-2. Under 密钥 (Keys), create a key; the plain text is shown only once
-3. Use 测试 (Test) for multi-turn streaming chats (real proxy/failover/logging); check results under 日志 (Logs)
-4. Under 设置 (Settings), configure the failover chain (if empty, the first model of each provider is used, in provider order), log retention and backup
+1. Under Upstreams, add providers (the base URL usually ends in `/v1`). You can save with an empty model list, then click "Pull from Provider" and tick models; ticks are saved as you go
+2. Under Groups, aggregate models across different providers into unified logical groups (e.g., `group/glm`), setting dispatch strategies and failover priorities
+3. Under Keys, create gateway API keys (plain text is shown once); configure fine-grained model rules or coarse-grained group/provider permissions
+4. Under Test, run multi-turn streaming chats (real proxy/failover/logging); check results under Logs
+5. Under Settings, configure the failover chain (supports single models and model groups `group/*`; if empty, the first model of each provider is used, in provider order), log retention and backup
+
+(You can switch between Simplified Chinese, Traditional Chinese, and English in the top-right corner of the admin UI.)
 
 To update, run `npx wrangler deploy`; when a new migration ships, run `npm run db:migrate` again (migrations already applied are skipped).
 
@@ -126,6 +130,12 @@ curl https://ai.example.com/v1/chat/completions \
   -H "Authorization: Bearer $GATEWAY_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"openrouter/google/gemini-2.5-pro","messages":[{"role":"user","content":"Hello"}]}'
+
+# Call model group (intelligent routing: failover, round-robin, or random)
+curl https://ai.example.com/v1/chat/completions \
+  -H "Authorization: Bearer $GATEWAY_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"group/glm","messages":[{"role":"user","content":"Hello"}]}'
 
 # Streaming
 curl -N https://ai.example.com/v1/chat/completions \
@@ -211,6 +221,15 @@ Or put it in `~/.claude/settings.json`:
 - `anthropic` above is the provider ID you chose in the admin page; use your own. The model can also point at an OpenAI-compatible provider (e.g. `openrouter/google/gemini-2.5-pro`) and the gateway converts the protocol.
 - `ANTHROPIC_API_KEY` works in place of `ANTHROPIC_AUTH_TOKEN` (it sends an `x-api-key` header); the gateway accepts both.
 - Instead of setting `ANTHROPIC_MODEL`, you can add the official model names Claude Code sends (e.g. `claude-sonnet-4-5`) to a provider's model list; the gateway matches by model name.
+
+### Model Groups & Scheduling Strategies
+
+In the admin page under **Groups**, you can aggregate similar models across multiple upstream providers into a single logical group endpoint (clients call via `group/{groupId}` or bare `{groupId}`):
+
+- **Failover**: Always routes to the first priority healthy target in the group. If the primary target fails (timeout, billing/quota error, 4xx/5xx), FlareRouter seamlessly falls back to the 2nd and 3rd candidate nodes.
+- **Round-Robin**: Edge counters distribute incoming requests sequentially across all healthy nodes in the group for load balancing and concurrency smoothing. If the currently selected node fails, request execution cascades down to remaining candidates.
+- **Random**: Picks a random healthy node in the group as the starting target, achieving decentralized lightweight traffic distribution with circular fallback on failure.
+- **Failover Chain Integration**: You can directly add `group/{groupId}` to the global failover chain under **Settings → Failover**. During failover execution, the gateway automatically expands the group into its constituent healthy targets for multi-tiered disaster recovery orchestration.
 
 ## Privacy & Data Redaction
 
