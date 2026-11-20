@@ -79,7 +79,7 @@ export function writeLog(env, ctx, entry) {
       .bind(...vals)
       .run()
       .catch((e) => console.error('写日志失败', e && e.message));
-    ctx.waitUntil(p);
+    if (ctx && ctx.waitUntil) ctx.waitUntil(p);
   } catch (e) {
     console.error('写日志失败', e && e.message);
     p = Promise.resolve();

@@ -477,6 +477,16 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
   const stream = isChat && body.stream === true;
   const includeUsage = !!(body.stream_options && body.stream_options.include_usage);
 
+  const extractPrompt = (b) => (endpoint === 'responses'
+    ? lastResponsesUserText(b)
+    : isChat
+      ? lastUserText(b.messages)
+      : JSON.stringify(b.input || ''));
+  const rawPrompt = cfg.settings.logPrompts ? extractPrompt(body) : null;
+  const safePrompt = rawPrompt && cfg.settings.privacy?.enabled
+    ? new PrivacyManager(cfg.settings.privacy).maskText(rawPrompt)
+    : rawPrompt;
+
   const baseLog = {
     ts: t0,
     keyId: caller && caller.id,
@@ -485,13 +495,7 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
     clientProtocol,
     requestedModel: body.model || 'auto',
     stream,
-    prompt: cfg.settings.logPrompts
-      ? (endpoint === 'responses'
-          ? lastResponsesUserText(body)
-          : isChat
-            ? lastUserText(body.messages)
-            : JSON.stringify(body.input || ''))
-      : null,
+    prompt: safePrompt,
   };
 
   if (caller && caller.modelPolicy && caller.modelPolicy !== 'all') {
@@ -514,7 +518,10 @@ export async function handleProxy(request, env, ctx, { endpoint, caller }) {
     const isGroupTarget = (t) => matchedGroup && (matchedGroup.targets || []).some(
       (tgt) => tgt.toLowerCase() === `${t.provider.id}/${t.model}`.toLowerCase()
     );
-    targets = targets.filter((t) => isGroupTarget(t) || isModelAllowed(`${t.provider.id}/${t.model}`, caller.modelPolicy, caller.modelPatterns, cfg));
+    targets = targets.filter((t) => {
+      const allowed = isModelAllowed(`${t.provider.id}/${t.model}`, caller.modelPolicy, caller.modelPatterns, cfg);
+      return caller.modelPolicy === 'deny' ? allowed : (isGroupTarget(t) || allowed);
+    });
     if (!targets.length) {
       const errMsg = `当前调用密钥无权使用模型「${reqModel}」（受密钥模型访问策略限制）`;
       writeLog(env, ctx, { ...baseLog, status: 403, latencyMs: Date.now() - t0, error: errMsg, attempts: 0 });

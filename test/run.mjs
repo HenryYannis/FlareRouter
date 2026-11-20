@@ -1146,8 +1146,8 @@ try {
   const after = (await db.prepare('SELECT COUNT(*) AS n FROM call_logs').first()).n;
   ok(after === before - 1, `Cron 按保留天数清理（${before} -> ${after}）`);
 
-  // 脱敏明细接口与反查兜底测试
-  const testMaskPh = '{{MASK_CUSTOM_0123456789abcdef}}';
+  // 脱敏明细接口与反查兜底测试（严格测试真实的 8 位暗号）
+  const testMaskPh = '{{MASK_CUSTOM_01234567}}';
   const testMaskTs = 1700000000000;
   await kv.put(`mask:${testMaskPh}`, '机密原词测试');
   await db.prepare("INSERT INTO call_logs (ts, endpoint, status, prompt) VALUES (?, 'chat/completions', 200, ?)").bind(testMaskTs, `用户提问中包含 ${testMaskPh}`).run();

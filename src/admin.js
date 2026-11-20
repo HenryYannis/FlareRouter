@@ -665,7 +665,7 @@ export async function handleAdminApi(request, env, ctx, path) {
       try {
         const row = await env.DB.prepare('SELECT prompt, error FROM call_logs WHERE ts = ? LIMIT 1').bind(Number(ts)).first();
         const text = `${(row && row.prompt) || ''} ${(row && row.error) || ''}`;
-        const regex = /\{\{MASK_([A-Z0-9]+)_[a-f0-9]{16}\}\}/g;
+        const regex = /\{\{MASK_([A-Z0-9]+)_[a-f0-9]{8}\}\}/g;
         const matches = text.match(regex);
         if (matches && matches.length) {
           const unique = [...new Set(matches)];
