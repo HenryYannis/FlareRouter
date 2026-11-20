@@ -453,7 +453,6 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     (groups || (state.cfg && state.cfg.groups) || []).forEach(function (g) {
       if (g.enabled) {
         out.push('group/' + g.id);
-        out.push(g.id);
       }
     });
     (providers || []).forEach(function (p) { if (p.enabled) p.models.forEach(function (m) { out.push(p.id + '/' + m); }); });
@@ -1015,8 +1014,6 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           '<div class="group-name">' + esc(g.name || g.id) + '</div>' +
           '<div class="group-aliases">' +
             '<code class="mono small" style="color:var(--primary);cursor:pointer" title="' + t('header.copied') + '" data-copy-group="group/' + esc(g.id) + '">group/' + esc(g.id) + '</code>' +
-            '<span class="muted small mono">或</span>' +
-            '<code class="mono small" style="color:var(--muted);cursor:pointer" title="' + t('header.copied') + '" data-copy-group="' + esc(g.id) + '">' + esc(g.id) + '</code>' +
           '</div>' +
           noteHtml +
         '</td>' +
@@ -1436,7 +1433,13 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       $('#c-model').value = 'FlareRouter/auto';
       if (chatState) chatState.model = 'FlareRouter/auto';
     }
-    $('#chain-add').innerHTML = ms.filter(function (m) { return m !== 'FlareRouter/auto'; }).map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
+    var providerModels = [];
+    (state.cfg.providers || []).forEach(function (p) {
+      if (p.enabled && p.models) {
+        p.models.forEach(function (m) { providerModels.push(p.id + '/' + m); });
+      }
+    });
+    $('#chain-add').innerHTML = providerModels.map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
     $('#lf-provider').innerHTML = '<option value="">' + t('logs.allProviders') + '</option>' + state.cfg.providers.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('');
     var ex = ms[1] || 'FlareRouter/auto';
     $('#curl-example').textContent =

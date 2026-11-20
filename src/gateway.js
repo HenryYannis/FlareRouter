@@ -60,7 +60,6 @@ export function listModels(cfg) {
   for (const g of (cfg.groups || [])) {
     if (!g.enabled) continue;
     data.push(item(`group/${g.id}`, 'group', g.name || g.id));
-    data.push(item(g.id, 'group', g.name || g.id));
   }
   for (const p of cfg.providers) {
     if (!p.enabled) continue;

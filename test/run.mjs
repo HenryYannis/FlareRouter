@@ -1305,10 +1305,10 @@ try {
       settings: { fallbackEnabled: false, fallbackChain: [] }
     });
 
-    // 1. 测试 listModels 输出包含路由
+    // 1. 测试 listModels 输出包含路由 group/glm，且不生成重复的裸别名
     const modelsOutput = listModels(mockCfg);
     ok(modelsOutput.data.some((m) => m.id === 'group/glm' && m.owned_by === 'group'), 'listModels 包含 group/glm 路由');
-    ok(modelsOutput.data.some((m) => m.id === 'glm' && m.owned_by === 'group'), 'listModels 包含 glm 别名路由');
+    ok(!modelsOutput.data.some((m) => m.id === 'glm'), 'listModels 不输出重复的裸别名 glm');
 
     // 2. 测试 group/glm 寻址与过滤已停用服务商
     const tFailover = resolveTargets(mockCfg, 'group/glm', { allowFallback: false });
