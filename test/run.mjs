@@ -1296,7 +1296,7 @@ try {
         },
         {
           id: 'disabled-group',
-          name: '已停用路由',
+          name: '已停用分组',
           strategy: 'failover',
           targets: ['p1/glm5.3-flash'],
           enabled: false,
@@ -1305,20 +1305,20 @@ try {
       settings: { fallbackEnabled: false, fallbackChain: [] }
     });
 
-    // 1. 测试 listModels 输出包含路由 group/glm，且不生成重复的裸别名
+    // 1. 测试 listModels 输出包含分组 group/glm，且不生成重复的裸别名
     const modelsOutput = listModels(mockCfg);
-    ok(modelsOutput.data.some((m) => m.id === 'group/glm' && m.owned_by === 'group'), 'listModels 包含 group/glm 路由');
+    ok(modelsOutput.data.some((m) => m.id === 'group/glm' && m.owned_by === 'group'), 'listModels 包含 group/glm 分组');
     ok(!modelsOutput.data.some((m) => m.id === 'glm'), 'listModels 不输出重复的裸别名 glm');
 
     // 2. 测试 group/glm 寻址与过滤已停用服务商
     const tFailover = resolveTargets(mockCfg, 'group/glm', { allowFallback: false });
-    ok(tFailover.targets && tFailover.targets.length === 2, '路由成功解析出 2 个有效节点 (过滤掉 p3 停用服务商)');
+    ok(tFailover.targets && tFailover.targets.length === 2, '分组成功解析出 2 个有效节点 (过滤掉 p3 停用服务商)');
     ok(tFailover.targets[0].provider.id === 'p1' && tFailover.targets[0].model === 'glm5.3-flash', '顺序容灾第 1 个是 p1');
     ok(tFailover.targets[1].provider.id === 'p2' && tFailover.targets[1].model === 'GLM-5.3-Flash', '顺序容灾第 2 个是 p2');
 
     // 3. 测试直接别名 glm 寻址
     const tAlias = resolveTargets(mockCfg, 'glm', { allowFallback: false });
-    ok(tAlias.targets && tAlias.targets.length === 2 && tAlias.targets[0].provider.id === 'p1', '直接别名 glm 成功命中路由');
+    ok(tAlias.targets && tAlias.targets.length === 2 && tAlias.targets[0].provider.id === 'p1', '直接别名 glm 成功命中分组');
 
     // 4. 测试轮询策略 (round-robin)
     _resetGroupCounters();
@@ -1326,9 +1326,9 @@ try {
     const rr2 = resolveTargets(mockCfg, 'group/glm-rr', { allowFallback: false });
     ok(rr1.targets[0].provider.id === 'p1' && rr2.targets[0].provider.id === 'p2', '轮询策略按请求轮换首选节点');
 
-    // 5. 测试停用路由报错
+    // 5. 测试停用分组报错
     const tDisabled = resolveTargets(mockCfg, 'group/disabled-group');
-    ok(tDisabled.error && tDisabled.error.status === 400, '停用路由返回 400');
+    ok(tDisabled.error && tDisabled.error.status === 400, '停用分组返回 400');
 
     // 6. 测试大粒度密钥权限策略 (isModelAllowed)
     ok(isModelAllowed('group/glm', 'allow', 'group/glm'), '密钥白名单直接放行 group/glm');
@@ -1346,8 +1346,8 @@ try {
     ok(tFallback.targets && tFallback.targets.length === 2, '容灾链中的 group/glm 成功展开为 2 个目标');
     ok(tFallback.targets[0].provider.id === 'p1' && tFallback.targets[1].provider.id === 'p2', '容灾链中的 group/glm 正确按目标顺序排列');
     ok(!isModelAllowed('p2/GLM-5.3-Flash', 'allow', 'p1/*'), '密钥白名单正确隔离未授权服务商 p2');
-    ok(!isModelAllowed('group/other', 'allow', 'group/glm'), '密钥白名单隔离未授权路由 group/other');
-    ok(!isModelAllowed('group/glm', 'deny', 'group/glm'), '密钥黑名单正确拦截被拉黑路由');
+    ok(!isModelAllowed('group/other', 'allow', 'group/glm'), '密钥白名单隔离未授权分组 group/other');
+    ok(!isModelAllowed('group/glm', 'deny', 'group/glm'), '密钥黑名单正确拦截被拉黑分组');
     ok(!isModelAllowed('p1/glm5.3-flash', 'deny', 'p1/*'), '密钥黑名单正确拦截被拉黑服务商');
   }
 

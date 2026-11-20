@@ -428,7 +428,7 @@ html.night-theme th { background: rgba(255, 255, 255, 0.02); }
 tr.click { cursor: pointer; }
 tr.click:hover td { background: var(--soft); }
 
-/* 服务商与路由列表表格重构与对齐规范 */
+/* 服务商与分组列表表格重构与对齐规范 */
 #prov-table th,
 #prov-table td,
 #group-table th,
@@ -1417,7 +1417,7 @@ html.night-theme,
 }
 
 /* ==========================================================================
-   路由 (Routing Groups) 与大粒度权限选择器
+   分组 (Groups) 与大粒度权限选择器
    ========================================================================== */
 .strat-badge {
   display: inline-flex;
@@ -1562,7 +1562,7 @@ html.night-theme .quick-chip.active {
   line-height: 1.35;
 }
 
-/* 路由列表表格列宽与元素对齐规范（完全对齐上游 prov-table） */
+/* 分组列表表格列宽与元素对齐规范（完全对齐上游 prov-table） */
 #group-table .col-group-name {
   min-width: 170px;
 }

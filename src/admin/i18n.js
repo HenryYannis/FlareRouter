@@ -3,8 +3,8 @@ var I18N = {
     zh: {
       title: 'FlareRouter 网关',
       header: { copied: '已复制', logout: '退出账号', themeToDark: '切换到夜间', themeToLight: '切换到日间' },
-      nav: { groups: '路由' },
-      tabs: { overview: '概览', providers: '上游', groups: '路由', fallback: '容灾', keys: '密钥', logs: '日志', chat: '测试', settings: '设置' },
+      nav: { groups: '分组' },
+      tabs: { overview: '概览', providers: '上游', groups: '分组', fallback: '容灾', keys: '密钥', logs: '日志', chat: '测试', settings: '设置' },
       login: { title: 'FlareRouter 网关登录', passwordLabel: '管理员密码', submit: '登录', submitting: '登录中…', unauth: '未登录' },
       overview: {
         statsTitle: '调用统计', days24h: '近 24 小时', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新', refreshing: '刷新中…',
@@ -47,12 +47,12 @@ var I18N = {
         sectionBasic: '基础连接与鉴权', sectionModels: '模型列表配置', sectionAdvanced: '高级选项'
       },
       groups: {
-        title: '路由', desc: '聚合不同上游模型为统一名称（如 group/glm 或 glm），按策略调度与自动容灾。', add: '新建路由',
-        empty: '还没有路由，点击右上角「新建路由」创建。',
+        title: '分组', desc: '聚合不同上游模型为统一分组（如 group/glm），按策略调度与自动容灾。', add: '新建分组',
+        empty: '还没有分组，点击右上角「新建分组」创建。',
         thNameId: '名称 / ID', thStrategy: '调度规则', thTargets: '包含模型', thEnable: '启用', thActions: '操作',
-        edit: '编辑', del: '删除', delConfirm: '确定删除路由「{name}」？', deleted: '已删除', saved: '路由已保存',
-        editTitle: '新建 / 编辑路由', labelId: '路由 ID', idPlaceholder: '例如：glm、code-fast',
-        idHint: '客户端调用：group/{id} 或直接用 {id}', labelName: '路由名称', namePlaceholder: '例如：GLM 综合池',
+        edit: '编辑', del: '删除', delConfirm: '确定删除分组「{name}」？', deleted: '已删除', saved: '分组已保存',
+        editTitle: '新建 / 编辑分组', labelId: '分组 ID', idPlaceholder: '例如：glm、code-fast',
+        idHint: '客户端调用：group/{id}', labelName: '分组名称', namePlaceholder: '例如：GLM 综合池',
         labelStrategy: '调度规则', stratFailover: '顺序容灾 (Failover / 依次尝试)', stratRR: '轮询均衡 (Round-Robin / 依次分流)', stratRandom: '随机分流 (Random / 随机起始)',
         labelNote: '备注', notePlaceholder: '可选备注，例如：给工作 Key 用',
         sectionBasic: '基础设置',
@@ -97,7 +97,7 @@ var I18N = {
         config: '编辑', configTitle: '编辑调用密钥', sectionBasic: '基本信息', sectionQuota: 'Token 额度限制', sectionModels: '模型访问控制',
         modelPolicyAll: '全部允许（默认）', modelPolicyAllow: '白名单模式（仅允许选中的模型）', modelPolicyDeny: '黑名单模式（禁止调用选中的模型）',
         modelPatternsLabel: '自定义通配符规则（逗号或换行分隔）', modelPatternsPlaceholder: '支持通配符，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾选已有模型',
-        quickPickGroups: '按「路由」大粒度勾选：', quickPickProviders: '按「服务商」大粒度勾选（包含旗下所有模型）：', noGroupsHint: '暂未配置路由，可在「路由」页面创建',
+        quickPickGroups: '按「分组」大粒度勾选：', quickPickProviders: '按「服务商」大粒度勾选（包含旗下所有模型）：', noGroupsHint: '暂未配置分组，可在「分组」页面创建',
         quickPickHint: '勾选将追加到上方规则列表中', noModelsFound: '暂无可用上游模型', rotateInDialog: '轮换',
         tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空', limited: '限制'
       },
@@ -162,8 +162,8 @@ var I18N = {
     'zh-Hant': {
       title: 'FlareRouter 網關',
       header: { copied: '已複製', logout: '退出帳號', themeToDark: '切換到夜間', themeToLight: '切換到日間' },
-      nav: { groups: '路由' },
-      tabs: { overview: '概覽', providers: '上游', groups: '路由', fallback: '容災', keys: '密鑰', logs: '日誌', chat: '測試', settings: '設定' },
+      nav: { groups: '分組' },
+      tabs: { overview: '概覽', providers: '上游', groups: '分組', fallback: '容災', keys: '密鑰', logs: '日誌', chat: '測試', settings: '設定' },
       login: { title: 'FlareRouter 網關登入', passwordLabel: '管理員密碼', submit: '登入', submitting: '登入中…', unauth: '未登入' },
       overview: {
         statsTitle: '調用統計', days24h: '近 24 小時', days7d: '近 7 天', days30d: '近 30 天', refresh: '刷新', refreshing: '重新整理中…',
@@ -206,12 +206,12 @@ var I18N = {
         sectionBasic: '基礎連接與鑒權', sectionModels: '模型列表配置', sectionAdvanced: '進階選項'
       },
       groups: {
-        title: '路由', desc: '聚合不同上游模型為統一名稱（如 group/glm 或 glm），按策略調度與自動容災。', add: '新建路由',
-        empty: '還沒有路由，點擊右上角「新建路由」建立。',
+        title: '分組', desc: '聚合不同上游模型為統一定義（如 group/glm），按策略調度與自動容災。', add: '新建分組',
+        empty: '還沒有分組，點擊右上角「新建分組」建立。',
         thNameId: '名稱 / ID', thStrategy: '調度規則', thTargets: '包含模型', thEnable: '啟用', thActions: '操作',
-        edit: '編輯', del: '刪除', delConfirm: '確定刪除路由「{name}」？', deleted: '已刪除', saved: '路由已儲存',
-        editTitle: '新建 / 編輯路由', labelId: '路由 ID', idPlaceholder: '例如：glm、code-fast',
-        idHint: '客戶端調用：group/{id} 或直接用 {id}', labelName: '路由名稱', namePlaceholder: '例如：GLM 綜合池',
+        edit: '編輯', del: '刪除', delConfirm: '確定刪除分組「{name}」？', deleted: '已刪除', saved: '分組已儲存',
+        editTitle: '新建 / 編輯分組', labelId: '分組 ID', idPlaceholder: '例如：glm、code-fast',
+        idHint: '客戶端調用：group/{id}', labelName: '分組名稱', namePlaceholder: '例如：GLM 綜合池',
         labelStrategy: '調度規則', stratFailover: '順序容災 (Failover / 依序嘗試)', stratRR: '輪詢均衡 (Round-Robin / 依序分流)', stratRandom: '隨機分流 (Random / 隨機起始)',
         labelNote: '備註', notePlaceholder: '可選備註，例如：給工作 Key 用',
         sectionBasic: '基礎設定',
@@ -256,7 +256,7 @@ var I18N = {
         config: '編輯', configTitle: '編輯調用密鑰', sectionBasic: '基本資訊', sectionQuota: 'Token 額度限制', sectionModels: '模型訪問控制',
         modelPolicyAll: '全部允許（預設）', modelPolicyAllow: '白名單模式（僅允許選中的模型）', modelPolicyDeny: '黑名單模式（禁止調用選中的模型）',
         modelPatternsLabel: '自訂萬用字元規則（逗號或換行分隔）', modelPatternsPlaceholder: '支援萬用字元，例如：gpt-4*, deepseek/*', quickPickModels: '快捷勾選已有模型',
-        quickPickGroups: '按「路由」大粒度勾選：', quickPickProviders: '按「服務商」大粒度勾選（包含旗下所有模型）：', noGroupsHint: '暫未配置路由，可在「路由」頁面建立',
+        quickPickGroups: '按「分組」大粒度勾選：', quickPickProviders: '按「服務商」大粒度勾選（包含旗下所有模型）：', noGroupsHint: '暫未配置分組，可在「分組」頁面建立',
         quickPickHint: '勾選將追加到上方規則列表中', noModelsFound: '暫無可用上游模型', rotateInDialog: '輪換',
         tagModelLimited: '模型受限', tagModelAll: '全部模型', configSaved: '配置已更新', clear: '清空', limited: '限制'
       },
@@ -321,8 +321,8 @@ var I18N = {
     en: {
       title: 'FlareRouter Gateway',
       header: { copied: 'Copied', logout: 'Sign Out', themeToDark: 'Switch to Night', themeToLight: 'Switch to Day' },
-      nav: { groups: 'Routing' },
-      tabs: { overview: 'Overview', providers: 'Upstream', groups: 'Routing', fallback: 'Failover', keys: 'Keys', logs: 'Logs', chat: 'Test', settings: 'Settings' },
+      nav: { groups: 'Groups' },
+      tabs: { overview: 'Overview', providers: 'Upstream', groups: 'Groups', fallback: 'Failover', keys: 'Keys', logs: 'Logs', chat: 'Test', settings: 'Settings' },
       login: { title: 'FlareRouter Gateway Sign In', passwordLabel: 'Admin Password', submit: 'Sign In', submitting: 'Signing in…', unauth: 'Not signed in' },
       overview: {
         statsTitle: 'Call Statistics', days24h: 'Last 24 Hours', days7d: 'Last 7 Days', days30d: 'Last 30 Days', refresh: 'Refresh', refreshing: 'Refreshing…',
@@ -365,12 +365,12 @@ var I18N = {
         sectionBasic: 'Connection & Authentication', sectionModels: 'Model List Configuration', sectionAdvanced: 'Advanced Options'
       },
       groups: {
-        title: 'Routing', desc: 'Aggregate upstream models into a unified name (e.g. group/glm or glm) with smart failover and load balancing.', add: 'New Route',
-        empty: 'No routing groups configured. Click "New Route" in top right.',
+        title: 'Groups', desc: 'Aggregate upstream models into a unified group (e.g. group/glm) with smart failover and load balancing.', add: 'New Group',
+        empty: 'No groups configured. Click "New Group" in top right.',
         thNameId: 'Name / ID', thStrategy: 'Dispatch Rule', thTargets: 'Models', thEnable: 'Enabled', thActions: 'Actions',
-        edit: 'Edit', del: 'Delete', delConfirm: 'Delete route "{name}"?', deleted: 'Deleted', saved: 'Route saved',
-        editTitle: 'New / Edit Route', labelId: 'Route ID', idPlaceholder: 'e.g. glm, code-fast',
-        idHint: 'Client call: group/{id} or alias {id}', labelName: 'Route Name', namePlaceholder: 'e.g. GLM Pool',
+        edit: 'Edit', del: 'Delete', delConfirm: 'Delete group "{name}"?', deleted: 'Deleted', saved: 'Group saved',
+        editTitle: 'New / Edit Group', labelId: 'Group ID', idPlaceholder: 'e.g. glm, code-fast',
+        idHint: 'Client call: group/{id}', labelName: 'Group Name', namePlaceholder: 'e.g. GLM Pool',
         labelStrategy: 'Dispatch Rule', stratFailover: 'Failover (Sequential fallback)', stratRR: 'Round-Robin (Rotate per request)', stratRandom: 'Random (Randomized start)',
         labelNote: 'Note', notePlaceholder: 'Optional, e.g. For Work Key',
         sectionBasic: 'Basic Settings',
@@ -415,7 +415,7 @@ var I18N = {
         config: 'Edit', configTitle: 'Edit API Key', sectionBasic: 'Basic Info', sectionQuota: 'Token Quota Limit', sectionModels: 'Model Access Control',
         modelPolicyAll: 'Allow All (Default)', modelPolicyAllow: 'Whitelist (Selected only)', modelPolicyDeny: 'Blacklist (Block selected)',
         modelPatternsLabel: 'Custom wildcard rules (comma/newline separated)', modelPatternsPlaceholder: 'Supports wildcards, e.g. gpt-4*, deepseek/*', quickPickModels: 'Quick Select Models',
-        quickPickGroups: 'Select by "Route" (coarse-grained):', quickPickProviders: 'Select by "Provider" (includes all models):', noGroupsHint: 'No routes configured yet. Create one in "Routing" tab.',
+        quickPickGroups: 'Select by "Group":', quickPickProviders: 'Select by "Provider" (includes all models):', noGroupsHint: 'No groups configured yet. Create one in "Groups" tab.',
         quickPickHint: 'Selecting will append to rules above', noModelsFound: 'No upstream models found', rotateInDialog: 'Rotate',
         tagModelLimited: 'Restricted', tagModelAll: 'All Models', configSaved: 'Config updated', clear: 'Clear', limited: 'Limited'
       },

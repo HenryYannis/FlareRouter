@@ -975,7 +975,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     $('#p-fetch-test').classList.remove('danger');
   });
 
-  // ---- 路由 (Routing Groups) ----
+  // ---- 分组 (Groups) ----
   state.editingGroup = null;
   state.groupTargets = [];
 
@@ -1177,17 +1177,17 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     errEl.textContent = '';
 
     if (!id) {
-      errEl.textContent = '请输入路由 ID';
+      errEl.textContent = '请输入分组 ID';
       $('#g-id').focus();
       return;
     }
     if (!/^[A-Za-z0-9_.-]{1,40}$/.test(id)) {
-      errEl.textContent = '路由 ID 只能包含字母、数字、下划线、短横线与点，1–40 位';
+      errEl.textContent = '分组 ID 只能包含字母、数字、下划线、短横线与点，1–40 位';
       $('#g-id').focus();
       return;
     }
     if (!state.groupTargets.length) {
-      errEl.textContent = '请至少选择一个上游模型加入路由';
+      errEl.textContent = '请至少选择一个上游模型加入分组';
       return;
     }
 
@@ -1636,7 +1636,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
     var currentList = parsePatterns($('#kc-patterns').value);
 
-    // 1. 渲染路由
+    // 1. 渲染分组
     var groups = (state.cfg && state.cfg.groups) || [];
     if (!groups.length) {
       gContainer.innerHTML = '';
@@ -1836,7 +1836,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     });
   });
 
-  // 配置弹窗：快捷勾选路由
+  // 配置弹窗：快捷勾选分组
   var quickGroupsBox = $('#kc-quick-groups');
   if (quickGroupsBox) {
     quickGroupsBox.addEventListener('click', function (e) {

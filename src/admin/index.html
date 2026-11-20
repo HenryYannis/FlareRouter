@@ -91,7 +91,7 @@
     <nav id="tabs">
       <button data-tab="overview" class="on" data-i18n="tabs.overview">概览</button>
       <button data-tab="providers" data-i18n="tabs.providers">上游</button>
-      <button data-tab="groups" data-i18n="tabs.groups">路由</button>
+      <button data-tab="groups" data-i18n="tabs.groups">分组</button>
       <button data-tab="keys" data-i18n="tabs.keys">密钥</button>
       <button data-tab="chat" data-i18n="tabs.chat">测试</button>
       <button data-tab="logs" data-i18n="tabs.logs">日志</button>
@@ -154,15 +154,15 @@
       </div>
     </section>
 
-    <!-- 路由 -->
+    <!-- 分组 -->
     <section data-pane="groups" class="hidden">
       <div class="card">
         <div class="card-head-row" style="margin-bottom:10px">
           <div class="card-head-left">
-            <h2 style="margin:0" data-i18n="groups.title">路由</h2>
-            <span class="muted small" data-i18n="groups.desc">聚合不同上游模型为统一名称（如 group/glm 或 glm），按策略调度与自动容灾</span>
+            <h2 style="margin:0" data-i18n="groups.title">分组</h2>
+            <span class="muted small" data-i18n="groups.desc">聚合不同上游模型为统一分组（如 group/glm），按策略调度与自动容灾</span>
           </div>
-          <button class="btn primary" id="add-group" data-i18n="groups.add">新建路由</button>
+          <button class="btn primary" id="add-group" data-i18n="groups.add">新建分组</button>
         </div>
         <div class="scroll-x"><table id="group-table"></table></div>
       </div>
@@ -425,11 +425,11 @@
   </div>
 </dialog>
 
-<!-- 路由编辑弹窗 -->
+<!-- 分组编辑弹窗 -->
 <dialog id="dlg-group">
   <form method="dialog" id="group-form">
     <div class="dh" style="display:flex;justify-content:space-between;align-items:center">
-      <span id="dlg-group-title" data-i18n="groups.editTitle">新建路由</span>
+      <span id="dlg-group-title" data-i18n="groups.editTitle">新建分组</span>
       <button type="button" class="btn sm" onclick="this.closest('dialog').close()">✕</button>
     </div>
     <div class="db">
@@ -438,12 +438,12 @@
         <div class="form-section-title" data-i18n="groups.sectionBasic">基础设置</div>
         <div class="form-grid-2">
           <div>
-            <label class="f" for="g-id" data-i18n="groups.labelId">路由 ID</label>
+            <label class="f" for="g-id" data-i18n="groups.labelId">分组 ID</label>
             <input type="text" id="g-id" placeholder="例如：glm、code-fast" style="width:100%" data-i18n-placeholder="groups.idPlaceholder" spellcheck="false">
-            <div class="muted small form-hint" data-i18n="groups.idHint">客户端调用：group/{id} 或直接用 {id}</div>
+            <div class="muted small form-hint" data-i18n="groups.idHint">客户端调用：group/{id}</div>
           </div>
           <div>
-            <label class="f" for="g-name" data-i18n="groups.labelName">路由名称</label>
+            <label class="f" for="g-name" data-i18n="groups.labelName">分组名称</label>
             <input type="text" id="g-name" placeholder="例如：GLM 综合池" style="width:100%" data-i18n-placeholder="groups.namePlaceholder">
           </div>
         </div>
@@ -552,12 +552,12 @@
         </div>
 
         <div id="kc-models-settings" style="display:none;flex-direction:column;gap:10px">
-          <!-- 按路由大粒度勾选 -->
+          <!-- 按分组大粒度勾选 -->
           <div>
-            <div class="muted small bold" style="margin-bottom:4px" data-i18n="keys.quickPickGroups">按「路由」大粒度勾选：</div>
+            <div class="muted small bold" style="margin-bottom:4px" data-i18n="keys.quickPickGroups">按「分组」大粒度勾选：</div>
             <div id="kc-quick-groups" style="max-height:85px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px;background:var(--code);display:flex;flex-wrap:wrap;gap:6px">
             </div>
-            <div id="kc-quick-groups-empty" class="muted small" style="display:none;padding:4px" data-i18n="keys.noGroupsHint">暂未配置路由，可在「路由」页面创建</div>
+            <div id="kc-quick-groups-empty" class="muted small" style="display:none;padding:4px" data-i18n="keys.noGroupsHint">暂未配置分组，可在「分组」页面创建</div>
           </div>
 
           <!-- 按服务商大粒度勾选 -->

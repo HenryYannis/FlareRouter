@@ -273,21 +273,21 @@ export async function handleAdminApi(request, env, ctx, path) {
     return json(publicConfig(await saveConfig(env, cfg)));
   }
 
-  // ---- 路由 ----
+  // ---- 分组 ----
   if (path === '/admin/api/groups' && method === 'POST') {
     const b = await readJson(request);
     const cfg = await getConfig(env);
     const input = b.group || {};
     const id = String(input.id || '').trim();
-    if (!ID_RE.test(id)) return err('路由 ID 只能用字母、数字、下划线、点、短横线，1–40 位，且不能含「/」');
+    if (!ID_RE.test(id)) return err('分组 ID 只能用字母、数字、下划线、点、短横线，1–40 位，且不能含「/」');
     const originalId = String(b.originalId || '').trim();
     const idx = originalId ? (cfg.groups || []).findIndex((g) => g.id === originalId) : -1;
-    if (originalId && idx < 0) return err(`找不到原路由 ${originalId}`, 404);
+    if (originalId && idx < 0) return err(`找不到原分组 ${originalId}`, 404);
     const clash = (cfg.groups || []).findIndex((g) => g.id.toLowerCase() === id.toLowerCase());
-    if (clash >= 0 && clash !== idx) return err(`路由 ID「${id}」已存在`);
+    if (clash >= 0 && clash !== idx) return err(`分组 ID「${id}」已存在`);
     const old = idx >= 0 ? cfg.groups[idx] : null;
     const g = normalizeGroup({ ...(old || {}), ...input, id });
-    if (!g.targets.length) return err('请至少选择一个上游模型加入路由');
+    if (!g.targets.length) return err('请至少选择一个上游模型加入分组');
     if (!Array.isArray(cfg.groups)) cfg.groups = [];
     if (idx >= 0) cfg.groups[idx] = g;
     else cfg.groups.push(g);
@@ -306,7 +306,7 @@ export async function handleAdminApi(request, env, ctx, path) {
     const { id, enabled } = await readJson(request);
     const cfg = await getConfig(env);
     const g = (cfg.groups || []).find((x) => x.id === id);
-    if (!g) return err(`找不到路由 ${id}`, 404);
+    if (!g) return err(`找不到分组 ${id}`, 404);
     g.enabled = !!enabled;
     return json(publicConfig(await saveConfig(env, cfg)));
   }

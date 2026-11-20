@@ -83,7 +83,7 @@ export function parseScoped(cfg, scoped) {
   return { provider: p, model: s.slice(i + 1) };
 }
 
-// 检查请求模型是否满足密钥的模型限制策略（all / allow / deny，支持 * 通配符与服务商/路由大粒度控制）
+// 检查请求模型是否满足密钥的模型限制策略（all / allow / deny，支持 * 通配符与服务商/分组大粒度控制）
 export function isModelAllowed(requestedModel, policy, patternsStr) {
   if (!policy || policy === 'all') return true;
   const req = String(requestedModel || '').toLowerCase().trim();
@@ -182,11 +182,11 @@ export function resolveTargets(cfg, requestedModel, { allowFallback = true } = {
     return { targets: fallbackOn ? chain : chain.slice(0, 1) };
   }
 
-  // 1. 优先检查是否匹配到路由 (group/xxx 或直接别名 xxx)
+  // 1. 优先检查是否匹配到分组 (group/xxx 或直接别名 xxx)
   const matchedGroup = findGroup(cfg, req);
   if (matchedGroup) {
     if (!matchedGroup.enabled) {
-      return { targets: [], error: { status: 400, message: `路由「${matchedGroup.name || matchedGroup.id}」(${matchedGroup.id}) 已停用` } };
+      return { targets: [], error: { status: 400, message: `分组「${matchedGroup.name || matchedGroup.id}」(${matchedGroup.id}) 已停用` } };
     }
     const groupRawTargets = matchedGroup.targets || [];
     const validTargets = [];
@@ -197,7 +197,7 @@ export function resolveTargets(cfg, requestedModel, { allowFallback = true } = {
       }
     }
     if (!validTargets.length) {
-      return { targets: [], error: { status: 503, message: `路由「${matchedGroup.name || matchedGroup.id}」内没有可用的已启用上游模型。` } };
+      return { targets: [], error: { status: 503, message: `分组「${matchedGroup.name || matchedGroup.id}」内没有可用的已启用上游模型。` } };
     }
 
     const strat = matchedGroup.strategy || 'failover';
