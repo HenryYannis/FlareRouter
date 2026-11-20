@@ -546,13 +546,16 @@ tr.provider-row:hover .drag-handle { opacity: 1; }
 #prov-table th.col-actions,
 #prov-table td.col-actions,
 #group-table th.col-actions,
-#group-table td.col-actions {
+#group-table td.col-actions,
+#key-table th.col-actions,
+#key-table td.col-actions {
   text-align: center;
   white-space: nowrap;
   width: 1%;
 }
 #prov-table .actions-group,
-#group-table .actions-group {
+#group-table .actions-group,
+#key-table .actions-group {
   display: inline-flex;
   align-items: center;
   justify-content: center;

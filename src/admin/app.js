@@ -1612,7 +1612,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         var patternVal = 'group/' + g.id;
         var isChecked = currentList.includes(patternVal) || currentList.includes(g.id);
         return '<span class="quick-chip' + (isChecked ? ' active' : '') + '" data-group-pattern="' + esc(patternVal) + '">' +
-          '<span>🔀</span><span>' + esc(g.name || g.id) + '</span><span class="muted small mono">(' + esc(patternVal) + ')</span>' +
+          '<span>' + esc(g.name || g.id) + '</span><span class="muted small mono">(' + esc(patternVal) + ')</span>' +
           '</span>';
       }).join('');
     }
@@ -1627,7 +1627,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         var isChecked = currentList.includes(patternVal) || currentList.includes(p.id);
         var modelCount = (p.models && p.models.length) || 0;
         return '<span class="quick-chip' + (isChecked ? ' active' : '') + '" data-provider-pattern="' + esc(patternVal) + '">' +
-          '<span>🏢</span><span>' + esc(p.name || p.id) + '</span><span class="muted small mono">(' + esc(patternVal) + ' · ' + modelCount + '模)</span>' +
+          '<span>' + esc(p.name || p.id) + '</span><span class="muted small mono">(' + esc(patternVal) + ' · ' + modelCount + '模)</span>' +
           '</span>';
       }).join('');
     }
@@ -1668,10 +1668,12 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
           '<td class="col-quota">' + quotaHtml + '</td>' +
           '<td class="small">' + fmtTime(k.created_at) + '</td>' +
           '<td class="small">' + fmtTime(k.last_used_at) + '</td>' +
-          '<td class="col-actions" style="white-space:nowrap">' +
-          '<button class="btn sm" data-kcopy="' + esc(rawKey) + '">' + t('keys.copy') + '</button> ' +
-          '<button class="btn sm" data-kconfig="' + esc(k.id) + '">' + t('keys.config') + '</button> ' +
-          '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button></td></tr>';
+          '<td class="col-actions">' +
+          '<div class="actions-group">' +
+            '<button class="btn sm" data-kcopy="' + esc(rawKey) + '">' + t('keys.copy') + '</button>' +
+            '<button class="btn sm" data-kconfig="' + esc(k.id) + '">' + t('keys.config') + '</button>' +
+            '<button class="btn sm danger" data-kdel="' + esc(k.id) + '">' + t('keys.delete') + '</button>' +
+          '</div></td></tr>';
       }).join('') : '<tr><td colspan="6" class="muted">' + t('keys.empty') + '</td></tr>');
     $('#lf-key').innerHTML = '<option value="">' + t('logs.allKeys') + '</option><option value="admin">' + t('logs.adminTest') + '</option>' + state.keys.map(function (k) { return '<option value="' + esc(k.id) + '">' + esc(k.name) + '</option>'; }).join('');
   }
