@@ -1313,8 +1313,34 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   function renderChainPickerGroups() {
     var q = ($('#chain-picker-q').value || '').trim().toLowerCase();
     var providers = state.cfg.providers.filter(function (p) { return p.enabled && p.models && p.models.length; });
+    var groups = (state.cfg.groups || []).filter(function (g) { return g.enabled; });
     var html = '';
-    if (!providers.length) {
+    if (groups.length) {
+      var groupItemsHtml = '';
+      var groupVisibleCount = 0;
+      groups.forEach(function (g) {
+        var gKey = 'group/' + g.id;
+        var gMatch = (g.name || '').toLowerCase().indexOf(q) >= 0 || g.id.toLowerCase().indexOf(q) >= 0 || gKey.indexOf(q) >= 0;
+        if (gMatch) {
+          groupVisibleCount++;
+          var isChecked = pickerSelected.has(gKey);
+          groupItemsHtml += '<label class="chain-picker-item" title="' + esc(gKey) + '">' +
+            '<input type="checkbox" data-pk="' + esc(gKey) + '"' + (isChecked ? ' checked' : '') + '> ' +
+            '<span class="mono" style="word-break:break-all">' + esc(gKey) + '</span>' +
+            (g.name ? ' <span class="muted small">(' + esc(g.name) + ')</span>' : '') +
+            '</label>';
+        }
+      });
+      if (groupVisibleCount > 0) {
+        html += '<div class="chain-picker-group" data-group-pid="group">' +
+          '<div class="chain-picker-group-title">' +
+            '<div><span class="fw-ui">' + t('nav.groups') + '</span> <span class="muted small">· ' + t('fallback.visibleModelsCount', { count: groupVisibleCount }) + '</span></div>' +
+          '</div>' +
+          '<div class="chain-picker-grid">' + groupItemsHtml + '</div>' +
+        '</div>';
+      }
+    }
+    if (!providers.length && !groups.length) {
       html = '<div class="muted small" style="text-align:center;padding:20px">' + t('providers.empty') + '</div>';
     } else {
       providers.forEach(function (p) {
@@ -1433,13 +1459,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       $('#c-model').value = 'FlareRouter/auto';
       if (chatState) chatState.model = 'FlareRouter/auto';
     }
-    var providerModels = [];
-    (state.cfg.providers || []).forEach(function (p) {
-      if (p.enabled && p.models) {
-        p.models.forEach(function (m) { providerModels.push(p.id + '/' + m); });
-      }
-    });
-    $('#chain-add').innerHTML = providerModels.map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
+    $('#chain-add').innerHTML = ms.filter(function (m) { return m !== 'FlareRouter/auto'; }).map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
     $('#lf-provider').innerHTML = '<option value="">' + t('logs.allProviders') + '</option>' + state.cfg.providers.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('');
     var ex = ms[1] || 'FlareRouter/auto';
     $('#curl-example').textContent =

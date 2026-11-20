@@ -148,6 +148,18 @@ function resolveChain(cfg) {
   if (!list.length) return defaultChain(cfg);
   const out = [];
   for (const item of list) {
+    const matchedGroup = findGroup(cfg, item);
+    if (matchedGroup && matchedGroup.enabled) {
+      for (const tStr of (matchedGroup.targets || [])) {
+        const t = parseScoped(cfg, tStr);
+        if (t && t.provider && t.provider.enabled && t.model) {
+          if (!out.some((x) => x.provider.id === t.provider.id && x.model === t.model)) {
+            out.push(t);
+          }
+        }
+      }
+      continue;
+    }
     const t = parseScoped(cfg, item);
     if (t && t.provider.enabled) out.push(t);
   }

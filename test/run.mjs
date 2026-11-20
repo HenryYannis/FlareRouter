@@ -1338,6 +1338,12 @@ try {
     ok(isModelAllowed('glm', 'allow', 'group/*'), '密钥白名单请求别名 glm 匹配通配符 group/* 放行');
     ok(isModelAllowed('p1/glm5.3-flash', 'allow', 'p1/*'), '密钥白名单按服务商通配符 p1/* 放行');
     ok(isModelAllowed('p1/glm5.3-flash', 'allow', 'p1'), '密钥白名单按服务商 p1 放行旗下模型');
+
+    // 7. 测试容灾链配置 group/glm
+    mockCfg.settings.fallbackChain = ['group/glm'];
+    const tFallback = resolveTargets(mockCfg, 'auto', { allowFallback: true });
+    ok(tFallback.targets && tFallback.targets.length === 2, '容灾链中的 group/glm 成功展开为 2 个目标');
+    ok(tFallback.targets[0].provider.id === 'p1' && tFallback.targets[1].provider.id === 'p2', '容灾链中的 group/glm 正确按目标顺序排列');
     ok(!isModelAllowed('p2/GLM-5.3-Flash', 'allow', 'p1/*'), '密钥白名单正确隔离未授权服务商 p2');
     ok(!isModelAllowed('group/other', 'allow', 'group/glm'), '密钥白名单隔离未授权路由 group/other');
     ok(!isModelAllowed('group/glm', 'deny', 'group/glm'), '密钥黑名单正确拦截被拉黑路由');
