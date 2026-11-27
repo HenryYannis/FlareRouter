@@ -249,6 +249,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   async function api(path, opts) {
     opts = opts || {};
     var init = { method: opts.method || 'GET', headers: { 'X-Admin': '1' }, credentials: 'same-origin' };
+    if (opts.signal) init.signal = opts.signal;
     if (opts.body !== undefined) { init.method = opts.method || 'POST'; init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(opts.body); }
     var res = await fetch(path, init);
     var text = await res.text(), data;
@@ -393,10 +394,14 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       '<p class="muted small usage-note">' + esc(t('overview.usageAuth')) + '</p>' +
       '<p class="muted small usage-note">' + esc(t('overview.usageModelHint')) + '</p>';
   }
+  function copyToClipboard(text) {
+    if (!text || !navigator.clipboard || !navigator.clipboard.writeText) return;
+    navigator.clipboard.writeText(text).then(function () { toast(t('header.copied')); }).catch(function () {});
+  }
   $('#usage-docs').addEventListener('click', function (e) {
     var b = e.target.closest('[data-ucopy]');
     if (!b) return;
-    navigator.clipboard.writeText(b.dataset.ucopy).then(function () { toast(t('header.copied')); });
+    copyToClipboard(b.dataset.ucopy);
   });
 
   initTheme();
@@ -692,6 +697,8 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   // ---- 服务商弹窗 ----
   $('#add-prov').addEventListener('click', function () { openProv(null); });
   function openProv(p) {
+    stopModelTest();
+    if (state.fetchAbort) { try { state.fetchAbort.abort(); } catch (e) {} state.fetchAbort = null; }
     state.editing = p ? p.id : null; state.fetched = []; state.fetchedLimits = {};
     $('#prov-title').textContent = p ? t('providers.dialogEdit') : t('providers.dialogAdd');
     $('#p-name').value = p ? p.name : '';
@@ -741,9 +748,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     this.title = t('keys.showHide');
   });
   $('#p-key-copy').addEventListener('click', function () {
-    var v = $('#p-key').value;
-    if (!v) return;
-    navigator.clipboard.writeText(v).then(function () { toast(t('header.copied')); });
+    copyToClipboard($('#p-key').value);
   });
   $('#p-name').addEventListener('input', function () {
     if (state.editing) return;
@@ -790,22 +795,31 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   $('#p-fetch').addEventListener('click', async function () {
     var fetchBtn = $('#p-fetch');
     if (fetchBtn.disabled) return;
+    if (state.fetchAbort) { try { state.fetchAbort.abort(); } catch (e) {} }
+    var controller = new AbortController();
+    state.fetchAbort = controller;
     fetchBtn.disabled = true;
     fetchBtn.textContent = t('providers.fetching');
     $('#p-fetch-err').textContent = '';
     try {
-      var r = await api('/admin/api/providers/fetch-models', { body: { id: state.editing, protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(), apiKey: $('#p-key').value.trim() } });
+      var r = await api('/admin/api/providers/fetch-models', {
+        body: { id: state.editing, protocol: $('#p-protocol').value, baseUrl: $('#p-url').value.trim(), apiKey: $('#p-key').value.trim() },
+        signal: controller.signal
+      });
+      if (controller.signal.aborted) return;
       state.fetched = r.models; state.fetchedLimits = r.limits || {}; $('#p-fetch-err').textContent = '';
-      state.testResults = {}; state.testingActive = false;
+      stopModelTest();
+      state.testResults = {};
       $('#p-test-status').classList.add('hidden');
-      $('#p-fetch-test').textContent = t('providers.testModels');
       var cur = currentModels(), kept = cur.filter(function (m) { return r.models.indexOf(m) >= 0; });
       if (!kept.length && r.models.length) { $('#p-models').value = r.models.join('\n'); toast(t('providers.fetchPopulated', { count: r.models.length })); }
       else if (r.models.length && kept.length < cur.length) { $('#p-models').value = kept.join('\n'); toast(t('providers.fetchPruned', { count: cur.length - kept.length })); }
       $('#p-fetch-box').classList.remove('hidden'); renderFetched();
     } catch (err) {
+      if ((err && err.name === 'AbortError') || controller.signal.aborted) return;
       $('#p-fetch-err').textContent = err.message;
     } finally {
+      if (state.fetchAbort === controller) state.fetchAbort = null;
       fetchBtn.disabled = false;
       fetchBtn.textContent = t('providers.fetchModels');
     }
@@ -850,17 +864,29 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   $('#p-fetch-none').addEventListener('click', function () { $$('#p-fetch-list input').forEach(function (c) { c.checked = false; }); syncFetched(); });
   $('#p-models').addEventListener('input', function () { if (!$('#p-fetch-box').classList.contains('hidden')) renderFetched(); });
 
-  // 停止测试
-  if ($('#p-test-stop')) {
-    $('#p-test-stop').addEventListener('click', function () {
-      state.testingActive = false;
-    });
+  function stopModelTest() {
+    state.testingActive = false;
+    if (state.testAbort) {
+      try { state.testAbort.abort(); } catch (e) {}
+      state.testAbort = null;
+    }
+    if (state.testResults) {
+      Object.keys(state.testResults).forEach(function (k) {
+        if (state.testResults[k] && state.testResults[k].testing) delete state.testResults[k];
+      });
+    }
+    var testBtn = $('#p-fetch-test');
+    if (testBtn) {
+      testBtn.textContent = t('providers.testModels');
+      testBtn.classList.remove('danger');
+    }
+    if ($('#p-fetch-box') && !$('#p-fetch-box').classList.contains('hidden')) renderFetched();
   }
 
   // 测试模型
   $('#p-fetch-test').addEventListener('click', async function () {
     if (state.testingActive) {
-      state.testingActive = false;
+      stopModelTest();
       return;
     }
     var baseUrl = $('#p-url').value.trim();
@@ -879,6 +905,9 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     }
 
     if (!state.testResults) state.testResults = {};
+    var controller = new AbortController();
+    var runId = (state.testRunId = (state.testRunId || 0) + 1);
+    state.testAbort = controller;
     state.testingActive = true;
     var testBtn = $('#p-fetch-test');
     testBtn.textContent = t('providers.testStop');
@@ -899,14 +928,19 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     var index = 0;
 
     async function worker() {
-      while (index < targets.length && state.testingActive) {
+      while (index < targets.length && state.testingActive && !controller.signal.aborted) {
         var m = targets[index++];
         state.testResults[m] = { testing: true };
         renderFetched();
         try {
           var res = await api('/admin/api/providers/test-model', {
-            body: { id: provId, protocol: protocol, baseUrl: baseUrl, apiKey: apiKey, model: m }
+            body: { id: provId, protocol: protocol, baseUrl: baseUrl, apiKey: apiKey, model: m },
+            signal: controller.signal
           });
+          if (controller.signal.aborted || !state.testingActive) {
+            if (state.testResults[m] && state.testResults[m].testing) delete state.testResults[m];
+            break;
+          }
           state.testResults[m] = res;
           if (res.ok) {
             okCount++;
@@ -918,11 +952,15 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
             failCount++;
           }
         } catch (e) {
+          if ((e && e.name === 'AbortError') || controller.signal.aborted || !state.testingActive) {
+            if (state.testResults[m] && state.testResults[m].testing) delete state.testResults[m];
+            break;
+          }
           state.testResults[m] = { ok: false, status: 0, error: e.message || String(e) };
           failCount++;
         }
         done++;
-        if (state.testingActive) {
+        if (state.testingActive && !controller.signal.aborted) {
           infoSpan.textContent = t('providers.testRunning', { done: done, total: total, ok: okCount, fail: failCount });
           renderFetched();
         }
@@ -935,12 +973,17 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
     }
     await Promise.all(workers);
 
+    if (state.testRunId !== runId) return;
+    var wasAborted = controller.signal.aborted;
     state.testingActive = false;
+    if (state.testAbort === controller) state.testAbort = null;
     testBtn.textContent = t('providers.testModels');
     testBtn.classList.remove('danger');
     renderFetched();
     infoSpan.textContent = t('providers.testDone', { total: done, ok: okCount, fail: failCount });
-    toast(t('providers.testDone', { total: done, ok: okCount, fail: failCount }));
+    if (!wasAborted) {
+      toast(t('providers.testDone', { total: done, ok: okCount, fail: failCount }));
+    }
   });
 
   // 只选可用
@@ -970,9 +1013,8 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
   });
 
   $('#dlg-prov').addEventListener('close', function () {
-    state.testingActive = false;
-    $('#p-fetch-test').textContent = t('providers.testModels');
-    $('#p-fetch-test').classList.remove('danger');
+    stopModelTest();
+    if (state.fetchAbort) { try { state.fetchAbort.abort(); } catch (e) {} state.fetchAbort = null; }
   });
 
   // ---- 分组 (Groups) ----
@@ -1296,15 +1338,19 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
       var g = (state.cfg.groups || [])[idx];
       if (g) openGroupDialog(g);
     } else if (b.dataset.groupDel) {
+      if (b.disabled) return;
       var delId = b.dataset.groupDel;
       var gDel = (state.cfg.groups || []).find(function (x) { return x.id === delId; });
       if (!(await showConfirm({ message: t('groups.delConfirm', { name: (gDel && gDel.name) || delId }), danger: true }))) return;
+      b.disabled = true;
       try {
         var res = await api('/admin/api/groups/delete', { body: { id: delId } });
         setCfg(res);
         toast(t('groups.deleted'));
       } catch (err) {
         await showAlert({ message: err.message });
+      } finally {
+        b.disabled = false;
       }
     }
   });
@@ -1901,7 +1947,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
         return;
       }
       if (b.dataset.kcopy) {
-        navigator.clipboard.writeText(b.dataset.kcopy).then(function () { toast(t('header.copied')); });
+        copyToClipboard(b.dataset.kcopy);
         return;
       }
       if (b.dataset.kconfig) {
@@ -2024,11 +2070,7 @@ var state = { cfg: null, keys: [], logOffset: 0, logLimit: 50, logTotal: 0, edit
 
   // 配置弹窗：复制密钥
   $('#kc-copy-btn').addEventListener('click', function () {
-    var raw = state.configRawKey;
-    if (!raw) return;
-    navigator.clipboard.writeText(raw).then(function () {
-      toast(t('header.copied'));
-    });
+    copyToClipboard(state.configRawKey);
   });
 
   // 配置弹窗：切换重置已用额度
